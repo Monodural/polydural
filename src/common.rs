@@ -332,6 +332,7 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.pipeline);
+            
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));           
             render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             render_pass.draw(0..self.num_vertices, 0..1);
