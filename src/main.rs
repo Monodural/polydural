@@ -20,6 +20,7 @@ fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>) -> Vec<common:
 
 fn main(){
     let vertex_data_cube_1 = create_vertices(vertex_data::cube_positions(), vertex_data::cube_normals());
+    let vertex_data_cube_2 = create_vertices(vertex_data::cube_positions(), vertex_data::cube_normals());
     let light_data = common::light([1.0,0.0,0.0], [1.0, 1.0, 0.0], 0.1, 0.6, 0.3, 30.0);
-    common::run(&vertex_data_cube_1, light_data, "Polydural");
+    common::run(/*&vertex_data_cube_1, */light_data, "Polydural");
 }

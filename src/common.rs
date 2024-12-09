@@ -345,11 +345,14 @@ impl State {
     }
 }
 
-pub fn run(vertex_data: &Vec<Vertex>, light_data: Light, title: &str) {
+pub fn run(light_data: Light, title: &str) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title(title);
+
+    // the cube data sent to the renderer
+    let vertex_data: Vec<Vertex> = Vec::with_capacity(0).to_vec();
 
     let mut state = pollster::block_on(State::new(&window, &vertex_data, light_data));    
     let render_start_time = std::time::Instant::now();
