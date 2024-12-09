@@ -342,7 +342,17 @@ impl State {
                 self.game_data.camera_position[2] -= 0.1 * right[2];
             }
         }
-        
+        if let Some(is_pressed) = keys_down.get("right") {
+            if is_pressed == &true {
+                self.game_data.camera_rotation[1] += 0.02;
+            }
+        }
+        if let Some(is_pressed) = keys_down.get("left") {
+            if is_pressed == &true {
+                self.game_data.camera_rotation[1] -= 0.02;
+            }
+        }
+
         let up_direction = cgmath::Vector3::unit_y();
         let (view_mat, project_mat, _) = transforms::create_view_rotation(
             self.game_data.camera_position, self.game_data.camera_rotation[1], self.game_data.camera_rotation[0], 
@@ -478,6 +488,8 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
                                         &VirtualKeyCode::S => { keys_down.insert("s", true); }
                                         &VirtualKeyCode::D => { keys_down.insert("d", true); }
                                         &VirtualKeyCode::Space => { keys_down.insert("space", true); }
+                                        &VirtualKeyCode::Right => { keys_down.insert("right", true); }
+                                        &VirtualKeyCode::Left => { keys_down.insert("left", true); }
                                         _ => {}
                                     }
                                 }
@@ -488,6 +500,8 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
                                         &VirtualKeyCode::S => { keys_down.insert("s", false); }
                                         &VirtualKeyCode::D => { keys_down.insert("d", false); }
                                         &VirtualKeyCode::Space => { keys_down.insert("space", false); }
+                                        &VirtualKeyCode::Right => { keys_down.insert("right", false); }
+                                        &VirtualKeyCode::Left => { keys_down.insert("left", false); }
                                         _ => {}
                                     }
                                 }
