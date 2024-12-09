@@ -1,5 +1,5 @@
 use std:: {iter, mem, vec };
-use cgmath::{ Matrix, Matrix4, SquareMatrix };
+use cgmath::{ Matrix, Matrix4, SquareMatrix, Point3 };
 //use futures::sink::Buffer;
 use wgpu::{util::DeviceExt, BindGroup};
 use winit::{
@@ -8,6 +8,7 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 use bytemuck:: {Pod, Zeroable, cast_slice};
+use std::collections::HashMap;
 
 #[path="../src/transforms.rs"]
 mod transforms;
@@ -18,12 +19,14 @@ const IS_PERSPECTIVE:bool = true;
 pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
+    pub camera_position: Point3<f32>,
 }
 impl GameData {
     pub fn new() -> Self {
         GameData {
             objects: Vec::new(),
             positions: Vec::new(),
+            camera_position: (5.0, 5.0, 5.0).into(),
         }
     }
 
@@ -89,7 +92,6 @@ struct State {
     vertex_buffers: Vec<wgpu::Buffer>,
     uniform_bind_groups: Vec<wgpu::BindGroup>,
     vertex_uniform_buffers: Vec<wgpu::Buffer>,
-    view_mat: Matrix4<f32>,
     project_mat: Matrix4<f32>,
     num_vertices: Vec<u32>,
     game_data: GameData
@@ -176,7 +178,7 @@ impl State {
         let look_direction = (0.0, 0.0, 0.0).into();
         let up_direction = cgmath::Vector3::unit_y();
         
-        let (view_mat, project_mat, _) = transforms::create_view_projection(camera_position, look_direction, up_direction, 
+        let (_, project_mat, _) = transforms::create_view_projection(camera_position, look_direction, up_direction, 
             init.config.width as f32 / init.config.height as f32, IS_PERSPECTIVE);
 
         let uniform_bind_group_layout = init.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
@@ -277,7 +279,6 @@ impl State {
             vertex_buffers,
             uniform_bind_groups,
             vertex_uniform_buffers,
-            view_mat,
             project_mat,
             num_vertices,
             game_data
@@ -300,10 +301,37 @@ impl State {
         false
     }
 
-    fn update(&mut self, dt: std::time::Duration) {
+    fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>) {
+        if let Some(is_pressed) = keys_down.get("w") {
+            if is_pressed == &true {
+                self.game_data.camera_position[2] -= 0.1;
+            }
+        }
+        if let Some(is_pressed) = keys_down.get("s") {
+            if is_pressed == &true {
+                self.game_data.camera_position[2] += 0.1;
+            }
+        }
+        if let Some(is_pressed) = keys_down.get("a") {
+            if is_pressed == &true {
+                self.game_data.camera_position[0] -= 0.1;
+            }
+        }
+        if let Some(is_pressed) = keys_down.get("d") {
+            if is_pressed == &true {
+                self.game_data.camera_position[0] += 0.1;
+            }
+        }
+
+        let camera_position = self.game_data.camera_position;
+        let look_direction = (0.0, 0.0, 0.0).into();
+        let up_direction = cgmath::Vector3::unit_y();
+        let (view_mat, project_mat, _) = transforms::create_view_projection(camera_position, look_direction, up_direction, 
+            self.init.config.width as f32 / self.init.config.height as f32, IS_PERSPECTIVE);
+
         // update uniform buffer
         let _dt = ANIMATION_SPEED * dt.as_secs_f32(); 
-        let view_project_mat = self.project_mat * self.view_mat;
+        let view_project_mat = project_mat * view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
 
         for i in 0..self.game_data.objects.len() {
@@ -400,7 +428,12 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
     let mut state = pollster::block_on(State::new(&window, game_data, light_data));    
     let render_start_time = std::time::Instant::now();
 
-    let mut keys_down: Vec<VirtualKeyCode> = Vec::new();
+    let mut keys_down: HashMap<&str, bool> = HashMap::new();
+    keys_down.insert("w", false);
+    keys_down.insert("a", false);
+    keys_down.insert("s", false);
+    keys_down.insert("d", false);
+    keys_down.insert("space", false);
 
     event_loop.run(move |event, _, control_flow| {
         match event {
@@ -410,9 +443,8 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
             } if window_id == window.id() => {
                 if !state.input(event) {
                     match event {
-                        /*WindowEvent::KeyboardInput {
-                            input:
-                                KeyboardInput {
+                        WindowEvent::KeyboardInput {
+                            input: KeyboardInput {
                                     state: key_state,
                                     virtual_keycode: Some(keycode),
                                     ..
@@ -421,22 +453,27 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
                         } => {
                             match key_state {
                                 ElementState::Pressed => {
-                                    // Handle key press
-                                    println!("Key Pressed: {:?}", keycode);
-                                    keys_down.insert(keycode);
-                                    
-                                    // Example: React to a specific key
-                                    if keycode == &VirtualKeyCode::W {
-                                        println!("Move forward");
+                                    match &keycode {
+                                        &VirtualKeyCode::W => { keys_down.insert("w", true); }
+                                        &VirtualKeyCode::A => { keys_down.insert("a", true); }
+                                        &VirtualKeyCode::S => { keys_down.insert("s", true); }
+                                        &VirtualKeyCode::D => { keys_down.insert("d", true); }
+                                        &VirtualKeyCode::Space => { keys_down.insert("space", true); }
+                                        _ => {}
                                     }
                                 }
                                 ElementState::Released => {
-                                    // Handle key release
-                                    println!("Key Released: {:?}", keycode);
-                                    keys_down.remove(keycode);
+                                    match &keycode {
+                                        &VirtualKeyCode::W => { keys_down.insert("w", false); }
+                                        &VirtualKeyCode::A => { keys_down.insert("a", false); }
+                                        &VirtualKeyCode::S => { keys_down.insert("s", false); }
+                                        &VirtualKeyCode::D => { keys_down.insert("d", false); }
+                                        &VirtualKeyCode::Space => { keys_down.insert("space", false); }
+                                        _ => {}
+                                    }
                                 }
                             }
-                        }*/
+                        }
                         WindowEvent::CloseRequested {} => *control_flow = ControlFlow::Exit,
                         WindowEvent::Resized(physical_size) => {
                             state.resize(*physical_size);
@@ -451,7 +488,7 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
             Event::RedrawRequested(_) => {
                 let now = std::time::Instant::now();
                 let dt = now - render_start_time;
-                state.update(dt);
+                state.update(dt, &keys_down);
 
                 match state.render() {
                     Ok(_) => {}

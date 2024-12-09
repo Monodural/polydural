@@ -1,7 +1,8 @@
 mod common;
 mod vertex_data;
 mod transforms;
-//mod objects;
+mod world;
+mod chunk;
 
 fn vertex(p:[i8; 3], n: [i8; 3], c: [f32; 3]) -> common::Vertex {
     return common::Vertex {
