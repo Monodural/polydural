@@ -1,6 +1,7 @@
 use std:: {iter, mem };
 use cgmath::{ Matrix, Matrix4, SquareMatrix };
-use wgpu::util::DeviceExt;
+use futures::sink::Buffer;
+use wgpu::{util::DeviceExt, BindGroup};
 use winit::{
     event::*,
     window::Window,
@@ -16,16 +17,19 @@ const IS_PERSPECTIVE:bool = true;
 
 pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
+    pub positions: Vec<(f32, f32, f32)>,
 }
 impl GameData {
     pub fn new() -> Self {
         GameData {
             objects: Vec::new(),
+            positions: Vec::new(),
         }
     }
 
-    pub fn add_object(&mut self, item: Vec<Vertex>) {
+    pub fn add_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32)) {
         self.objects.push(item);
+        self.positions.push(position);
     }
 }
 
@@ -80,32 +84,20 @@ impl Vertex {
 struct State {
     init: transforms::InitWgpu,
     pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
-    uniform_bind_group:wgpu::BindGroup,
-    vertex_uniform_buffer: wgpu::Buffer,
+    vertex_buffers: Vec<wgpu::Buffer>,
+    uniform_bind_groups: Vec<wgpu::BindGroup>,
+    vertex_uniform_buffers: Vec<wgpu::Buffer>,
     view_mat: Matrix4<f32>,
     project_mat: Matrix4<f32>,
-    num_vertices: u32,
+    num_vertices: Vec<u32>,
+    game_data: GameData
 }
 
 impl State {
-    async fn new(window: &Window, game_data: GameData, light_data: Light) -> Self {        
-        let init =  transforms::InitWgpu::init_wgpu(window).await;
-
-        let shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
-            //source: wgpu::ShaderSource::Wgsl(include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/examples/ch06/line3d.wgsl")).into()),
-        });
-
-        // uniform data
-        let camera_position = (3.0, 1.5, 3.0).into();
-        let look_direction = (0.0,0.0,0.0).into();
-        let up_direction = cgmath::Vector3::unit_y();
-        
-        let (view_mat, project_mat, _) = transforms::create_view_projection(camera_position, look_direction, up_direction, 
-            init.config.width as f32 / init.config.height as f32, IS_PERSPECTIVE);
-        
+    fn create_object(
+        game_data: &GameData, init: &transforms::InitWgpu, 
+        camera_position: cgmath::Point3<f32>, light_data: Light, 
+        uniform_bind_group_layout: &wgpu::BindGroupLayout, i: usize) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -139,6 +131,52 @@ impl State {
 
         // store light parameters
         init.queue.write_buffer(&light_uniform_buffer, 0, bytemuck::cast_slice(&[light_data]));
+
+        let uniform_bind_group = init.device.create_bind_group(&wgpu::BindGroupDescriptor{
+            layout: &uniform_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: vertex_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: fragment_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: light_uniform_buffer.as_entire_binding(),
+                },
+            ],
+            label: Some("Uniform Bind Group"),
+        });
+
+        let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: cast_slice(&game_data.objects[i]),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        let num_vertices = game_data.objects[i].len() as u32;
+
+        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
+    }
+
+    async fn new(window: &Window, game_data: GameData, light_data: Light) -> Self {        
+        let init =  transforms::InitWgpu::init_wgpu(window).await;
+
+        let shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+            //source: wgpu::ShaderSource::Wgsl(include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/examples/ch06/line3d.wgsl")).into()),
+        });
+
+        // uniform data
+        let camera_position = (5.0, 5.0, 5.0).into();
+        let look_direction = (0.0, 0.0, 0.0).into();
+        let up_direction = cgmath::Vector3::unit_y();
+        
+        let (view_mat, project_mat, _) = transforms::create_view_projection(camera_position, look_direction, up_direction, 
+            init.config.width as f32 / init.config.height as f32, IS_PERSPECTIVE);
 
         let uniform_bind_group_layout = init.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
             entries: &[
@@ -174,25 +212,6 @@ impl State {
                 }
             ],
             label: Some("Uniform Bind Group Layout"),
-        });
-
-        let uniform_bind_group = init.device.create_bind_group(&wgpu::BindGroupDescriptor{
-            layout: &uniform_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: vertex_uniform_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: fragment_uniform_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: light_uniform_buffer.as_entire_binding(),
-                },
-            ],
-            label: Some("Uniform Bind Group"),
         });
 
         let pipeline_layout = init.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -238,29 +257,29 @@ impl State {
             multiview: None
         });
 
-        let vertex_buffer1 = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer 1"),
-            contents: cast_slice(&game_data.objects[0]),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        let num_vertices1 = game_data.objects[0].len() as u32;
+        let mut vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
+        let mut num_vertices: Vec<u32> = Vec::new();
+        let mut uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
+        let mut vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
 
-        let vertex_buffer2 = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer 2"),
-            contents: cast_slice(&game_data.objects[1]),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        let num_vertices2 = game_data.objects[1].len() as u32;
+        for i in 0..game_data.objects.len() {
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object(&game_data, &init, camera_position, light_data, &uniform_bind_group_layout, i);
+            vertex_buffers.push(vertex_buffer);
+            num_vertices.push(num_vertices_);
+            uniform_bind_groups.push(uniform_bind_group);
+            vertex_uniform_buffers.push(vertex_uniform_buffer);
+        }
 
         Self {
             init,
             pipeline,
-            vertex_buffer,
-            uniform_bind_group,
-            vertex_uniform_buffer,
+            vertex_buffers,
+            uniform_bind_groups,
+            vertex_uniform_buffers,
             view_mat,
             project_mat,
             num_vertices,
+            game_data
         }
     }
 
@@ -283,18 +302,20 @@ impl State {
     fn update(&mut self, dt: std::time::Duration) {
         // update uniform buffer
         let dt = ANIMATION_SPEED * dt.as_secs_f32(); 
-        let model_mat = transforms::create_transforms([0.0,0.0,0.0], [dt.sin(), dt.cos(), 0.0], [1.0, 1.0, 1.0]);
         let view_project_mat = self.project_mat * self.view_mat;
-
-        let normal_mat = (model_mat.invert().unwrap()).transpose();
-       
-        let model_ref:&[f32; 16] = model_mat.as_ref();
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
-        let normal_ref:&[f32; 16] = normal_mat.as_ref();
-        
-        self.init.queue.write_buffer(&self.vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
-        self.init.queue.write_buffer(&self.vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
-        self.init.queue.write_buffer(&self.vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
+
+        for i in 0..self.game_data.objects.len() {
+            let position = self.game_data.positions[i];
+            let model_mat = transforms::create_transforms([position.0, position.1, position.2], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]);
+            let normal_mat = (model_mat.invert().unwrap()).transpose();
+            let model_ref:&[f32; 16] = model_mat.as_ref();
+            let normal_ref:&[f32; 16] = normal_mat.as_ref();
+
+            self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+            self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
+            self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
+        }
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -355,9 +376,11 @@ impl State {
 
             render_pass.set_pipeline(&self.pipeline);
             
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));           
-            render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-            render_pass.draw(0..self.num_vertices, 0..1);
+            for i in 0..self.game_data.objects.len() {
+                render_pass.set_vertex_buffer(0, self.vertex_buffers[i].slice(..));           
+                render_pass.set_bind_group(0, &self.uniform_bind_groups[i], &[]);
+                render_pass.draw(0..self.num_vertices[i], 0..1);
+            }
         }
 
         self.init.queue.submit(iter::once(encoder.finish()));
@@ -372,9 +395,6 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title(title);
-
-    // the cube data sent to the renderer
-    let vertex_data: Vec<Vertex> = game_data.objects[0].clone();
 
     let mut state = pollster::block_on(State::new(&window, game_data, light_data));    
     let render_start_time = std::time::Instant::now();

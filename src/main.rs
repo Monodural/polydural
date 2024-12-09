@@ -23,10 +23,14 @@ fn main(){
 
     let vertex_data_cube_1 = create_vertices(vertex_data::cube_positions(), vertex_data::cube_normals());
     let vertex_data_cube_2 = create_vertices(vertex_data::cube_positions(), vertex_data::cube_normals());
+    let vertex_data_cube_3 = create_vertices(vertex_data::cube_positions(), vertex_data::cube_normals());
+    let vertex_data_cube_4 = create_vertices(vertex_data::cube_positions(), vertex_data::cube_normals());
 
-    game_data.add_object(vertex_data_cube_1);
-    game_data.add_object(vertex_data_cube_2);
+    game_data.add_object(vertex_data_cube_1, (-1.5, 1.5, 0.0));
+    game_data.add_object(vertex_data_cube_2, (-1.5, -1.5, 0.0));
+    game_data.add_object(vertex_data_cube_3, (1.5, -1.5, 0.0));
+    game_data.add_object(vertex_data_cube_4, (1.5, 1.5, 0.0));
 
-    let light_data = common::light([1.0,0.0,0.0], [1.0, 1.0, 0.0], 0.1, 0.6, 0.3, 30.0);
+    let light_data = common::light([0.3,0.7,0.2], [1.0, 1.0, 0.0], 0.05, 0.6, 0.3, 30.0);
     common::run(/*&vertex_data_cube_1, */game_data, light_data, "Polydural");
 }
