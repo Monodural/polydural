@@ -14,6 +14,21 @@ mod transforms;
 const ANIMATION_SPEED:f32 = 1.0;
 const IS_PERSPECTIVE:bool = true;
 
+pub struct GameData {
+    pub objects: Vec<Vec<Vertex>>,
+}
+impl GameData {
+    pub fn new() -> Self {
+        GameData {
+            objects: Vec::new(),
+        }
+    }
+
+    pub fn add_object(&mut self, item: Vec<Vertex>) {
+        self.objects.push(item);
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Light {
@@ -74,7 +89,7 @@ struct State {
 }
 
 impl State {
-    async fn new(window: &Window, vertex_data: &Vec<Vertex>, light_data: Light) -> Self {        
+    async fn new(window: &Window, game_data: GameData, light_data: Light) -> Self {        
         let init =  transforms::InitWgpu::init_wgpu(window).await;
 
         let shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -223,12 +238,19 @@ impl State {
             multiview: None
         });
 
-        let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: cast_slice(vertex_data),
+        let vertex_buffer1 = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer 1"),
+            contents: cast_slice(&game_data.objects[0]),
             usage: wgpu::BufferUsages::VERTEX,
         });
-        let num_vertices = vertex_data.len() as u32;
+        let num_vertices1 = game_data.objects[0].len() as u32;
+
+        let vertex_buffer2 = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer 2"),
+            contents: cast_slice(&game_data.objects[1]),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        let num_vertices2 = game_data.objects[1].len() as u32;
 
         Self {
             init,
@@ -345,16 +367,16 @@ impl State {
     }
 }
 
-pub fn run(light_data: Light, title: &str) {
+pub fn run(game_data: GameData, light_data: Light, title: &str) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title(title);
 
     // the cube data sent to the renderer
-    let vertex_data: Vec<Vertex> = Vec::with_capacity(0).to_vec();
+    let vertex_data: Vec<Vertex> = game_data.objects[0].clone();
 
-    let mut state = pollster::block_on(State::new(&window, &vertex_data, light_data));    
+    let mut state = pollster::block_on(State::new(&window, game_data, light_data));    
     let render_start_time = std::time::Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
