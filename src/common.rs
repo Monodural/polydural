@@ -1,6 +1,6 @@
-use std:: {iter, mem };
+use std:: {iter, mem, vec };
 use cgmath::{ Matrix, Matrix4, SquareMatrix };
-use futures::sink::Buffer;
+//use futures::sink::Buffer;
 use wgpu::{util::DeviceExt, BindGroup};
 use winit::{
     event::*,
@@ -60,18 +60,20 @@ pub fn light(c:[f32; 3], sc:[f32;3], ai: f32, di: f32, si: f32, ss: f32) -> Ligh
 pub struct Vertex {
     pub position: [f32; 4],
     pub normal: [f32; 4],
+    pub color: [f32; 4],
 }
 
 #[allow(dead_code)]
-pub fn vertex(p:[f32;3], n:[f32; 3]) -> Vertex {
+pub fn vertex(p:[f32;3], n:[f32; 3], c:[f32; 3]) -> Vertex {
     Vertex {
         position: [p[0], p[1], p[2], 1.0],
         normal: [n[0], n[1], n[2], 1.0],
+        color: [c[0], c[1], c[2], 1.0],
     }
 }
 
 impl Vertex {
-    const ATTRIBUTES: [wgpu::VertexAttribute; 2] = wgpu::vertex_attr_array![0=>Float32x4, 1=>Float32x4];
+    const ATTRIBUTES: [wgpu::VertexAttribute; 3] = wgpu::vertex_attr_array![0=>Float32x4, 1=>Float32x4, 2=>Float32x4];
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
             array_stride: mem::size_of::<Vertex>() as wgpu::BufferAddress,
@@ -167,7 +169,6 @@ impl State {
         let shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
-            //source: wgpu::ShaderSource::Wgsl(include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/examples/ch06/line3d.wgsl")).into()),
         });
 
         // uniform data
@@ -301,7 +302,7 @@ impl State {
 
     fn update(&mut self, dt: std::time::Duration) {
         // update uniform buffer
-        let dt = ANIMATION_SPEED * dt.as_secs_f32(); 
+        let _dt = ANIMATION_SPEED * dt.as_secs_f32(); 
         let view_project_mat = self.project_mat * self.view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
 
@@ -399,6 +400,8 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
     let mut state = pollster::block_on(State::new(&window, game_data, light_data));    
     let render_start_time = std::time::Instant::now();
 
+    let mut keys_down: Vec<VirtualKeyCode> = Vec::new();
+
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::WindowEvent {
@@ -407,16 +410,34 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
             } if window_id == window.id() => {
                 if !state.input(event) {
                     match event {
-                        WindowEvent::CloseRequested
-                        | WindowEvent::KeyboardInput {
+                        /*WindowEvent::KeyboardInput {
                             input:
                                 KeyboardInput {
-                                    state: ElementState::Pressed,
-                                    virtual_keycode: Some(VirtualKeyCode::Escape),
+                                    state: key_state,
+                                    virtual_keycode: Some(keycode),
                                     ..
                                 },
                             ..
-                        } => *control_flow = ControlFlow::Exit,
+                        } => {
+                            match key_state {
+                                ElementState::Pressed => {
+                                    // Handle key press
+                                    println!("Key Pressed: {:?}", keycode);
+                                    keys_down.insert(keycode);
+                                    
+                                    // Example: React to a specific key
+                                    if keycode == &VirtualKeyCode::W {
+                                        println!("Move forward");
+                                    }
+                                }
+                                ElementState::Released => {
+                                    // Handle key release
+                                    println!("Key Released: {:?}", keycode);
+                                    keys_down.remove(keycode);
+                                }
+                            }
+                        }*/
+                        WindowEvent::CloseRequested {} => *control_flow = ControlFlow::Exit,
                         WindowEvent::Resized(physical_size) => {
                             state.resize(*physical_size);
                         }
