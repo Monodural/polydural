@@ -1,5 +1,5 @@
 use std:: {iter, mem, vec };
-use cgmath::{ Matrix, Matrix4, SquareMatrix, Point3 };
+use cgmath::*;
 //use futures::sink::Buffer;
 use wgpu::{util::DeviceExt, BindGroup};
 use winit::{
@@ -20,13 +20,15 @@ pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
     pub camera_position: Point3<f32>,
+    pub camera_rotation: Point3<f32>,
 }
 impl GameData {
     pub fn new() -> Self {
         GameData {
             objects: Vec::new(),
             positions: Vec::new(),
-            camera_position: (5.0, 5.0, 5.0).into(),
+            camera_position: (-10.0, 5.0, 0.0).into(),
+            camera_rotation: (0.0, 0.0, 0.0).into(),
         }
     }
 
@@ -174,11 +176,10 @@ impl State {
         });
 
         // uniform data
-        let camera_position = (5.0, 5.0, 5.0).into();
         let look_direction = (0.0, 0.0, 0.0).into();
         let up_direction = cgmath::Vector3::unit_y();
         
-        let (_, project_mat, _) = transforms::create_view_projection(camera_position, look_direction, up_direction, 
+        let (_, project_mat, _) = transforms::create_view_projection(game_data.camera_position, look_direction, up_direction, 
             init.config.width as f32 / init.config.height as f32, IS_PERSPECTIVE);
 
         let uniform_bind_group_layout = init.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
@@ -266,7 +267,7 @@ impl State {
         let mut vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
 
         for i in 0..game_data.objects.len() {
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object(&game_data, &init, camera_position, light_data, &uniform_bind_group_layout, i);
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object(&game_data, &init, game_data.camera_position, light_data, &uniform_bind_group_layout, i);
             vertex_buffers.push(vertex_buffer);
             num_vertices.push(num_vertices_);
             uniform_bind_groups.push(uniform_bind_group);
@@ -302,32 +303,50 @@ impl State {
     }
 
     fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>) {
+        let forward = Vector3::new(
+            self.game_data.camera_rotation[1].cos() * self.game_data.camera_rotation[0].cos(),
+            self.game_data.camera_rotation[0].sin(),
+            self.game_data.camera_rotation[1].sin() * self.game_data.camera_rotation[0].cos(),
+        ).normalize();
+        let right = Vector3::new(
+            self.game_data.camera_rotation[1].sin(),
+            0.0,
+            -self.game_data.camera_rotation[1].cos(),
+        ).normalize();
+
         if let Some(is_pressed) = keys_down.get("w") {
             if is_pressed == &true {
-                self.game_data.camera_position[2] -= 0.1;
+                self.game_data.camera_position[0] += 0.1 * forward[0];
+                self.game_data.camera_position[1] += 0.1 * forward[1];
+                self.game_data.camera_position[2] += 0.1 * forward[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("s") {
             if is_pressed == &true {
-                self.game_data.camera_position[2] += 0.1;
+                self.game_data.camera_position[0] -= 0.1 * forward[0];
+                self.game_data.camera_position[1] -= 0.1 * forward[1];
+                self.game_data.camera_position[2] -= 0.1 * forward[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("a") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] -= 0.1;
+                self.game_data.camera_position[0] += 0.1 * right[0];
+                self.game_data.camera_position[1] += 0.1 * right[1];
+                self.game_data.camera_position[2] += 0.1 * right[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("d") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] += 0.1;
+                self.game_data.camera_position[0] -= 0.1 * right[0];
+                self.game_data.camera_position[1] -= 0.1 * right[1];
+                self.game_data.camera_position[2] -= 0.1 * right[2];
             }
         }
-
-        let camera_position = self.game_data.camera_position;
-        let look_direction = (0.0, 0.0, 0.0).into();
+        
         let up_direction = cgmath::Vector3::unit_y();
-        let (view_mat, project_mat, _) = transforms::create_view_projection(camera_position, look_direction, up_direction, 
-            self.init.config.width as f32 / self.init.config.height as f32, IS_PERSPECTIVE);
+        let (view_mat, project_mat, _) = transforms::create_view_rotation(
+            self.game_data.camera_position, self.game_data.camera_rotation[1], self.game_data.camera_rotation[0], 
+            up_direction, self.init.config.width as f32 / self.init.config.height as f32, IS_PERSPECTIVE);
 
         // update uniform buffer
         let _dt = ANIMATION_SPEED * dt.as_secs_f32(); 
