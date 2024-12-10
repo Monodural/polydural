@@ -99,12 +99,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     normals.push([1, 0, 0]);
                     normals.push([1, 0, 0]);
 
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[1] {
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
@@ -128,12 +128,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     normals.push([-1, 0, 0]);
                     normals.push([-1, 0, 0]);
 
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[2] {
                     vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
@@ -157,12 +157,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     normals.push([0, 1, 0]);
                     normals.push([0, 1, 0]);
 
-                    colors.push([0.0, 1.0, 0.0]);
-                    colors.push([0.0, 1.0, 0.0]);
-                    colors.push([0.0, 1.0, 0.0]);
-                    colors.push([0.0, 1.0, 0.0]);
-                    colors.push([0.0, 1.0, 0.0]);
-                    colors.push([0.0, 1.0, 0.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[3] {
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
@@ -186,12 +186,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     normals.push([0, -1, 0]);
                     normals.push([0, -1, 0]);
 
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[4] {
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
@@ -215,12 +215,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     normals.push([0, 0, 1]);
                     normals.push([0, 0, 1]);
 
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[5] {
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
@@ -244,12 +244,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     normals.push([0, 0, -1]);
                     normals.push([0, 0, -1]);
 
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.35, 0.13, 0.1]);
-                    colors.push([0.16, 0.1, 0.07]);
-                    colors.push([0.35, 0.13, 0.1]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
+                    colors.push([1.0, 1.0, 1.0]);
                 }
             }
         }
