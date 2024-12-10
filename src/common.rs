@@ -302,7 +302,7 @@ impl State {
         false
     }
 
-    fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>) {
+    fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>, mouse_movement: &Vec<f64>) {
         let forward = Vector3::new(
             self.game_data.camera_rotation[1].cos() * self.game_data.camera_rotation[0].cos(),
             self.game_data.camera_rotation[0].sin(),
@@ -352,6 +352,10 @@ impl State {
                 self.game_data.camera_rotation[1] -= 0.02;
             }
         }
+
+        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * 0.001;
+        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * 0.001;
+        self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2, std::f32::consts::FRAC_PI_2);
 
         let up_direction = cgmath::Vector3::unit_y();
         let (view_mat, project_mat, _) = transforms::create_view_rotation(
@@ -454,6 +458,11 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title(title);
 
+    if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
+        eprintln!("Failed to lock the cursor: {:?}", err);
+    }
+    window.set_cursor_visible(false);
+
     let mut state = pollster::block_on(State::new(&window, game_data, light_data));    
     let render_start_time = std::time::Instant::now();
 
@@ -463,6 +472,8 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
     keys_down.insert("s", false);
     keys_down.insert("d", false);
     keys_down.insert("space", false);
+    let mut mouse_movement: Vec<f64> = vec![0.0, 0.0];
+    let mut mouse_locked = true;
 
     event_loop.run(move |event, _, control_flow| {
         match event {
@@ -490,6 +501,13 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
                                         &VirtualKeyCode::Space => { keys_down.insert("space", true); }
                                         &VirtualKeyCode::Right => { keys_down.insert("right", true); }
                                         &VirtualKeyCode::Left => { keys_down.insert("left", true); }
+                                        &VirtualKeyCode::Escape => {
+                                            mouse_locked = false;
+                                            if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
+                                                eprintln!("Failed to unlock the cursor: {:?}", err);
+                                            }
+                                            window.set_cursor_visible(true);
+                                        }
                                         _ => {}
                                     }
                                 }
@@ -507,6 +525,44 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
                                 }
                             }
                         }
+                        WindowEvent::CursorMoved { position, .. } => {
+                            if mouse_locked {
+                                let window_size = window.inner_size();
+                                let center_x = window_size.width as f64 / 2.0;
+                                let center_y = window_size.height as f64 / 2.0;
+                                mouse_movement[0] = center_x - position.x;
+                                mouse_movement[1] = center_y - position.y;
+                                window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
+                            } else {
+                                mouse_movement[0] = 0.0;
+                                mouse_movement[1] = 0.0;
+                            }
+                        }
+                        WindowEvent::MouseInput { state, button, .. } => {
+                            match state {
+                                ElementState::Pressed => {
+                                    match button {
+                                        MouseButton::Left => {
+                                            if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
+                                                eprintln!("Failed to lock the cursor: {:?}", err);
+                                            }
+                                            window.set_cursor_visible(false);
+                                            mouse_locked = true;
+                                        }
+                                        MouseButton::Right => {
+                                            return
+                                        }
+                                        MouseButton::Middle => {
+                                            return
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                ElementState::Released => {
+                                    return
+                                }
+                            }
+                        }
                         WindowEvent::CloseRequested {} => *control_flow = ControlFlow::Exit,
                         WindowEvent::Resized(physical_size) => {
                             state.resize(*physical_size);
@@ -521,7 +577,7 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
             Event::RedrawRequested(_) => {
                 let now = std::time::Instant::now();
                 let dt = now - render_start_time;
-                state.update(dt, &keys_down);
+                state.update(dt, &keys_down, &mouse_movement);
 
                 match state.render() {
                     Ok(_) => {}
