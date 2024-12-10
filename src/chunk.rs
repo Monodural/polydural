@@ -70,8 +70,8 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     else { directions.push(false); }
                 }
 
-                let uv_x = block_id as f32 % atlas_width;
-                let uv_y = block_id as f32 % atlas_height;
+                let uv_x = (block_id as f32 % atlas_width).floor();
+                let uv_y = (block_id as f32 / atlas_height).floor();
 
                 let block_position_x = x as i8;
                 let block_position_y = y as i8;
