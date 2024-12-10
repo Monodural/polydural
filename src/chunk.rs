@@ -20,16 +20,20 @@ pub fn generate_chunk() -> Vec<i8> {
     return chunk;
 }
 
-pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[i8; 2]>) {
+pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
     let mut vertices: Vec<[i8; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
-    let mut uvs: Vec<[i8; 2]> = Vec::new();
+    let mut uvs: Vec<[f32; 2]> = Vec::new();
+
+    let atlas_width = 8.0;
+    let atlas_height = 8.0;
 
     for x in 0..32 {
         for y in 0..32 {
             for z in 0..32 {
-                if get_block(&chunk, x, y, z) == 0 { continue; }
+                let block_id = get_block(&chunk, x, y, z);
+                if block_id == 0 { continue; }
 
                 let mut directions = Vec::new();
                 if get_block(&chunk, x + 1, y, z) != 0 {
@@ -66,6 +70,9 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     else { directions.push(false); }
                 }
 
+                let uv_x = block_id as f32 % atlas_width;
+                let uv_y = block_id as f32 % atlas_height;
+
                 let block_position_x = x as i8;
                 let block_position_y = y as i8;
                 let block_position_z = z as i8;
@@ -78,12 +85,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
 
-                    uvs.push([0, 0]);
-                    uvs.push([1, 0]);
-                    uvs.push([0, 1]);
-                    uvs.push([0, 1]);
-                    uvs.push([1, 0]);
-                    uvs.push([1, 1]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
 
                     normals.push([1, 0, 0]);
                     normals.push([1, 0, 0]);
@@ -107,12 +114,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
 
-                    uvs.push([0, 0]);
-                    uvs.push([1, 0]);
-                    uvs.push([0, 1]);
-                    uvs.push([0, 1]);
-                    uvs.push([1, 0]);
-                    uvs.push([1, 1]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
 
                     normals.push([-1, 0, 0]);
                     normals.push([-1, 0, 0]);
@@ -136,12 +143,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
 
-                    uvs.push([0, 0]);
-                    uvs.push([1, 0]);
-                    uvs.push([0, 1]);
-                    uvs.push([0, 1]);
-                    uvs.push([1, 0]);
-                    uvs.push([1, 1]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
 
                     normals.push([0, 1, 0]);
                     normals.push([0, 1, 0]);
@@ -165,12 +172,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
 
-                    uvs.push([0, 0]);
-                    uvs.push([1, 0]);
-                    uvs.push([0, 1]);
-                    uvs.push([0, 1]);
-                    uvs.push([1, 0]);
-                    uvs.push([1, 1]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
 
                     normals.push([0, -1, 0]);
                     normals.push([0, -1, 0]);
@@ -194,12 +201,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
 
-                    uvs.push([0, 0]);
-                    uvs.push([1, 0]);
-                    uvs.push([0, 1]);
-                    uvs.push([0, 1]);
-                    uvs.push([1, 0]);
-                    uvs.push([1, 1]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
 
                     normals.push([0, 0, 1]);
                     normals.push([0, 0, 1]);
@@ -223,12 +230,12 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
 
-                    uvs.push([0, 0]);
-                    uvs.push([1, 0]);
-                    uvs.push([0, 1]);
-                    uvs.push([0, 1]);
-                    uvs.push([1, 0]);
-                    uvs.push([1, 1]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
 
                     normals.push([0, 0, -1]);
                     normals.push([0, 0, -1]);

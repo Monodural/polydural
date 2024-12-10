@@ -6,7 +6,7 @@ mod transforms;
 mod world;
 mod chunk;
 
-fn vertex(p:[i8; 3], n: [i8; 3], c: [f32; 3], u: [i8; 2]) -> common::Vertex {
+fn vertex(p:[i8; 3], n: [i8; 3], c: [f32; 3], u: [f32; 2]) -> common::Vertex {
     return common::Vertex {
         position: [p[0] as f32, p[1] as f32, p[2] as f32, 1.0],
         normal: [n[0] as f32, n[1] as f32, n[2] as f32, 1.0],
@@ -15,7 +15,7 @@ fn vertex(p:[i8; 3], n: [i8; 3], c: [f32; 3], u: [i8; 2]) -> common::Vertex {
     }
 }
 
-fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f32; 3]>, uvs: Vec<[i8; 2]>) -> Vec<common::Vertex> {
+fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f32; 3]>, uvs: Vec<[f32; 2]>) -> Vec<common::Vertex> {
     let mut data:Vec<common::Vertex> = Vec::with_capacity(vertices.len());
     for i in 0..vertices.len() {
         data.push(vertex(vertices[i], normals[i], colors[i], uvs[i]));
