@@ -66,14 +66,16 @@ pub struct Vertex {
     pub position: [f32; 4],
     pub normal: [f32; 4],
     pub color: [f32; 4],
+    pub uv: [f32; 4],
 }
 
 #[allow(dead_code)]
-pub fn vertex(p:[f32;3], n:[f32; 3], c:[f32; 3]) -> Vertex {
+pub fn vertex(p:[f32;3], n:[f32; 3], c:[f32; 3], u:[f32; 2]) -> Vertex {
     Vertex {
         position: [p[0], p[1], p[2], 1.0],
         normal: [n[0], n[1], n[2], 1.0],
         color: [c[0], c[1], c[2], 1.0],
+        uv: [u[0], u[1], 0.0, 0.0],
     }
 }
 
@@ -122,8 +124,8 @@ impl State {
         });
 
         // store light and eye positions
-        let light_position:&[f32; 3] = &Point3::new(0.0, 64.0, 0.0).into();
-        let eye_position:&[f32; 3] = &Point3::new(0.0, 64.0, 0.0).into();
+        let light_position:&[f32; 3] = &Point3::new(-10.0, 64.0, -10.0).into();
+        let eye_position:&[f32; 3] = &Point3::new(-10.0, 64.0, -10.0).into();
         init.queue.write_buffer(&fragment_uniform_buffer, 0, bytemuck::cast_slice(light_position));
         init.queue.write_buffer(&fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
 

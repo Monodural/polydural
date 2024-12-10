@@ -20,10 +20,11 @@ pub fn generate_chunk() -> Vec<i8> {
     return chunk;
 }
 
-pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
+pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[i8; 2]>) {
     let mut vertices: Vec<[i8; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
+    let mut uvs: Vec<[i8; 2]> = Vec::new();
 
     for x in 0..32 {
         for y in 0..32 {
@@ -77,6 +78,13 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
 
+                    uvs.push([1, 0]);
+                    uvs.push([1, 0]);
+                    uvs.push([1, 1]);
+                    uvs.push([1, 1]);
+                    uvs.push([1, 0]);
+                    uvs.push([1, 1]);
+
                     normals.push([1, 0, 0]);
                     normals.push([1, 0, 0]);
                     normals.push([1, 0, 0]);
@@ -98,6 +106,13 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
+
+                    uvs.push([0, 0]);
+                    uvs.push([0, 0]);
+                    uvs.push([0, 1]);
+                    uvs.push([0, 1]);
+                    uvs.push([0, 0]);
+                    uvs.push([0, 1]);
 
                     normals.push([-1, 0, 0]);
                     normals.push([-1, 0, 0]);
@@ -121,6 +136,13 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
 
+                    uvs.push([0, 1]);
+                    uvs.push([1, 1]);
+                    uvs.push([0, 1]);
+                    uvs.push([0, 1]);
+                    uvs.push([1, 1]);
+                    uvs.push([1, 1]);
+
                     normals.push([0, 1, 0]);
                     normals.push([0, 1, 0]);
                     normals.push([0, 1, 0]);
@@ -142,6 +164,13 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
+
+                    uvs.push([0, 0]);
+                    uvs.push([1, 0]);
+                    uvs.push([0, 0]);
+                    uvs.push([0, 0]);
+                    uvs.push([1, 0]);
+                    uvs.push([1, 0]);
 
                     normals.push([0, -1, 0]);
                     normals.push([0, -1, 0]);
@@ -165,6 +194,13 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
 
+                    uvs.push([0, 0]);
+                    uvs.push([1, 0]);
+                    uvs.push([0, 1]);
+                    uvs.push([0, 1]);
+                    uvs.push([1, 0]);
+                    uvs.push([1, 1]);
+
                     normals.push([0, 0, 1]);
                     normals.push([0, 0, 1]);
                     normals.push([0, 0, 1]);
@@ -187,6 +223,13 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
 
+                    uvs.push([1, 0]);
+                    uvs.push([0, 0]);
+                    uvs.push([1, 1]);
+                    uvs.push([1, 1]);
+                    uvs.push([0, 0]);
+                    uvs.push([0, 1]);
+
                     normals.push([0, 0, -1]);
                     normals.push([0, 0, -1]);
                     normals.push([0, 0, -1]);
@@ -205,7 +248,7 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
         }
     }
 
-    return (vertices, normals, colors);
+    return (vertices, normals, colors, uvs);
 }
 
 pub fn get_block(chunk: &Vec<i8>, x: usize, y: usize, z: usize) -> i8 {
