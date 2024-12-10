@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 mod common;
 mod vertex_data;
 mod transforms;
