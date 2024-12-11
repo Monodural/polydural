@@ -32,7 +32,7 @@ fn main(){
     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
     game_data.set_chunk(0, 0, 0, chunk_data);
-    game_data.add_object(vertex_data_chunk.clone(), (0.0, 0.0, 0.0), false);
+    game_data.add_object(vertex_data_chunk.clone(), (0.0, 0.0, 0.0), true);
 
     let chunk_data = chunk::generate_chunk(-1, 0, 0);
     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);

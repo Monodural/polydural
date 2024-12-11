@@ -32,6 +32,14 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
     return chunk;
 }
 
+pub fn set_block(chunk: Vec<i8>, x: i8, y: i8, z: i8, block_type: i8) -> Vec<i8> {
+    if x > 31 || y > 31 || z > 31 { return chunk; }
+    if x < 0 || y < 0 || z < 0 { return chunk; }
+    let mut new_chunk = chunk;
+    new_chunk[(x * 32 * 32 + y * 32 + z) as usize] = block_type;
+    return new_chunk;
+}
+
 pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
     let mut vertices: Vec<[i8; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
@@ -48,38 +56,107 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                 if block_id == 0 { continue; }
 
                 let mut directions = Vec::new();
+
                 if get_block(&chunk, x + 1, y, z) != 0 {
                     directions.push(true)
                 } else {
                     directions.push(false)
                 }
+
                 if x > 0 && get_block(&chunk, x - 1, y, z) != 0 {
                     directions.push(true)
                 } else {
                     if x == 0 { directions.push(true); }
                     else { directions.push(false); }
                 }
+
                 if get_block(&chunk, x, y + 1, z) != 0 {
                     directions.push(true)
                 } else {
                     directions.push(false)
                 }
+
                 if y > 0 && get_block(&chunk, x, y - 1, z) != 0 {
                     directions.push(true)
                 } else {
                     if y == 0 { directions.push(true); }
                     else { directions.push(false); }
                 }
+
                 if get_block(&chunk, x, y, z + 1) != 0 {
                     directions.push(true)
                 } else {
                     directions.push(false)
                 }
+
                 if z > 0 && get_block(&chunk, x, y, z - 1) != 0 {
                     directions.push(true)
                 } else {
                     if z == 0 { directions.push(true); }
                     else { directions.push(false); }
+                }
+
+                if get_block(&chunk, x + 1, y + 1, z) > 0 { // right top (6)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if y > 0 && get_block(&chunk, x + 1, y - 1, z) > 0 { // right bottom (7)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if x > 0 && get_block(&chunk, x - 1, y + 1, z) > 0 { // left top (8)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if x > 0 && y > 0 && get_block(&chunk, x - 1, y - 1, z) > 0 { // left bottom (9)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+
+                if get_block(&chunk, x, y + 1, z + 1) > 0 { // front top (10)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if y > 0 && get_block(&chunk, x, y - 1, z + 1) > 0 { // front bottom (11)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if z > 0 && get_block(&chunk, x, y + 1, z - 1) > 0 { // back top (12)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if z > 0 && y > 0 && get_block(&chunk, x, y - 1, z - 1) > 0 { // back bottom (13)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+
+                if get_block(&chunk, x + 1, y, z + 1) > 0 { // right front (14)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if z > 0 && get_block(&chunk, x + 1, y, z - 1) > 0 { // right back (15)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if x > 0 && get_block(&chunk, x - 1, y , z + 1) > 0 { // left front (16)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if z > 0 && x > 0 && get_block(&chunk, x - 1, y, z - 1) > 0 { // left back (17)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
                 }
 
                 let block_position_x = x as i8;
@@ -110,11 +187,20 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                     normals.push([1, 0, 0]);
                     normals.push([1, 0, 0]);
 
+                    if !directions[7] {
+                        colors.push([1.0, 1.0, 1.0]);
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                     colors.push([1.0, 1.0, 1.0]);
                     colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
+                    if !directions[7] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                     colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[1] {
@@ -141,11 +227,20 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                     normals.push([-1, 0, 0]);
                     normals.push([-1, 0, 0]);
 
+                    if !directions[9] {
+                        colors.push([1.0, 1.0, 1.0]);
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                     colors.push([1.0, 1.0, 1.0]);
                     colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
+                    if !directions[9] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                     colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[2] {
@@ -172,12 +267,33 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                     normals.push([0, 1, 0]);
                     normals.push([0, 1, 0]);
 
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
+                    if !directions[8] && ! directions[10] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
+                    if !directions[6] && ! directions[10] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
+                    if !directions[8] && ! directions[12] {
+                        colors.push([1.0, 1.0, 1.0]);
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
+                    if !directions[6] && ! directions[10] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
+                    if !directions[6] && ! directions[12] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                 }
                 if !directions[3] {
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
@@ -203,12 +319,33 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                     normals.push([0, -1, 0]);
                     normals.push([0, -1, 0]);
 
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
+                    if !directions[9] && !directions[13] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
+                    if !directions[7] && !directions[13] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
+                    if !directions[9] && !directions[11] {
+                        colors.push([1.0, 1.0, 1.0]);
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
+                    if !directions[7] && !directions[13] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
+                    if !directions[7] && !directions[11] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                 }
                 if !directions[4] {
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
@@ -234,11 +371,20 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                     normals.push([0, 0, 1]);
                     normals.push([0, 0, 1]);
 
+                    if !directions[11] {
+                        colors.push([1.0, 1.0, 1.0]);
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                     colors.push([1.0, 1.0, 1.0]);
                     colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
+                    if !directions[11] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                     colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[5] {
@@ -265,11 +411,20 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                     normals.push([0, 0, -1]);
                     normals.push([0, 0, -1]);
 
+                    if !directions[13] {
+                        colors.push([1.0, 1.0, 1.0]);
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                     colors.push([1.0, 1.0, 1.0]);
                     colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
+                    if !directions[13] {
+                        colors.push([1.0, 1.0, 1.0]);
+                    } else  {
+                        colors.push([0.5, 0.5, 0.5]);
+                    }
                     colors.push([1.0, 1.0, 1.0]);
                 }
             }
@@ -280,6 +435,6 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
 }
 
 pub fn get_block(chunk: &Vec<i8>, x: usize, y: usize, z: usize) -> i8 {
-    if x > 31 || y > 31 || z > 31 { return 1; }
+    if x > 31 || y > 31 || z > 31 { return -1; } // return block tipe -1 to signal a chunk border
     return chunk[x * 32 * 32 + y * 32 + z];
 }

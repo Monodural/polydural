@@ -13,6 +13,8 @@ use image::GenericImageView;
 use rust_embed::RustEmbed;
 use serde::Deserialize;
 
+use crate::chunk;
+
 #[path="../src/transforms.rs"]
 mod transforms;
 
@@ -444,6 +446,12 @@ impl State {
         let _frame_time = current_time.duration_since(self.previous_frame_time);
         self.previous_frame_time = current_time;
         //println!("{}", 1.0 / frame_time.as_secs_f64());
+
+        if let Some(chunk) = self.game_data.chunks.get(&(0, 0, 0)) {
+            self.game_data.set_chunk(0, 0, 0, chunk::set_block(chunk.clone(), 
+                dt.as_secs_f32().sin().floor() as i8, dt.as_secs_f32().cos().floor() as i8, 
+                (dt.as_secs_f32().sin().floor() + dt.as_secs_f32().cos().floor()) as i8, 0));
+        }
 
         let forward = Vector3::new(
             self.game_data.camera_rotation[1].cos() * self.game_data.camera_rotation[0].cos(),
