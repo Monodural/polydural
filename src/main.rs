@@ -4,6 +4,7 @@ mod common;
 mod transforms;
 mod world;
 mod chunk;
+mod interact;
 
 fn vertex(p:[i8; 3], n: [i8; 3], c: [f32; 3], u: [f32; 2]) -> common::Vertex {
     return common::Vertex {

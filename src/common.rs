@@ -14,7 +14,8 @@ use rust_embed::RustEmbed;
 use serde::Deserialize;
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::chunk;
+//use crate::chunk;
+use crate::interact;
 
 #[path="../src/transforms.rs"]
 mod transforms;
@@ -150,7 +151,7 @@ pub fn vertex(p:[i8;3], n:[i8; 3], c:[f32; 3], u:[f32; 2]) -> Vertex {
     }
 }
 
-fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f32; 3]>, uvs: Vec<[f32; 2]>) -> Vec<Vertex> {
+pub fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f32; 3]>, uvs: Vec<[f32; 2]>) -> Vec<Vertex> {
     let mut data:Vec<Vertex> = Vec::with_capacity(vertices.len());
     for i in 0..vertices.len() {
         data.push(vertex(vertices[i], normals[i], colors[i], uvs[i]));
@@ -585,11 +586,24 @@ impl State {
         false
     }
 
+    fn mouse_input(&mut self, button: i8) {
+        if button == 0 {
+            let (vertex_data_chunk, buffer_index) = interact::break_block(&mut self.game_data);
+            if buffer_index != -1 {
+                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
+                self.vertex_buffers[buffer_index as usize] = vertex_buffer;
+                self.num_vertices[buffer_index as usize] = num_vertices_;
+                self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
+                self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
+            }
+        }
+    }
+
     fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>, mouse_movement: &Vec<f64>) {
         let current_time = std::time::Instant::now();
-        let frame_time = current_time.duration_since(self.previous_frame_time);
+        let _frame_time = current_time.duration_since(self.previous_frame_time);
         self.previous_frame_time = current_time;
-        println!("{}", 1.0 / frame_time.as_secs_f64());
+        //println!("{}", 1.0 / frame_time.as_secs_f64());
 
         /*if let Some(chunk) = self.game_data.chunks.get(&(0, 0, 0)) {
             let x: i8 = self.game_data.rng.gen_range(0..=31);
@@ -798,7 +812,7 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
     }
     window.set_cursor_visible(false);
 
-    let mut state = pollster::block_on(State::new(&window, game_data, light_data));    
+    let mut game_state = pollster::block_on(State::new(&window, game_data, light_data));    
     let render_start_time = std::time::Instant::now();
 
     let mut keys_down: HashMap<&str, bool> = HashMap::new();
@@ -816,7 +830,7 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
                 ref event,
                 window_id,
             } if window_id == window.id() => {
-                if !state.input(event) {
+                if !game_state.input(event) {
                     match event {
                         WindowEvent::KeyboardInput {
                             input: KeyboardInput {
@@ -878,17 +892,20 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
                                 ElementState::Pressed => {
                                     match button {
                                         MouseButton::Left => {
-                                            if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
-                                                eprintln!("Failed to lock the cursor: {:?}", err);
+                                            if mouse_locked == false {
+                                                if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
+                                                    eprintln!("Failed to lock the cursor: {:?}", err);
+                                                }
+                                                window.set_cursor_visible(false);
+                                                mouse_locked = true;
                                             }
-                                            window.set_cursor_visible(false);
-                                            mouse_locked = true;
+                                            game_state.mouse_input(0);
                                         }
                                         MouseButton::Right => {
-                                            return
+                                            game_state.mouse_input(1);
                                         }
                                         MouseButton::Middle => {
-                                            return
+                                            game_state.mouse_input(2);
                                         }
                                         _ => {}
                                     }
@@ -900,10 +917,10 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
                         }
                         WindowEvent::CloseRequested {} => *control_flow = ControlFlow::Exit,
                         WindowEvent::Resized(physical_size) => {
-                            state.resize(*physical_size);
+                            game_state.resize(*physical_size);
                         }
                         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                            state.resize(**new_inner_size);
+                            game_state.resize(**new_inner_size);
                         }
                         _ => {}
                     }
@@ -912,11 +929,11 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
             Event::RedrawRequested(_) => {
                 let now = std::time::Instant::now();
                 let dt = now - render_start_time;
-                state.update(dt, &keys_down, &mouse_movement);
+                game_state.update(dt, &keys_down, &mouse_movement);
 
-                match state.render() {
+                match game_state.render() {
                     Ok(_) => {}
-                    Err(wgpu::SurfaceError::Lost) => state.resize(state.init.size),
+                    Err(wgpu::SurfaceError::Lost) => game_state.resize(game_state.init.size),
                     Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
                     Err(e) => eprintln!("{:?}", e),
                 }

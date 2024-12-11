@@ -435,6 +435,24 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
 }
 
 pub fn get_block(chunk: &Vec<i8>, x: usize, y: usize, z: usize) -> i8 {
-    if x > 31 || y > 31 || z > 31 { return -1; } // return block tipe -1 to signal a chunk border
+    if x > 31 || y > 31 || z > 31 { return -1; } // return block type -1 to signal a chunk border
     return chunk[x * 32 * 32 + y * 32 + z];
+}
+pub fn get_block_global(game_data: &common::GameData, x: f32, y: f32, z: f32) -> i8 {
+    let chunk_position_x: i64 = ((x + 0.5) / 32.0).floor() as i64;
+    let chunk_position_y: i64 = ((y + 0.5) / 32.0).floor() as i64;
+    let chunk_position_z: i64 = ((z + 0.5) / 32.0).floor() as i64;
+
+    let mut local_position_x = ((x + 0.5) % 32.0).floor() as i64;
+    let mut local_position_y = ((y + 0.5) % 32.0).floor() as i64;
+    let mut local_position_z = ((z + 0.5) % 32.0).floor() as i64;
+    if local_position_x < 0 { local_position_x = 32 + local_position_x; }
+    if local_position_y < 0 { local_position_y = 32 + local_position_y; }
+    if local_position_z < 0 { local_position_z = 32 + local_position_z; }
+
+    if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+        return get_block(chunk, local_position_x as usize, local_position_y as usize, local_position_z as usize);
+    } else {
+        return -1;
+    }
 }
