@@ -65,7 +65,8 @@ pub struct GameData {
     pub positions: Vec<(f32, f32, f32)>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
-    pub blocks: Vec<(String, Vec<i8>)>
+    pub blocks: Vec<(String, Vec<i8>)>,
+    pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
 }
 impl GameData {
     pub fn new() -> Self {
@@ -74,8 +75,13 @@ impl GameData {
             positions: Vec::new(),
             camera_position: (-10.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
-            blocks: Vec::new()
+            blocks: Vec::new(),
+            chunks: HashMap::new(),
         }
+    }
+
+    pub fn set_chunk(&mut self, x: i64, y: i64, z: i64, chunk_data: Vec<i8>) {
+        self.chunks.insert((x, y, z), chunk_data);
     }
 
     pub fn add_block(&mut self, block_name: String, sides: Vec<i8>) {
