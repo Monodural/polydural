@@ -111,10 +111,9 @@ impl GameData {
         self.blocks.push((block_name, sides));
     }
 
-    pub fn add_gui_object(&mut self, item: Vec<Vertex>, position: (i64, i64, i64), scale: (f32, f32, f32), active: bool) {
-        let position_new = (position.0 as f32, position.1 as f32, position.2 as f32);
+    pub fn add_gui_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool) {
         self.gui_objects.push(item);
-        self.gui_positions.push(position_new);
+        self.gui_positions.push(position);
         self.gui_scale.push(scale);
         self.gui_active.push(active);
     }
@@ -900,13 +899,18 @@ impl State {
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
 
+        let rotation_x = -self.game_data.camera_rotation.x;
+        let rotation_y = -self.game_data.camera_rotation.y + std::f32::consts::FRAC_PI_2;
+        let rotation_z = -self.game_data.camera_rotation.z;
+        let gui_offset_normal: Matrix4<f32> = transforms::create_transforms(
+            [self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z], 
+            [rotation_x, rotation_y, rotation_z], 
+            [1.0, 1.0, 1.0]);
+
         for i in 0..self.game_data.gui_objects.len() {
-            let position_x = self.game_data.gui_positions[i].0 + self.game_data.camera_position.x + forward.x * 1.0;
-            let position_y = self.game_data.gui_positions[i].1 + self.game_data.camera_position.y + forward.y * 1.0;
-            let position_z = self.game_data.gui_positions[i].2 + self.game_data.camera_position.z + forward.z * 1.0;
-            let rotation_x = -self.game_data.camera_rotation.x;
-            let rotation_y = -self.game_data.camera_rotation.y + std::f32::consts::FRAC_PI_2;
-            let rotation_z = 0.0;
+            let position_x = gui_offset_normal.x.x * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.x * self.game_data.gui_positions[i].1 + forward.x + self.game_data.camera_position.x;
+            let position_y = gui_offset_normal.x.y * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.y * self.game_data.gui_positions[i].1 + forward.y + self.game_data.camera_position.y;
+            let position_z = gui_offset_normal.x.z * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.z * self.game_data.gui_positions[i].1 + forward.z + self.game_data.camera_position.z;
             let model_mat = transforms::create_transforms(
                 [position_x, position_y, position_z], 
                 [rotation_x, rotation_y, rotation_z], 

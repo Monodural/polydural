@@ -29,6 +29,7 @@ fn main(){
     println!("loading model files");
     common::load_block_model_files(&mut game_data);
 
+    // add first 4 chunks
     let chunk_data = chunk::generate_chunk(0, 0, 0, &mut game_data);
     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
@@ -53,13 +54,30 @@ fn main(){
     game_data.set_chunk(-1, 0, -1, chunk_data);
     game_data.add_object(vertex_data_chunk.clone(), (-1, 0, -1), true);
 
+    // add gui elements
     let vertex_data = create_vertices(
         vec![[-1, 1, 1], [1, 1, 1], [1, -1, 1], [-1, 1, 1], [1, -1, 1], [-1, -1, 1]], 
         vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
         vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
         vec![[0.0, 0.0], [0.046, 0.0], [0.046, 0.046], [0.0, 0.0], [0.046, 0.046], [0.0, 0.046]]
     );
-    game_data.add_gui_object(vertex_data.clone(), (0, 0, 0), (0.03, 0.03, 0.03), true);
+    game_data.add_gui_object(vertex_data.clone(), (0.0, 0.0, 0.0), (0.02, 0.02, 0.02), true);
+
+    let vertex_data = create_vertices(
+        vec![[-1, 1, 0], [1, 1, 0], [1, -1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0]], 
+        vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
+        vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
+        vec![[0.007, 0.13], [0.79, 0.13], [0.79, 0.23], [0.007, 0.13], [0.79, 0.23], [0.007, 0.23]]
+    );
+    game_data.add_gui_object(vertex_data.clone(), (0.0, -0.6, 0.0), (0.5, 0.06, 0.06), true);
+
+    let vertex_data = create_vertices(
+        vec![[-1, 1, 0], [1, 1, 0], [1, -1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0]], 
+        vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
+        vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
+        vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]]
+    );
+    game_data.add_gui_object(vertex_data.clone(), (0.0, -0.6, 0.0), (0.04, 0.04, 0.04), true);
 
     let light_data = common::light([1.0,1.0,1.0], [1.0, 1.0, 0.0], 0.05, 0.6, 0.3, 30.0);
     common::run(game_data, light_data, "Polydural");
