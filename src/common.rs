@@ -67,8 +67,11 @@ impl Textures {
 #[derive(Clone)]
 pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
+    pub gui_objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
+    pub gui_positions: Vec<(f32, f32, f32)>,
     pub active: Vec<bool>,
+    pub gui_active: Vec<bool>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
     pub blocks: Vec<(String, Vec<i8>)>,
