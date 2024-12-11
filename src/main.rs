@@ -53,6 +53,14 @@ fn main(){
     game_data.set_chunk(-1, 0, -1, chunk_data);
     game_data.add_object(vertex_data_chunk.clone(), (-1, 0, -1), true);
 
+    let vertex_data = create_vertices(
+        vec![[-1, 1, 1], [1, 1, 1], [1, -1, 1], [-1, 1, 1], [1, -1, 1], [-1, -1, 1]], 
+        vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
+        vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
+        vec![[0.0, 0.0], [0.046, 0.0], [0.046, 0.046], [0.0, 0.0], [0.046, 0.046], [0.0, 0.046]]
+    );
+    game_data.add_gui_object(vertex_data.clone(), (0, 0, 0), (0.03, 0.03, 0.03), true);
+
     let light_data = common::light([1.0,1.0,1.0], [1.0, 1.0, 0.0], 0.05, 0.6, 0.3, 30.0);
     common::run(game_data, light_data, "Polydural");
 }

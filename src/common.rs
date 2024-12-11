@@ -70,6 +70,7 @@ pub struct GameData {
     pub gui_objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
     pub gui_positions: Vec<(f32, f32, f32)>,
+    pub gui_scale: Vec<(f32, f32, f32)>,
     pub active: Vec<bool>,
     pub gui_active: Vec<bool>,
     pub camera_position: Point3<f32>,
@@ -88,6 +89,7 @@ impl GameData {
             gui_objects: Vec::new(),
             positions: Vec::new(),
             gui_positions: Vec::new(),
+            gui_scale: Vec::new(),
             active: Vec::new(),
             gui_active: Vec::new(),
             camera_position: (-0.0, 64.0, 0.0).into(),
@@ -109,11 +111,12 @@ impl GameData {
         self.blocks.push((block_name, sides));
     }
 
-    pub fn add_gui_object(&mut self, item: Vec<Vertex>, position: (i64, i64, i64), active: bool) {
+    pub fn add_gui_object(&mut self, item: Vec<Vertex>, position: (i64, i64, i64), scale: (f32, f32, f32), active: bool) {
         let position_new = (position.0 as f32, position.1 as f32, position.2 as f32);
-        self.objects.push(item);
-        self.positions.push(position_new);
-        self.active.push(active);
+        self.gui_objects.push(item);
+        self.gui_positions.push(position_new);
+        self.gui_scale.push(scale);
+        self.gui_active.push(active);
     }
 
     pub fn add_object(&mut self, item: Vec<Vertex>, position: (i64, i64, i64), active: bool) {
@@ -189,11 +192,16 @@ impl Vertex {
 struct State {
     init: transforms::InitWgpu,
     pipeline: wgpu::RenderPipeline,
+    gui_pipeline: wgpu::RenderPipeline,
     vertex_buffers: Vec<wgpu::Buffer>,
+    gui_vertex_buffers: Vec<wgpu::Buffer>,
     uniform_bind_groups: Vec<wgpu::BindGroup>,
+    gui_uniform_bind_groups: Vec<wgpu::BindGroup>,
     vertex_uniform_buffers: Vec<wgpu::Buffer>,
+    gui_vertex_uniform_buffers: Vec<wgpu::Buffer>,
     project_mat: Matrix4<f32>,
     num_vertices: Vec<u32>,
+    gui_num_vertices: Vec<u32>,
     game_data: GameData,
     previous_frame_time: std::time::Instant,
     uniform_bind_group_layout: wgpu::BindGroupLayout,
@@ -242,7 +250,6 @@ impl State {
         let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
         let rgba = img.to_rgba8();
         let (width, height) = img.dimensions();
-
         let texture_size = wgpu::Extent3d {
             width,
             height,
@@ -320,6 +327,127 @@ impl State {
             usage: wgpu::BufferUsages::VERTEX,
         });
         let num_vertices = game_data.objects[i].len() as u32;
+
+        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
+    }
+    fn create_object_gui(
+        game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
+        uniform_bind_group_layout: &wgpu::BindGroupLayout, i: usize) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        // create vertex uniform buffer
+        // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
+        let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Vertex Uniform Buffer"),
+            size: 192,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+       
+        // create fragment uniform buffer. here we set eye_position = camera_position and light_position = eye_position
+        let fragment_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Fragment Uniform Buffer"),
+            size: 32,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // store light and eye positions
+        let light_position:&[f32; 3] = &Point3::new(0.0, 128.0, 0.0).into();
+        let eye_position:&[f32; 3] = &Point3::new(0.0, 128.0, 0.0).into();
+        init.queue.write_buffer(&fragment_uniform_buffer, 0, bytemuck::cast_slice(light_position));
+        init.queue.write_buffer(&fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
+
+        // create light uniform buffer
+        let light_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Light Uniform Buffer"),
+            size: 48,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // store light parameters
+        init.queue.write_buffer(&light_uniform_buffer, 0, bytemuck::cast_slice(&[light_data]));
+
+        let texture_data = Assets::get("textures/gui/gui_atlas.png").expect("Failed to load embedded texture");
+        let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
+        let rgba = img.to_rgba8();
+        let (width, height) = img.dimensions();
+        let texture_size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
+        
+        let texture = init.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Texture"),
+            size: texture_size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        
+        init.queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &rgba,
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * width),
+                rows_per_image: Some(height),
+            },
+            texture_size,
+        );
+        
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler = init.device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let uniform_bind_group = init.device.create_bind_group(&wgpu::BindGroupDescriptor{
+            layout: &uniform_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: vertex_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: fragment_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: light_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+            label: Some("Uniform Bind Group"),
+        });
+
+        let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: cast_slice(&game_data.gui_objects[i]),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        let num_vertices = game_data.gui_objects[i].len() as u32;
 
         return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
     }
@@ -453,6 +581,10 @@ impl State {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
+        let gui_shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("gui_shader.wgsl").into()),
+        });
 
         // uniform data
         let look_direction = (0.0, 0.0, 0.0).into();
@@ -555,6 +687,50 @@ impl State {
             multisample: wgpu::MultisampleState::default(),
             multiview: None
         });
+        let gui_pipeline = init.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("GUI Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &gui_shader,
+                entry_point: "vs_main",
+                buffers: &[Vertex::desc()],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &gui_shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: init.config.format,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                    }),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState{
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                cull_mode: Some(wgpu::Face::Back),
+                ..Default::default()
+            },
+            //depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth24Plus,
+                depth_write_enabled: false,
+                depth_compare: wgpu::CompareFunction::Always,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None
+        });
 
         let mut vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
         let mut num_vertices: Vec<u32> = Vec::new();
@@ -569,16 +745,34 @@ impl State {
             vertex_uniform_buffers.push(vertex_uniform_buffer);
         }
 
+        let mut gui_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
+        let mut gui_num_vertices: Vec<u32> = Vec::new();
+        let mut gui_uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
+        let mut gui_vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
+
+        for i in 0..game_data.gui_objects.len() {
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_gui(&game_data, &init, light_data, &uniform_bind_group_layout, i);
+            gui_vertex_buffers.push(vertex_buffer);
+            gui_num_vertices.push(num_vertices_);
+            gui_uniform_bind_groups.push(uniform_bind_group);
+            gui_vertex_uniform_buffers.push(vertex_uniform_buffer);
+        }
+
         let previous_frame_time = std::time::Instant::now();
 
         Self {
             init,
             pipeline,
+            gui_pipeline,
             vertex_buffers,
+            gui_vertex_buffers,
             uniform_bind_groups,
+            gui_uniform_bind_groups,
             vertex_uniform_buffers,
+            gui_vertex_uniform_buffers,
             project_mat,
             num_vertices,
+            gui_num_vertices,
             game_data,
             previous_frame_time,
             uniform_bind_group_layout,
@@ -629,6 +823,21 @@ impl State {
         let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
         self.previous_frame_time = current_time;
 
+        if let Some(is_pressed) = keys_down.get("right") {
+            if is_pressed == &true {
+                self.game_data.camera_rotation[1] += frame_time / 5.0;
+            }
+        }
+        if let Some(is_pressed) = keys_down.get("left") {
+            if is_pressed == &true {
+                self.game_data.camera_rotation[1] -= frame_time / 5.0;
+            }
+        }
+
+        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * 0.001;
+        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * 0.001;
+        self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.1, std::f32::consts::FRAC_PI_2 / 1.1);
+
         let forward = Vector3::new(
             self.game_data.camera_rotation[1].cos() * self.game_data.camera_rotation[0].cos(),
             self.game_data.camera_rotation[0].sin(),
@@ -668,20 +877,6 @@ impl State {
                 self.game_data.camera_position[2] -= frame_time * right[2];
             }
         }
-        if let Some(is_pressed) = keys_down.get("right") {
-            if is_pressed == &true {
-                self.game_data.camera_rotation[1] += frame_time / 5.0;
-            }
-        }
-        if let Some(is_pressed) = keys_down.get("left") {
-            if is_pressed == &true {
-                self.game_data.camera_rotation[1] -= frame_time / 5.0;
-            }
-        }
-
-        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * 0.001;
-        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * 0.001;
-        self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.1, std::f32::consts::FRAC_PI_2 / 1.1);
 
         let up_direction = cgmath::Vector3::unit_y();
         let (view_mat, project_mat, _) = transforms::create_view_rotation(
@@ -703,6 +898,26 @@ impl State {
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
+        }
+
+        for i in 0..self.game_data.gui_objects.len() {
+            let position_x = self.game_data.gui_positions[i].0 + self.game_data.camera_position.x + forward.x * 1.0;
+            let position_y = self.game_data.gui_positions[i].1 + self.game_data.camera_position.y + forward.y * 1.0;
+            let position_z = self.game_data.gui_positions[i].2 + self.game_data.camera_position.z + forward.z * 1.0;
+            let rotation_x = -self.game_data.camera_rotation.x;
+            let rotation_y = -self.game_data.camera_rotation.y + std::f32::consts::FRAC_PI_2;
+            let rotation_z = 0.0;
+            let model_mat = transforms::create_transforms(
+                [position_x, position_y, position_z], 
+                [rotation_x, rotation_y, rotation_z], 
+                [self.game_data.gui_scale[i].0, self.game_data.gui_scale[i].1, self.game_data.gui_scale[i].2]);
+            let normal_mat = (model_mat.invert().unwrap()).transpose();
+            let model_ref:&[f32; 16] = model_mat.as_ref();
+            let normal_ref:&[f32; 16] = normal_mat.as_ref();
+
+            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
+            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
     }
 
@@ -763,12 +978,18 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.pipeline);
-            
             for i in 0..self.game_data.objects.len() {
                 if !self.game_data.active[i] { continue; }
                 render_pass.set_vertex_buffer(0, self.vertex_buffers[i].slice(..));           
                 render_pass.set_bind_group(0, &self.uniform_bind_groups[i], &[]);
                 render_pass.draw(0..self.num_vertices[i], 0..1);
+            }
+            render_pass.set_pipeline(&self.gui_pipeline);
+            for i in 0..self.game_data.gui_objects.len() {
+                if !self.game_data.gui_active[i] { continue; }
+                render_pass.set_vertex_buffer(0, self.gui_vertex_buffers[i].slice(..));           
+                render_pass.set_bind_group(0, &self.gui_uniform_bind_groups[i], &[]);
+                render_pass.draw(0..self.gui_num_vertices[i], 0..1);
             }
         }
 
