@@ -1,3 +1,5 @@
+use crate::common;
+
 pub fn generate_chunk() -> Vec<i8> {
     let mut chunk: Vec<i8> = Vec::new();
 
@@ -9,7 +11,11 @@ pub fn generate_chunk() -> Vec<i8> {
                 let position_z = z as f32;
 
                 if position_y < 16.0 + ((position_x + position_z) / 10.0).sin() * 5.0 {
-                    chunk.push(1);
+                    if (position_x + position_z).sin() > 0.5 {
+                        chunk.push(1);
+                    } else {
+                        chunk.push(2);
+                    }
                 } else {
                     chunk.push(0);
                 }
@@ -20,7 +26,7 @@ pub fn generate_chunk() -> Vec<i8> {
     return chunk;
 }
 
-pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
+pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
     let mut vertices: Vec<[i8; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
@@ -70,9 +76,6 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     else { directions.push(false); }
                 }
 
-                let uv_x = (block_id as f32 % atlas_width).floor();
-                let uv_y = (block_id as f32 / atlas_height).floor();
-
                 let block_position_x = x as i8;
                 let block_position_y = y as i8;
                 let block_position_z = z as i8;
@@ -85,6 +88,8 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
 
+                    let uv_x = (game_data.blocks[(block_id - 1) as usize].1[0] as f32 % atlas_width).floor();
+                    let uv_y = (game_data.blocks[(block_id - 1) as usize].1[0] as f32 / atlas_height).floor();
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
@@ -114,6 +119,8 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
 
+                    let uv_x = (game_data.blocks[(block_id - 1) as usize].1[1] as f32 % atlas_width).floor();
+                    let uv_y = (game_data.blocks[(block_id - 1) as usize].1[1] as f32 / atlas_height).floor();
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
@@ -143,6 +150,8 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
 
+                    let uv_x = (game_data.blocks[(block_id - 1) as usize].1[2] as f32 % atlas_width).floor();
+                    let uv_y = (game_data.blocks[(block_id - 1) as usize].1[2] as f32 / atlas_height).floor();
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
@@ -172,6 +181,8 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
 
+                    let uv_x = (game_data.blocks[(block_id - 1) as usize].1[3] as f32 % atlas_width).floor();
+                    let uv_y = (game_data.blocks[(block_id - 1) as usize].1[3] as f32 / atlas_height).floor();
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
@@ -201,6 +212,8 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
                     vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
 
+                    let uv_x = (game_data.blocks[(block_id - 1) as usize].1[4] as f32 % atlas_width).floor();
+                    let uv_y = (game_data.blocks[(block_id - 1) as usize].1[4] as f32 / atlas_height).floor();
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
@@ -230,6 +243,8 @@ pub fn render_chunk(chunk: &Vec<i8>) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3
                     vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
                     vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
 
+                    let uv_x = (game_data.blocks[(block_id - 1) as usize].1[5] as f32 % atlas_width).floor();
+                    let uv_y = (game_data.blocks[(block_id - 1) as usize].1[5] as f32 / atlas_height).floor();
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
                     uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);

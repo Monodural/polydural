@@ -1,7 +1,6 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 mod common;
-mod vertex_data;
 mod transforms;
 mod world;
 mod chunk;
@@ -24,19 +23,30 @@ fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f
 }
 
 fn main(){
-    let vertex_data_cube = create_vertices(
-        vertex_data::cube_positions(), vertex_data::cube_normals(), 
-        vertex_data::cube_colors(), vertex_data::cube_uvs()
-    );
-
     let mut game_data = common::GameData::new();
 
-    let chunk_data = chunk::generate_chunk();
-    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data);
-    let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
-    game_data.add_object(vertex_data_chunk.clone(), (-1.0, 2.0, 1.0));
+    println!("loading model files");
+    common::load_block_model_files(&mut game_data);
 
-    game_data.add_object(vertex_data_cube.clone(), (-1.0, 2.0, 1.0));
+    let chunk_data = chunk::generate_chunk();
+    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
+    let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+    game_data.add_object(vertex_data_chunk.clone(), (0.0, 0.0, 0.0));
+
+    let chunk_data = chunk::generate_chunk();
+    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
+    let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+    game_data.add_object(vertex_data_chunk.clone(), (-64.0, 0.0, 0.0));
+
+    let chunk_data = chunk::generate_chunk();
+    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
+    let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+    game_data.add_object(vertex_data_chunk.clone(), (0.0, 0.0, -64.0));
+
+    let chunk_data = chunk::generate_chunk();
+    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
+    let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+    game_data.add_object(vertex_data_chunk.clone(), (-64.0, 0.0, -64.0));
 
     let light_data = common::light([1.0,1.0,1.0], [1.0, 1.0, 0.0], 0.05, 0.6, 0.3, 30.0);
     common::run(/*&vertex_data_cube_1, */game_data, light_data, "Polydural");

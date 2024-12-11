@@ -1,7 +1,9 @@
 {
-    "blockName": "grass",
+    "block_name": "grass",
     "creator": "polydural",
-    "textures": [
-        
-    ]
+    "textures": {
+        "top": 40,
+        "sides": 48,
+        "bottom": 40
+    }
 }

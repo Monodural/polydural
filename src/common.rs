@@ -11,6 +11,7 @@ use bytemuck:: {Pod, Zeroable, cast_slice};
 use std::collections::HashMap;
 use image::GenericImageView;
 use rust_embed::RustEmbed;
+use serde::Deserialize;
 
 #[path="../src/transforms.rs"]
 mod transforms;
@@ -22,20 +23,63 @@ struct Assets;
 const ANIMATION_SPEED:f32 = 1.0;
 const IS_PERSPECTIVE:bool = true;
 
+#[derive(Debug, Deserialize)]
+struct ModelData {
+    block_name: String,
+    creator: String,
+    textures: Textures,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum Textures {
+    Individual { top: i8, sides: i8, bottom: i8 },
+    Uniform { all: i8 },
+}
+impl Textures {
+    fn top(&self) -> i8 {
+        match self {
+            Textures::Individual { top, .. } => *top,
+            Textures::Uniform { all } => *all,
+        }
+    }
+
+    fn sides(&self) -> i8 {
+        match self {
+            Textures::Individual { sides, .. } => *sides,
+            Textures::Uniform { all } => *all,
+        }
+    }
+
+    fn bottom(&self) -> i8 {
+        match self {
+            Textures::Individual { bottom, .. } => *bottom,
+            Textures::Uniform { all } => *all,
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
+    pub blocks: Vec<(String, Vec<i8>)>
 }
 impl GameData {
     pub fn new() -> Self {
         GameData {
             objects: Vec::new(),
             positions: Vec::new(),
-            camera_position: (-10.0, 5.0, 0.0).into(),
+            camera_position: (-10.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
+            blocks: Vec::new()
         }
+    }
+
+    pub fn add_block(&mut self, block_name: String, sides: Vec<i8>) {
+        self.blocks.push((block_name, sides));
     }
 
     pub fn add_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32)) {
@@ -104,7 +148,8 @@ struct State {
     vertex_uniform_buffers: Vec<wgpu::Buffer>,
     project_mat: Matrix4<f32>,
     num_vertices: Vec<u32>,
-    game_data: GameData
+    game_data: GameData,
+    previous_frame_time: std::time::Instant
 }
 
 impl State {
@@ -354,6 +399,8 @@ impl State {
             vertex_uniform_buffers.push(vertex_uniform_buffer);
         }
 
+        let previous_frame_time = std::time::Instant::now();
+
         Self {
             init,
             pipeline,
@@ -362,7 +409,8 @@ impl State {
             vertex_uniform_buffers,
             project_mat,
             num_vertices,
-            game_data
+            game_data,
+            previous_frame_time
         }
     }
 
@@ -383,6 +431,11 @@ impl State {
     }
 
     fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>, mouse_movement: &Vec<f64>) {
+        let current_time = std::time::Instant::now();
+        let _frame_time = current_time.duration_since(self.previous_frame_time);
+        self.previous_frame_time = current_time;
+        //println!("{}", 1.0 / frame_time.as_secs_f64());
+
         let forward = Vector3::new(
             self.game_data.camera_rotation[1].cos() * self.game_data.camera_rotation[0].cos(),
             self.game_data.camera_rotation[0].sin(),
@@ -532,12 +585,36 @@ impl State {
     }
 }
 
+pub fn load_block_model_files(game_data: &mut GameData) {
+    let json_files: Vec<_> = Assets::iter()
+        .filter(|file| file.starts_with("models/") && file.ends_with(".json"))
+        .collect();
+
+    // Print the JSON files
+    for file in json_files {
+        println!("Found JSON file: {}", file);
+        if let Some(file) = Assets::get(&file) {
+            let json_content = std::str::from_utf8(file.data.as_ref()).expect("Invalid UTF-8");
+            let model_data: ModelData = serde_json::from_str(json_content).expect("Failed to parse JSON");
+
+            game_data.add_block(
+                model_data.block_name + "." + &model_data.creator, 
+                vec![
+                    model_data.textures.sides(), model_data.textures.sides(), 
+                    model_data.textures.top(), model_data.textures.bottom(),
+                    model_data.textures.sides(), model_data.textures.sides()
+                ]
+            );
+        }
+    }
+}
+
 pub fn run(game_data: GameData, light_data: Light, title: &str) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title(title);
-
+    
     if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
         eprintln!("Failed to lock the cursor: {:?}", err);
     }
