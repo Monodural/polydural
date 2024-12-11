@@ -113,7 +113,7 @@ pub fn create_view_rotation(camera_position: Point3<f32>, yaw: f32, pitch: f32, 
     let view_mat = Matrix4::look_at_rh(camera_position, target, up_direction);     
     let project_mat:Matrix4<f32>;
     if is_perspective {
-        project_mat = OPENGL_TO_WGPU_MATRIX * perspective(Rad(2.0*PI/5.0), aspect, 0.1, 100.0);
+        project_mat = OPENGL_TO_WGPU_MATRIX * perspective(Rad(2.0*PI/5.0), aspect, 0.1, 500.0);
     } else {
         project_mat = OPENGL_TO_WGPU_MATRIX * ortho(-4.0, 4.0, -3.0, 3.0, -1.0, 6.0);
     }

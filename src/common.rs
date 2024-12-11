@@ -12,7 +12,8 @@ use std::collections::HashMap;
 use image::GenericImageView;
 use rust_embed::RustEmbed;
 use serde::Deserialize;
-use rand::{rngs::ThreadRng, Rng};
+use rand::rngs::ThreadRng;
+use noise::Perlin;
 
 //use crate::chunk;
 use crate::interact;
@@ -74,21 +75,26 @@ pub struct GameData {
     pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
     pub chunk_buffer_index: HashMap<(i64, i64, i64), i8>,
     pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
-    pub rng: ThreadRng
+    pub rng: ThreadRng,
+    pub noise: Perlin
 }
 impl GameData {
     pub fn new() -> Self {
         GameData {
             objects: Vec::new(),
+            gui_objects: Vec::new(),
             positions: Vec::new(),
+            gui_positions: Vec::new(),
             active: Vec::new(),
+            gui_active: Vec::new(),
             camera_position: (-0.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
             blocks: Vec::new(),
             chunks: HashMap::new(),
             chunk_buffer_index: HashMap::new(),
             chunk_buffer_coordinates: Vec::new(),
-            rng: rand::thread_rng()
+            rng: rand::thread_rng(),
+            noise: Perlin::new(78685746)
         }
     }
 
@@ -98,6 +104,13 @@ impl GameData {
 
     pub fn add_block(&mut self, block_name: String, sides: Vec<i8>) {
         self.blocks.push((block_name, sides));
+    }
+
+    pub fn add_gui_object(&mut self, item: Vec<Vertex>, position: (i64, i64, i64), active: bool) {
+        let position_new = (position.0 as f32, position.1 as f32, position.2 as f32);
+        self.objects.push(item);
+        self.positions.push(position_new);
+        self.active.push(active);
     }
 
     pub fn add_object(&mut self, item: Vec<Vertex>, position: (i64, i64, i64), active: bool) {
@@ -610,31 +623,8 @@ impl State {
 
     fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>, mouse_movement: &Vec<f64>) {
         let current_time = std::time::Instant::now();
-        let _frame_time = current_time.duration_since(self.previous_frame_time);
+        let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
         self.previous_frame_time = current_time;
-        //println!("{}", 1.0 / frame_time.as_secs_f64());
-
-        /*if let Some(chunk) = self.game_data.chunks.get(&(0, 0, 0)) {
-            let x: i8 = self.game_data.rng.gen_range(0..=31);
-            let y: i8 = self.game_data.rng.gen_range(0..=31);
-            let z: i8 = self.game_data.rng.gen_range(0..=31);
-            let chunk_data = chunk::set_block(chunk.clone(), x, y, z, 0);
-            self.game_data.set_chunk(0, 0, 0, chunk_data.clone());
-            let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data);
-            let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
-
-            let mut buffer_index: usize = 0;
-            if let Some(chunk_index) = self.game_data.chunk_buffer_index.get(&(0, 0, 0)) {
-                buffer_index = *chunk_index as usize;
-            }
-
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
-            self.vertex_buffers[buffer_index] = vertex_buffer;
-            self.num_vertices[buffer_index] = num_vertices_;
-            self.uniform_bind_groups[buffer_index] = uniform_bind_group;
-            self.vertex_uniform_buffers[buffer_index] = vertex_uniform_buffer;
-            //println!("updated chunk buffer ({}) at {}{}{}", buffer_index, x, y, z);
-        }*/
 
         let forward = Vector3::new(
             self.game_data.camera_rotation[1].cos() * self.game_data.camera_rotation[0].cos(),
@@ -649,40 +639,40 @@ impl State {
 
         if let Some(is_pressed) = keys_down.get("w") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] += 0.1 * forward[0];
-                self.game_data.camera_position[1] += 0.1 * forward[1];
-                self.game_data.camera_position[2] += 0.1 * forward[2];
+                self.game_data.camera_position[0] += frame_time * forward[0];
+                self.game_data.camera_position[1] += frame_time * forward[1];
+                self.game_data.camera_position[2] += frame_time * forward[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("s") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] -= 0.1 * forward[0];
-                self.game_data.camera_position[1] -= 0.1 * forward[1];
-                self.game_data.camera_position[2] -= 0.1 * forward[2];
+                self.game_data.camera_position[0] -= frame_time * forward[0];
+                self.game_data.camera_position[1] -= frame_time * forward[1];
+                self.game_data.camera_position[2] -= frame_time * forward[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("a") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] += 0.1 * right[0];
-                self.game_data.camera_position[1] += 0.1 * right[1];
-                self.game_data.camera_position[2] += 0.1 * right[2];
+                self.game_data.camera_position[0] += frame_time * right[0];
+                self.game_data.camera_position[1] += frame_time * right[1];
+                self.game_data.camera_position[2] += frame_time * right[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("d") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] -= 0.1 * right[0];
-                self.game_data.camera_position[1] -= 0.1 * right[1];
-                self.game_data.camera_position[2] -= 0.1 * right[2];
+                self.game_data.camera_position[0] -= frame_time * right[0];
+                self.game_data.camera_position[1] -= frame_time * right[1];
+                self.game_data.camera_position[2] -= frame_time * right[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("right") {
             if is_pressed == &true {
-                self.game_data.camera_rotation[1] += 0.02;
+                self.game_data.camera_rotation[1] += frame_time / 5.0;
             }
         }
         if let Some(is_pressed) = keys_down.get("left") {
             if is_pressed == &true {
-                self.game_data.camera_rotation[1] -= 0.02;
+                self.game_data.camera_rotation[1] -= frame_time / 5.0;
             }
         }
 
@@ -834,6 +824,8 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
     let mut mouse_locked = true;
 
     event_loop.run(move |event, _, control_flow| {
+        mouse_movement[0] -= mouse_movement[0] * 0.1;
+        mouse_movement[1] -= mouse_movement[1] * 0.1;
         match event {
             Event::WindowEvent {
                 ref event,

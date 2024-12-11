@@ -35,10 +35,7 @@ pub fn break_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             if local_position_z < 0 { local_position_z = 32 + local_position_z; }
 
             if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
-                let x: i8 = local_position_x;
-                let y: i8 = local_position_y;
-                let z: i8 = local_position_z;
-                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, 0);
+                let chunk_data = chunk::set_block(chunk.clone(), local_position_x, local_position_y, local_position_z, 0);
                 game_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
                 let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
@@ -74,7 +71,7 @@ pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             found_block = true;
 
             if i > 0 { i -= 1; }
-            
+
             let x = (game_data.camera_position[0] + forward.x * i as f32) / 2.0;
             let y = (game_data.camera_position[1] + forward.y * i as f32) / 2.0;
             let z = (game_data.camera_position[2] + forward.z * i as f32) / 2.0;

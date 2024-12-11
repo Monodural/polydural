@@ -1,6 +1,8 @@
 use crate::common;
+use noise::NoiseFn;
+use rand::Rng;
 
-pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> Vec<i8> {
+pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, game_data: &mut common::GameData) -> Vec<i8> {
     let mut chunk: Vec<i8> = Vec::new();
 
     for x in 0..32 {
@@ -10,7 +12,11 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                 let position_y = (y + 32 * chunk_position_y) as f32;
                 let position_z = (z + 32 * chunk_position_z) as f32;
 
-                let terrain_max_height = (16.0 + ((position_x + position_z) / 10.0).sin() * 5.0).floor();
+                let terrain_max_height: f32 = ((
+                    (16.0 + game_data.noise.get([position_x as f64 / 50.0, position_z as f64 / 50.0]) as f32 * 16.0) +
+                    (16.0 + game_data.noise.get([position_x as f64 / 25.0, position_z as f64 / 25.0]) as f32 * 8.0) +
+                    (16.0 + game_data.noise.get([position_x as f64 / 12.5, position_z as f64 / 12.5]) as f32 * 4.0)
+                ) / 3.0).floor();
 
                 if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() < 10.0 {
                     chunk.push(0);
@@ -18,9 +24,14 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                     if position_y > terrain_max_height - 4.0 && position_y < terrain_max_height {
                         chunk.push(1);
                     } else if position_y < terrain_max_height {
-                        chunk.push(3);
+                        chunk.push(6);
                     } else if position_y == terrain_max_height {
-                        chunk.push(2);
+                        let grass_number: bool = game_data.rng.gen();
+                        if grass_number == true {
+                            chunk.push(2);
+                        } else {
+                            chunk.push(3);
+                        }
                     } else {
                         chunk.push(0);
                     }
