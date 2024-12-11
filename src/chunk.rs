@@ -15,8 +15,10 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                 if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() < 10.0 {
                     chunk.push(0);
                 } else {
-                    if position_y < terrain_max_height {
+                    if position_y > terrain_max_height - 4.0 && position_y < terrain_max_height {
                         chunk.push(1);
+                    } else if position_y < terrain_max_height {
+                        chunk.push(3);
                     } else if position_y == terrain_max_height {
                         chunk.push(2);
                     } else {
