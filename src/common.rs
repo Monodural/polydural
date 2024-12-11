@@ -596,6 +596,15 @@ impl State {
                 self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
                 self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
             }
+        } else if  button == 1 {
+            let (vertex_data_chunk, buffer_index) = interact::place_block(&mut self.game_data);
+            if buffer_index != -1 {
+                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
+                self.vertex_buffers[buffer_index as usize] = vertex_buffer;
+                self.num_vertices[buffer_index as usize] = num_vertices_;
+                self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
+                self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
+            }
         }
     }
 
@@ -679,7 +688,7 @@ impl State {
 
         self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * 0.001;
         self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * 0.001;
-        self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2, std::f32::consts::FRAC_PI_2);
+        self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.1, std::f32::consts::FRAC_PI_2 / 1.1);
 
         let up_direction = cgmath::Vector3::unit_y();
         let (view_mat, project_mat, _) = transforms::create_view_rotation(
