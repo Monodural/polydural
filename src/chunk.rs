@@ -36,7 +36,7 @@ pub fn set_block(chunk: Vec<i8>, x: i8, y: i8, z: i8, block_type: i8) -> Vec<i8>
     if x > 31 || y > 31 || z > 31 { return chunk; }
     if x < 0 || y < 0 || z < 0 { return chunk; }
     let mut new_chunk = chunk;
-    new_chunk[(x * 32 * 32 + y * 32 + z) as usize] = block_type;
+    new_chunk[x as usize * 32 * 32 + y as usize * 32 + z as usize] = block_type;
     return new_chunk;
 }
 
