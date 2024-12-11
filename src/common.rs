@@ -63,6 +63,7 @@ impl Textures {
 pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
+    pub active: Vec<bool>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
     pub blocks: Vec<(String, Vec<i8>)>,
@@ -73,6 +74,7 @@ impl GameData {
         GameData {
             objects: Vec::new(),
             positions: Vec::new(),
+            active: Vec::new(),
             camera_position: (-10.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
             blocks: Vec::new(),
@@ -88,9 +90,10 @@ impl GameData {
         self.blocks.push((block_name, sides));
     }
 
-    pub fn add_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32)) {
+    pub fn add_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), active: bool) {
         self.objects.push(item);
         self.positions.push(position);
+        self.active.push(active);
     }
 }
 
@@ -578,6 +581,7 @@ impl State {
             render_pass.set_pipeline(&self.pipeline);
             
             for i in 0..self.game_data.objects.len() {
+                if !self.game_data.active[i] { continue; }
                 render_pass.set_vertex_buffer(0, self.vertex_buffers[i].slice(..));           
                 render_pass.set_bind_group(0, &self.uniform_bind_groups[i], &[]);
                 render_pass.draw(0..self.num_vertices[i], 0..1);
