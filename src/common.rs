@@ -174,8 +174,8 @@ impl State {
         });
 
         // store light and eye positions
-        let light_position:&[f32; 3] = &Point3::new(-10.0, 64.0, -10.0).into();
-        let eye_position:&[f32; 3] = &Point3::new(-10.0, 64.0, -10.0).into();
+        let light_position:&[f32; 3] = &Point3::new(0.0, 128.0, 0.0).into();
+        let eye_position:&[f32; 3] = &Point3::new(0.0, 128.0, 0.0).into();
         init.queue.write_buffer(&fragment_uniform_buffer, 0, bytemuck::cast_slice(light_position));
         init.queue.write_buffer(&fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
 

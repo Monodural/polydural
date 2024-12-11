@@ -28,22 +28,22 @@ fn main(){
     println!("loading model files");
     common::load_block_model_files(&mut game_data);
 
-    let chunk_data = chunk::generate_chunk();
+    let chunk_data = chunk::generate_chunk(0, 0, 0);
     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
     game_data.add_object(vertex_data_chunk.clone(), (0.0, 0.0, 0.0));
 
-    let chunk_data = chunk::generate_chunk();
+    let chunk_data = chunk::generate_chunk(-1, 0, 0);
     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
     game_data.add_object(vertex_data_chunk.clone(), (-64.0, 0.0, 0.0));
 
-    let chunk_data = chunk::generate_chunk();
+    let chunk_data = chunk::generate_chunk(0, 0, -1);
     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
     game_data.add_object(vertex_data_chunk.clone(), (0.0, 0.0, -64.0));
 
-    let chunk_data = chunk::generate_chunk();
+    let chunk_data = chunk::generate_chunk(-1, 0, -1);
     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
     game_data.add_object(vertex_data_chunk.clone(), (-64.0, 0.0, -64.0));

@@ -1,23 +1,27 @@
 use crate::common;
 
-pub fn generate_chunk() -> Vec<i8> {
+pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> Vec<i8> {
     let mut chunk: Vec<i8> = Vec::new();
 
     for x in 0..32 {
         for y in 0..32 {
             for z in 0..32 {
-                let position_x = x as f32;
-                let position_y = y as f32;
-                let position_z = z as f32;
+                let position_x = (x + 32 * chunk_position_x) as f32;
+                let position_y = (y + 32 * chunk_position_y) as f32;
+                let position_z = (z + 32 * chunk_position_z) as f32;
 
-                if position_y < 16.0 + ((position_x + position_z) / 10.0).sin() * 5.0 {
-                    if (position_x + position_z).sin() > 0.5 {
-                        chunk.push(1);
-                    } else {
-                        chunk.push(2);
-                    }
-                } else {
+                let terrain_max_height = (16.0 + ((position_x + position_z) / 10.0).sin() * 5.0).floor();
+
+                if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() < 10.0 {
                     chunk.push(0);
+                } else {
+                    if position_y < terrain_max_height {
+                        chunk.push(1);
+                    } else if position_y == terrain_max_height {
+                        chunk.push(2);
+                    } else {
+                        chunk.push(0);
+                    }
                 }
             }
         }
