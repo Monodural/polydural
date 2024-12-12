@@ -73,6 +73,8 @@ pub struct GameData {
     pub positions: Vec<(f32, f32, f32)>,
     pub gui_positions: Vec<(f32, f32, f32)>,
     pub text_positions: Vec<(f32, f32, f32)>,
+    pub model_matrices: Vec<Matrix4<f32>>,
+    pub normal_matrices: Vec<Matrix4<f32>>,
     pub gui_scale: Vec<(f32, f32, f32)>,
     pub text_scale: Vec<(f32, f32, f32)>,
     pub active: Vec<bool>,
@@ -98,6 +100,8 @@ impl GameData {
             positions: Vec::new(),
             gui_positions: Vec::new(),
             text_positions: Vec::new(),
+            model_matrices: Vec::new(),
+            normal_matrices: Vec::new(),
             gui_scale: Vec::new(),
             text_scale: Vec::new(),
             active: Vec::new(),
@@ -845,8 +849,8 @@ impl State {
         self.frame += 1;
         let current_time = std::time::Instant::now();
         let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
-        //let fps = 1.0 / current_time.duration_since(self.previous_frame_time).as_secs_f32();
-        //println!("fps: {}", fps);
+        let fps = 1.0 / current_time.duration_since(self.previous_frame_time).as_secs_f32();
+        println!("fps: {}", fps);
         self.previous_frame_time = current_time;
 
         if let Some(is_pressed) = keys_down.get("right") {
@@ -860,8 +864,8 @@ impl State {
             }
         }
 
-        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * frame_time * 0.001;
-        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * frame_time * 0.001;
+        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * (frame_time * 0.003);
+        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * (frame_time * 0.003);
         self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.1, std::f32::consts::FRAC_PI_2 / 1.1);
 
         let forward = Vector3::new(
@@ -949,6 +953,15 @@ impl State {
             self.uniform_bind_groups.push(uniform_bind_group);
             self.vertex_uniform_buffers.push(vertex_uniform_buffer);
             self.game_data.active_chunks.push(self.vertex_buffers.len() - 1);
+            let model_mat = transforms::create_transforms([
+                chunk_position_x_with_offset as f32 * 32.0, 
+                chunk_position_y_with_offset as f32 * 32.0, 
+                chunk_position_z_with_offset as f32 * 32.0], 
+                [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+            );
+            let normal_mat = (model_mat.invert().unwrap()).transpose();
+            self.game_data.model_matrices.push(model_mat);
+            self.game_data.normal_matrices.push(normal_mat);
         }
 
         let up_direction = cgmath::Vector3::unit_y();
@@ -962,15 +975,16 @@ impl State {
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
 
         for i in &self.game_data.active_chunks {
-            let position = self.game_data.positions[*i];
-            let model_mat = transforms::create_transforms([position.0, position.1, position.2], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]);
-            let normal_mat = (model_mat.invert().unwrap()).transpose();
+            let model_mat = self.game_data.model_matrices[*i];
+            let normal_mat = self.game_data.normal_matrices[*i];
             let model_ref:&[f32; 16] = model_mat.as_ref();
             let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
+            if self.frame % 30 == 0 {
+                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
+                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
+            }
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 64, bytemuck::cast_slice(view_projection_ref));
-            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
         }
 
         self.game_data.gui_positions[2] = (0.11 * (slot_selected as f32 - 4.0), -0.6, 0.0);
@@ -1000,9 +1014,9 @@ impl State {
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
 
-        let current_time_updated = std::time::Instant::now();
+        /*let current_time_updated = std::time::Instant::now();
         let update_time = current_time_updated.duration_since(current_time).as_millis();
-        println!("update time: {}ms", update_time);
+        println!("update time: {}ms", update_time);*/
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
