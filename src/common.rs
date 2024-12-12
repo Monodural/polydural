@@ -817,7 +817,7 @@ impl State {
         }
     }
 
-    fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>, mouse_movement: &Vec<f64>) {
+    fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>, mouse_movement: &Vec<f64>, slot_selected: i8) {
         let current_time = std::time::Instant::now();
         let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
         self.previous_frame_time = current_time;
@@ -898,6 +898,8 @@ impl State {
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
+
+        self.game_data.gui_positions[2] = (0.11 * (slot_selected as f32 - 4.0), -0.6, 0.0);
 
         let rotation_x = -self.game_data.camera_rotation.x;
         let rotation_y = -self.game_data.camera_rotation.y + std::f32::consts::FRAC_PI_2;
@@ -1048,6 +1050,7 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
     keys_down.insert("s", false);
     keys_down.insert("d", false);
     keys_down.insert("space", false);
+    let mut slot_selected: i8 = 0;
     let mut mouse_movement: Vec<f64> = vec![0.0, 0.0];
     let mut mouse_locked = true;
 
@@ -1079,6 +1082,16 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
                                         &VirtualKeyCode::Space => { keys_down.insert("space", true); }
                                         &VirtualKeyCode::Right => { keys_down.insert("right", true); }
                                         &VirtualKeyCode::Left => { keys_down.insert("left", true); }
+                                        &VirtualKeyCode::Key1 => { slot_selected = 0; }
+                                        &VirtualKeyCode::Key2 => { slot_selected = 1; }
+                                        &VirtualKeyCode::Key3 => { slot_selected = 2; }
+                                        &VirtualKeyCode::Key4 => { slot_selected = 3; }
+                                        &VirtualKeyCode::Key5 => { slot_selected = 4; }
+                                        &VirtualKeyCode::Key6 => { slot_selected = 5; }
+                                        &VirtualKeyCode::Key7 => { slot_selected = 6; }
+                                        &VirtualKeyCode::Key8 => { slot_selected = 7; }
+                                        &VirtualKeyCode::Key9 => { slot_selected = 8; }
+                                        //&VirtualKeyCode::Key0 => { slot_selected = 9; }
                                         &VirtualKeyCode::Escape => {
                                             mouse_locked = false;
                                             if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
@@ -1158,7 +1171,7 @@ pub fn run(game_data: GameData, light_data: Light, title: &str) {
             Event::RedrawRequested(_) => {
                 let now = std::time::Instant::now();
                 let dt = now - render_start_time;
-                game_state.update(dt, &keys_down, &mouse_movement);
+                game_state.update(dt, &keys_down, &mouse_movement, slot_selected);
 
                 match game_state.render() {
                     Ok(_) => {}
