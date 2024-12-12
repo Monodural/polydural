@@ -5,6 +5,7 @@ mod transforms;
 mod world;
 mod chunk;
 mod interact;
+mod containers;
 
 fn vertex(p:[i8; 3], n: [i8; 3], c: [f32; 3], u: [f32; 2]) -> common::Vertex {
     return common::Vertex {
@@ -25,6 +26,8 @@ fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f
 
 fn main(){
     let mut game_data = common::GameData::new();
+    
+    let mut inventory = containers::Inventory::new();
 
     println!("loading model files");
     common::load_block_model_files(&mut game_data);
