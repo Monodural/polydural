@@ -37,7 +37,9 @@ pub fn break_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                 let chunk_data = chunk::set_block(chunk.clone(), local_position_x, local_position_y, local_position_z, 0);
                 game_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
-                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
+                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, 
+                    chunk_position_x, chunk_position_y, chunk_position_z
+                );
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
         
                 let mut buffer_index: usize = 0;
@@ -93,7 +95,9 @@ pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
                 let z: i8 = local_position_z;
                 let chunk_data = chunk::set_block(chunk.clone(), x, y, z, 1);
                 game_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
-                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data);
+                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, 
+                    chunk_position_x, chunk_position_y, chunk_position_z
+                );
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
         
                 let mut buffer_index: usize = 0;

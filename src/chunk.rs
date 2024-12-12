@@ -51,7 +51,7 @@ pub fn set_block(chunk: Vec<i8>, x: i8, y: i8, z: i8, block_type: i8) -> Vec<i8>
     return new_chunk;
 }
 
-pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
+pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
     let mut vertices: Vec<[i8; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
@@ -63,108 +63,108 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
     for x in 0..16 {
         for y in 0..16 {
             for z in 0..16 {
-                let block_id = get_block(&chunk, x, y, z);
+                let block_id = get_block(&chunk, x, y, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z);
                 if block_id == 0 { continue; }
 
                 let mut directions = Vec::new();
 
-                if get_block(&chunk, x + 1, y, z) != 0 {
+                if get_block(&chunk, x + 1, y, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
                     directions.push(true)
                 } else {
                     directions.push(false)
                 }
 
-                if get_block(&chunk, x - 1, y, z) != 0 {
+                if get_block(&chunk, x - 1, y, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
                     directions.push(true)
                 } else {
                     if x == 0 { directions.push(true); }
                     else { directions.push(false); }
                 }
 
-                if get_block(&chunk, x, y + 1, z) != 0 {
+                if get_block(&chunk, x, y + 1, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
                     directions.push(true)
                 } else {
                     directions.push(false)
                 }
 
-                if get_block(&chunk, x, y - 1, z) != 0 {
+                if get_block(&chunk, x, y - 1, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
                     directions.push(true)
                 } else {
                     if y == 0 { directions.push(true); }
                     else { directions.push(false); }
                 }
 
-                if get_block(&chunk, x, y, z + 1) != 0 {
+                if get_block(&chunk, x, y, z + 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
                     directions.push(true)
                 } else {
                     directions.push(false)
                 }
 
-                if get_block(&chunk, x, y, z - 1) != 0 {
+                if get_block(&chunk, x, y, z - 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
                     directions.push(true)
                 } else {
                     if z == 0 { directions.push(true); }
                     else { directions.push(false); }
                 }
 
-                if get_block(&chunk, x + 1, y + 1, z) > 0 { // right top (6)
+                if get_block(&chunk, x + 1, y + 1, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right top (6)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if get_block(&chunk, x + 1, y - 1, z) > 0 { // right bottom (7)
+                if get_block(&chunk, x + 1, y - 1, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right bottom (7)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if get_block(&chunk, x - 1, y + 1, z) > 0 { // left top (8)
+                if get_block(&chunk, x - 1, y + 1, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left top (8)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if get_block(&chunk, x - 1, y - 1, z) > 0 { // left bottom (9)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
-                }
-
-                if get_block(&chunk, x, y + 1, z + 1) > 0 { // front top (10)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
-                }
-                if get_block(&chunk, x, y - 1, z + 1) > 0 { // front bottom (11)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
-                }
-                if get_block(&chunk, x, y + 1, z - 1) > 0 { // back top (12)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
-                }
-                if get_block(&chunk, x, y - 1, z - 1) > 0 { // back bottom (13)
+                if get_block(&chunk, x - 1, y - 1, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left bottom (9)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
 
-                if get_block(&chunk, x + 1, y, z + 1) > 0 { // right front (14)
+                if get_block(&chunk, x, y + 1, z + 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front top (10)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if get_block(&chunk, x + 1, y, z - 1) > 0 { // right back (15)
+                if get_block(&chunk, x, y - 1, z + 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front bottom (11)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if get_block(&chunk, x - 1, y , z + 1) > 0 { // left front (16)
+                if get_block(&chunk, x, y + 1, z - 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back top (12)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if get_block(&chunk, x - 1, y, z - 1) > 0 { // left back (17)
+                if get_block(&chunk, x, y - 1, z - 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back bottom (13)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+
+                if get_block(&chunk, x + 1, y, z + 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right front (14)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if get_block(&chunk, x + 1, y, z - 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right back (15)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if get_block(&chunk, x - 1, y , z + 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left front (16)
+                    directions.push(true)
+                } else {
+                    directions.push(false);
+                }
+                if get_block(&chunk, x - 1, y, z - 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left back (17)
                     directions.push(true)
                 } else {
                     directions.push(false);
@@ -445,9 +445,67 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
     return (vertices, normals, colors, uvs);
 }
 
-pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64) -> i8 {
-    if x < 0 || y < 0 || z < 0 { return -1; }
-    if x > 15 || y > 15 || z > 15 { return -1; } // return block type -1 to signal a chunk border
+pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> i8 {
+    if x < 0 || y < 0 || z < 0 {
+        if x < 0 && y >= 0 && z >= 0 && y < 16 && z < 16 {
+            let chunk_position_x: i64 = chunk_position_x - 1;
+            let chunk_position_y: i64 = chunk_position_y;
+            let chunk_position_z: i64 = chunk_position_z;
+
+            if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                return get_block(chunk, 15, y, z, game_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        if y < 0 && x >= 0 && z >= 0 && x < 16 && z < 16 {
+            let chunk_position_x: i64 = chunk_position_x;
+            let chunk_position_y: i64 = chunk_position_y - 1;
+            let chunk_position_z: i64 = chunk_position_z;
+
+            if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                return get_block(chunk, x, 15, z, game_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        if z < 0 && x >= 0 && y >= 0 && x < 16 && y < 16 {
+            let chunk_position_x: i64 = chunk_position_x;
+            let chunk_position_y: i64 = chunk_position_y;
+            let chunk_position_z: i64 = chunk_position_z - 1;
+
+            if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                return get_block(chunk, x, y, 15, game_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        return -1;
+    }
+    if x > 15 || y > 15 || z > 15 {
+        if x > 15 && y >= 0 && z >= 0 && y < 16 && z < 16 {
+            let chunk_position_x: i64 = chunk_position_x + 1;
+            let chunk_position_y: i64 = chunk_position_y;
+            let chunk_position_z: i64 = chunk_position_z;
+
+            if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                return get_block(chunk, 0, y, z, game_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        if y > 15 && x >= 0 && z >= 0 && x < 16 && z < 16 {
+            let chunk_position_x: i64 = chunk_position_x;
+            let chunk_position_y: i64 = chunk_position_y + 1;
+            let chunk_position_z: i64 = chunk_position_z;
+
+            if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                return get_block(chunk, x, 0, z, game_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        if z > 15 && x >= 0 && y >= 0 && x < 16 && y < 16 {
+            let chunk_position_x: i64 = chunk_position_x;
+            let chunk_position_y: i64 = chunk_position_y;
+            let chunk_position_z: i64 = chunk_position_z + 1;
+
+            if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                return get_block(chunk, x, y, 0, game_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        return -1;
+    }
     return chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize];
 }
 pub fn get_block_global(game_data: &common::GameData, x: f32, y: f32, z: f32) -> i8 {
@@ -463,7 +521,7 @@ pub fn get_block_global(game_data: &common::GameData, x: f32, y: f32, z: f32) ->
     if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
     if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
-        return get_block(chunk, local_position_x, local_position_y, local_position_z);
+        return get_block(chunk, local_position_x, local_position_y, local_position_z, game_data, chunk_position_x, chunk_position_y, chunk_position_z);
     } else {
         return -1;
     }

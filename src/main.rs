@@ -27,7 +27,7 @@ fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f
 fn main(){
     let mut game_data = common::GameData::new();
 
-    let mut inventory = containers::Inventory::new();
+    let mut _inventory = containers::Inventory::new();
 
     println!("loading model files");
     common::load_block_model_files(&mut game_data);

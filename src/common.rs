@@ -69,19 +69,20 @@ impl Textures {
 pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
     pub gui_objects: Vec<Vec<Vertex>>,
-    pub text_objects: Vec<Vec<Vertex>>,
+    pub _text_objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
     pub gui_positions: Vec<(f32, f32, f32)>,
-    pub text_positions: Vec<(f32, f32, f32)>,
+    pub _text_positions: Vec<(f32, f32, f32)>,
     pub model_matrices: Vec<Matrix4<f32>>,
     pub normal_matrices: Vec<Matrix4<f32>>,
     pub gui_scale: Vec<(f32, f32, f32)>,
-    pub text_scale: Vec<(f32, f32, f32)>,
+    pub _text_scale: Vec<(f32, f32, f32)>,
     pub active: Vec<bool>,
     pub active_chunks: Vec<usize>,
+    pub updated_chunks: Vec<usize>,
     pub chunk_queue: HashSet<(i64, i64, i64)>,
     pub gui_active: Vec<bool>,
-    pub text_active: Vec<bool>,
+    pub _text_active: Vec<bool>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
     pub blocks: Vec<(String, Vec<i8>)>,
@@ -96,19 +97,20 @@ impl GameData {
         GameData {
             objects: Vec::new(),
             gui_objects: Vec::new(),
-            text_objects: Vec::new(),
+            _text_objects: Vec::new(),
             positions: Vec::new(),
             gui_positions: Vec::new(),
-            text_positions: Vec::new(),
+            _text_positions: Vec::new(),
             model_matrices: Vec::new(),
             normal_matrices: Vec::new(),
             gui_scale: Vec::new(),
-            text_scale: Vec::new(),
+            _text_scale: Vec::new(),
             active: Vec::new(),
             active_chunks: Vec::new(),
+            updated_chunks: Vec::new(),
             chunk_queue: HashSet::new(),
             gui_active: Vec::new(),
-            text_active: Vec::new(),
+            _text_active: Vec::new(),
             camera_position: (-0.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
             blocks: Vec::new(),
@@ -128,11 +130,11 @@ impl GameData {
         self.blocks.push((block_name, sides));
     }
 
-    pub fn add_text_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool) {
-        self.text_objects.push(item);
-        self.text_positions.push(position);
-        self.text_scale.push(scale);
-        self.text_active.push(active);
+    pub fn _add_text_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool) {
+        self._text_objects.push(item);
+        self._text_positions.push(position);
+        self._text_scale.push(scale);
+        self._text_active.push(active);
     }
 
     pub fn add_gui_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool) {
@@ -832,6 +834,7 @@ impl State {
                 self.num_vertices[buffer_index as usize] = num_vertices_;
                 self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
                 self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
+                self.game_data.updated_chunks.push(buffer_index as usize);
             }
         } else if  button == 1 {
             let (vertex_data_chunk, buffer_index) = interact::place_block(&mut self.game_data);
@@ -841,6 +844,7 @@ impl State {
                 self.num_vertices[buffer_index as usize] = num_vertices_;
                 self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
                 self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
+                self.game_data.updated_chunks.push(buffer_index as usize);
             }
         }
     }
@@ -849,8 +853,8 @@ impl State {
         self.frame += 1;
         let current_time = std::time::Instant::now();
         let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
-        let fps = 1.0 / current_time.duration_since(self.previous_frame_time).as_secs_f32();
-        println!("fps: {}", fps);
+        //let fps = 1.0 / current_time.duration_since(self.previous_frame_time).as_secs_f32();
+        //println!("fps: {}", fps);
         self.previous_frame_time = current_time;
 
         if let Some(is_pressed) = keys_down.get("right") {
@@ -943,7 +947,9 @@ impl State {
             let chunk_data = chunk::generate_chunk(
                 chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, &mut self.game_data
             );
-            let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data);
+            let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data, 
+                chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset
+            );
             let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
             self.game_data.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data);
             self.game_data.add_object(vertex_data_chunk.clone(), (chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset), true);
@@ -953,6 +959,7 @@ impl State {
             self.uniform_bind_groups.push(uniform_bind_group);
             self.vertex_uniform_buffers.push(vertex_uniform_buffer);
             self.game_data.active_chunks.push(self.vertex_buffers.len() - 1);
+            self.game_data.updated_chunks.push(self.vertex_buffers.len() - 1);
             let model_mat = transforms::create_transforms([
                 chunk_position_x_with_offset as f32 * 32.0, 
                 chunk_position_y_with_offset as f32 * 32.0, 
@@ -974,16 +981,16 @@ impl State {
         let view_project_mat = project_mat * view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
 
-        for i in &self.game_data.active_chunks {
+        for i in &self.game_data.updated_chunks {
             let model_mat = self.game_data.model_matrices[*i];
             let normal_mat = self.game_data.normal_matrices[*i];
             let model_ref:&[f32; 16] = model_mat.as_ref();
             let normal_ref:&[f32; 16] = normal_mat.as_ref();
-
-            if self.frame % 30 == 0 {
-                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
-                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
-            }
+            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
+            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
+        }
+        self.game_data.updated_chunks = Vec::new();
+        for i in &self.game_data.active_chunks {
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 64, bytemuck::cast_slice(view_projection_ref));
         }
 
@@ -1014,9 +1021,9 @@ impl State {
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
 
-        /*let current_time_updated = std::time::Instant::now();
-        let update_time = current_time_updated.duration_since(current_time).as_millis();
-        println!("update time: {}ms", update_time);*/
+        //let current_time_updated = std::time::Instant::now();
+        //let update_time = current_time_updated.duration_since(current_time).as_millis();
+        //println!("update time: {}ms", update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -1077,7 +1084,6 @@ impl State {
 
             render_pass.set_pipeline(&self.pipeline);
             for i in &self.game_data.active_chunks {
-                if !self.game_data.active[*i] { continue; }
                 render_pass.set_vertex_buffer(0, self.vertex_buffers[*i].slice(..));           
                 render_pass.set_bind_group(0, &self.uniform_bind_groups[*i], &[]);
                 render_pass.draw(0..self.num_vertices[*i], 0..1);
