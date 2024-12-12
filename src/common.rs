@@ -224,7 +224,8 @@ struct State {
     game_data: GameData,
     previous_frame_time: std::time::Instant,
     uniform_bind_group_layout: wgpu::BindGroupLayout,
-    light_data: Light
+    light_data: Light,
+    frame: usize
 }
 
 impl State {
@@ -779,6 +780,8 @@ impl State {
 
         let previous_frame_time = std::time::Instant::now();
 
+        let frame = 0;
+
         Self {
             init,
             pipeline,
@@ -795,7 +798,8 @@ impl State {
             game_data,
             previous_frame_time,
             uniform_bind_group_layout,
-            light_data
+            light_data,
+            frame
         }
     }
 
@@ -838,8 +842,11 @@ impl State {
     }
 
     fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>, mouse_movement: &Vec<f64>, slot_selected: i8) {
+        self.frame += 1;
         let current_time = std::time::Instant::now();
         let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
+        //let fps = 1.0 / current_time.duration_since(self.previous_frame_time).as_secs_f32();
+        //println!("fps: {}", fps);
         self.previous_frame_time = current_time;
 
         if let Some(is_pressed) = keys_down.get("right") {
@@ -853,8 +860,8 @@ impl State {
             }
         }
 
-        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * 0.001;
-        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * 0.001;
+        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * frame_time * 0.001;
+        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * frame_time * 0.001;
         self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.1, std::f32::consts::FRAC_PI_2 / 1.1);
 
         let forward = Vector3::new(
@@ -901,21 +908,25 @@ impl State {
         let chunk_position_y = (self.game_data.camera_position.y / 32.0).floor();
         let chunk_position_z = (self.game_data.camera_position.z / 32.0).floor();
 
-        for active in &self.game_data.active_chunks {
-            self.game_data.active[*active] = false;
-        }
-        self.game_data.active_chunks = Vec::new();
-        for x in -4..4 {
-            for y in -2..2 {
-                for z in -4..4 {
-                    let chunk_position_x_with_offset = chunk_position_x as i64 + x;
-                    let chunk_position_y_with_offset = chunk_position_y as i64 + y;
-                    let chunk_position_z_with_offset = chunk_position_z as i64 + z;
-                    if let Some(chunk_index) = self.game_data.chunk_buffer_index.get(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
-                        self.game_data.active[*chunk_index as usize] = true;
-                        self.game_data.active_chunks.push(*chunk_index as usize);
-                    } else {
-                        self.game_data.chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+        if self.frame % 30 == 0 {
+            for active in &self.game_data.active_chunks {
+                self.game_data.active[*active] = false;
+            }
+            self.game_data.active_chunks = Vec::new();
+            for x in -4..4 {
+                for y in -2..2 {
+                    for z in -4..4 {
+                        let chunk_position_x_with_offset = chunk_position_x as i64 + x;
+                        let chunk_position_y_with_offset = chunk_position_y as i64 + y;
+                        let chunk_position_z_with_offset = chunk_position_z as i64 + z;
+                        if let Some(chunk_index) = self.game_data.chunk_buffer_index.get(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
+                            self.game_data.active[*chunk_index as usize] = true;
+                            self.game_data.active_chunks.push(*chunk_index as usize);
+                        } else {
+                            if !self.game_data.chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
+                                self.game_data.chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+                            }
+                        }
                     }
                 }
             }
@@ -988,6 +999,10 @@ impl State {
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
+
+        let current_time_updated = std::time::Instant::now();
+        let update_time = current_time_updated.duration_since(current_time).as_millis();
+        println!("update time: {}ms", update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

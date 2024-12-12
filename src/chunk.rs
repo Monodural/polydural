@@ -74,7 +74,7 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                     directions.push(false)
                 }
 
-                if x > 0 && get_block(&chunk, x - 1, y, z) != 0 {
+                if get_block(&chunk, x - 1, y, z) != 0 {
                     directions.push(true)
                 } else {
                     if x == 0 { directions.push(true); }
@@ -87,7 +87,7 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                     directions.push(false)
                 }
 
-                if y > 0 && get_block(&chunk, x, y - 1, z) != 0 {
+                if get_block(&chunk, x, y - 1, z) != 0 {
                     directions.push(true)
                 } else {
                     if y == 0 { directions.push(true); }
@@ -100,7 +100,7 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                     directions.push(false)
                 }
 
-                if z > 0 && get_block(&chunk, x, y, z - 1) != 0 {
+                if get_block(&chunk, x, y, z - 1) != 0 {
                     directions.push(true)
                 } else {
                     if z == 0 { directions.push(true); }
@@ -112,17 +112,17 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                 } else {
                     directions.push(false);
                 }
-                if y > 0 && get_block(&chunk, x + 1, y - 1, z) > 0 { // right bottom (7)
+                if get_block(&chunk, x + 1, y - 1, z) > 0 { // right bottom (7)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if x > 0 && get_block(&chunk, x - 1, y + 1, z) > 0 { // left top (8)
+                if get_block(&chunk, x - 1, y + 1, z) > 0 { // left top (8)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if x > 0 && y > 0 && get_block(&chunk, x - 1, y - 1, z) > 0 { // left bottom (9)
+                if get_block(&chunk, x - 1, y - 1, z) > 0 { // left bottom (9)
                     directions.push(true)
                 } else {
                     directions.push(false);
@@ -133,17 +133,17 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                 } else {
                     directions.push(false);
                 }
-                if y > 0 && get_block(&chunk, x, y - 1, z + 1) > 0 { // front bottom (11)
+                if get_block(&chunk, x, y - 1, z + 1) > 0 { // front bottom (11)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if z > 0 && get_block(&chunk, x, y + 1, z - 1) > 0 { // back top (12)
+                if get_block(&chunk, x, y + 1, z - 1) > 0 { // back top (12)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if z > 0 && y > 0 && get_block(&chunk, x, y - 1, z - 1) > 0 { // back bottom (13)
+                if get_block(&chunk, x, y - 1, z - 1) > 0 { // back bottom (13)
                     directions.push(true)
                 } else {
                     directions.push(false);
@@ -154,17 +154,17 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
                 } else {
                     directions.push(false);
                 }
-                if z > 0 && get_block(&chunk, x + 1, y, z - 1) > 0 { // right back (15)
+                if get_block(&chunk, x + 1, y, z - 1) > 0 { // right back (15)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if x > 0 && get_block(&chunk, x - 1, y , z + 1) > 0 { // left front (16)
+                if get_block(&chunk, x - 1, y , z + 1) > 0 { // left front (16)
                     directions.push(true)
                 } else {
                     directions.push(false);
                 }
-                if z > 0 && x > 0 && get_block(&chunk, x - 1, y, z - 1) > 0 { // left back (17)
+                if get_block(&chunk, x - 1, y, z - 1) > 0 { // left back (17)
                     directions.push(true)
                 } else {
                     directions.push(false);
@@ -445,9 +445,10 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
     return (vertices, normals, colors, uvs);
 }
 
-pub fn get_block(chunk: &Vec<i8>, x: usize, y: usize, z: usize) -> i8 {
+pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64) -> i8 {
+    if x < 0 || y < 0 || z < 0 { return -1; }
     if x > 15 || y > 15 || z > 15 { return -1; } // return block type -1 to signal a chunk border
-    return chunk[x * 16 * 16 + y * 16 + z];
+    return chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize];
 }
 pub fn get_block_global(game_data: &common::GameData, x: f32, y: f32, z: f32) -> i8 {
     let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
@@ -462,7 +463,7 @@ pub fn get_block_global(game_data: &common::GameData, x: f32, y: f32, z: f32) ->
     if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
     if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
-        return get_block(chunk, local_position_x as usize, local_position_y as usize, local_position_z as usize);
+        return get_block(chunk, local_position_x, local_position_y, local_position_z);
     } else {
         return -1;
     }
