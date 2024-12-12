@@ -15,7 +15,7 @@ use serde::Deserialize;
 use rand::rngs::ThreadRng;
 use noise::Perlin;
 
-//use crate::chunk;
+use crate::chunk;
 use crate::interact;
 
 #[path="../src/transforms.rs"]
@@ -75,13 +75,14 @@ pub struct GameData {
     pub gui_scale: Vec<(f32, f32, f32)>,
     pub text_scale: Vec<(f32, f32, f32)>,
     pub active: Vec<bool>,
+    pub active_chunks: Vec<usize>,
     pub gui_active: Vec<bool>,
     pub text_active: Vec<bool>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
     pub blocks: Vec<(String, Vec<i8>)>,
     pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
-    pub chunk_buffer_index: HashMap<(i64, i64, i64), i8>,
+    pub chunk_buffer_index: HashMap<(i64, i64, i64), i64>,
     pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
     pub rng: ThreadRng,
     pub noise: Perlin
@@ -98,6 +99,7 @@ impl GameData {
             gui_scale: Vec::new(),
             text_scale: Vec::new(),
             active: Vec::new(),
+            active_chunks: Vec::new(),
             gui_active: Vec::new(),
             text_active: Vec::new(),
             camera_position: (-0.0, 64.0, 0.0).into(),
@@ -134,11 +136,11 @@ impl GameData {
     }
 
     pub fn add_object(&mut self, item: Vec<Vertex>, position: (i64, i64, i64), active: bool) {
-        let position_new = ((position.0 * 64) as f32, (position.1 * 64) as f32, (position.2 * 64) as f32);
+        let position_new = ((position.0 * 32) as f32, (position.1 * 32) as f32, (position.2 * 32) as f32);
         self.objects.push(item);
         self.positions.push(position_new);
         self.active.push(active);
-        self.chunk_buffer_index.insert(position, self.chunk_buffer_coordinates.len() as i8);
+        self.chunk_buffer_index.insert(position, self.chunk_buffer_coordinates.len() as i64);
         self.chunk_buffer_coordinates.push(position);
     }
 }
@@ -892,6 +894,43 @@ impl State {
             }
         }
 
+        let chunk_position_x = (self.game_data.camera_position.x / 32.0).floor();
+        let chunk_position_y = (self.game_data.camera_position.y / 32.0).floor();
+        let chunk_position_z = (self.game_data.camera_position.z / 32.0).floor();
+
+        for active in &self.game_data.active_chunks {
+            self.game_data.active[*active] = false;
+        }
+        self.game_data.active_chunks = Vec::new();
+        for x in -2..2 {
+            for y in -2..2 {
+                for z in -2..2 {
+                    let chunk_position_x_with_offset = chunk_position_x as i64 + x;
+                    let chunk_position_y_with_offset = chunk_position_y as i64 + y;
+                    let chunk_position_z_with_offset = chunk_position_z as i64 + z;
+                    if let Some(chunk_index) = self.game_data.chunk_buffer_index.get(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
+                        self.game_data.active[*chunk_index as usize] = true;
+                        self.game_data.active_chunks.push(*chunk_index as usize);
+                    } else {
+                        println!("creating chunk");
+                        let chunk_data = chunk::generate_chunk(
+                            chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, &mut self.game_data
+                        );
+                        let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data);
+                        let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+                        self.game_data.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data);
+                        self.game_data.add_object(vertex_data_chunk.clone(), (chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset), true);
+                        let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
+                        self.vertex_buffers.push(vertex_buffer);
+                        self.num_vertices.push(num_vertices_);
+                        self.uniform_bind_groups.push(uniform_bind_group);
+                        self.vertex_uniform_buffers.push(vertex_uniform_buffer);
+                        self.game_data.active_chunks.push(self.vertex_buffers.len() - 1);
+                    }
+                }
+            }
+        }
+
         let up_direction = cgmath::Vector3::unit_y();
         let (view_mat, project_mat, _) = transforms::create_view_rotation(
             self.game_data.camera_position, self.game_data.camera_rotation[1], self.game_data.camera_rotation[0], 
@@ -902,16 +941,16 @@ impl State {
         let view_project_mat = project_mat * view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
 
-        for i in 0..self.game_data.objects.len() {
-            let position = self.game_data.positions[i];
+        for i in &self.game_data.active_chunks {
+            let position = self.game_data.positions[*i];
             let model_mat = transforms::create_transforms([position.0, position.1, position.2], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]);
             let normal_mat = (model_mat.invert().unwrap()).transpose();
             let model_ref:&[f32; 16] = model_mat.as_ref();
             let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-            self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
-            self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
-            self.init.queue.write_buffer(&self.vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
+            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
+            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 64, bytemuck::cast_slice(view_projection_ref));
+            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
         }
 
         self.game_data.gui_positions[2] = (0.11 * (slot_selected as f32 - 4.0), -0.6, 0.0);
@@ -999,11 +1038,11 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.pipeline);
-            for i in 0..self.game_data.objects.len() {
-                if !self.game_data.active[i] { continue; }
-                render_pass.set_vertex_buffer(0, self.vertex_buffers[i].slice(..));           
-                render_pass.set_bind_group(0, &self.uniform_bind_groups[i], &[]);
-                render_pass.draw(0..self.num_vertices[i], 0..1);
+            for i in &self.game_data.active_chunks {
+                if !self.game_data.active[*i] { continue; }
+                render_pass.set_vertex_buffer(0, self.vertex_buffers[*i].slice(..));           
+                render_pass.set_bind_group(0, &self.uniform_bind_groups[*i], &[]);
+                render_pass.draw(0..self.num_vertices[*i], 0..1);
             }
             render_pass.set_pipeline(&self.gui_pipeline);
             for i in 0..self.game_data.gui_objects.len() {

@@ -5,12 +5,12 @@ use rand::Rng;
 pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, game_data: &mut common::GameData) -> Vec<i8> {
     let mut chunk: Vec<i8> = Vec::new();
 
-    for x in 0..32 {
-        for y in 0..32 {
-            for z in 0..32 {
-                let position_x = (x + 32 * chunk_position_x) as f32;
-                let position_y = (y + 32 * chunk_position_y) as f32;
-                let position_z = (z + 32 * chunk_position_z) as f32;
+    for x in 0..16 {
+        for y in 0..16 {
+            for z in 0..16 {
+                let position_x = (x + 16 * chunk_position_x) as f32;
+                let position_y = (y + 16 * chunk_position_y) as f32;
+                let position_z = (z + 16 * chunk_position_z) as f32;
 
                 let terrain_max_height: f32 = ((
                     (16.0 + game_data.noise.get([position_x as f64 / 50.0, position_z as f64 / 50.0]) as f32 * 16.0) +
@@ -44,10 +44,10 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
 }
 
 pub fn set_block(chunk: Vec<i8>, x: i8, y: i8, z: i8, block_type: i8) -> Vec<i8> {
-    if x > 31 || y > 31 || z > 31 { return chunk; }
+    if x > 15 || y > 15 || z > 15 { return chunk; }
     if x < 0 || y < 0 || z < 0 { return chunk; }
     let mut new_chunk = chunk;
-    new_chunk[x as usize * 32 * 32 + y as usize * 32 + z as usize] = block_type;
+    new_chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = block_type;
     return new_chunk;
 }
 
@@ -60,9 +60,9 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
     let atlas_width = 8.0;
     let atlas_height = 8.0;
 
-    for x in 0..32 {
-        for y in 0..32 {
-            for z in 0..32 {
+    for x in 0..16 {
+        for y in 0..16 {
+            for z in 0..16 {
                 let block_id = get_block(&chunk, x, y, z);
                 if block_id == 0 { continue; }
 
@@ -446,20 +446,20 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData) -> (Vec<[i8; 
 }
 
 pub fn get_block(chunk: &Vec<i8>, x: usize, y: usize, z: usize) -> i8 {
-    if x > 31 || y > 31 || z > 31 { return -1; } // return block type -1 to signal a chunk border
-    return chunk[x * 32 * 32 + y * 32 + z];
+    if x > 15 || y > 15 || z > 15 { return -1; } // return block type -1 to signal a chunk border
+    return chunk[x * 16 * 16 + y * 16 + z];
 }
 pub fn get_block_global(game_data: &common::GameData, x: f32, y: f32, z: f32) -> i8 {
-    let chunk_position_x: i64 = ((x + 0.5) / 32.0).floor() as i64;
-    let chunk_position_y: i64 = ((y + 0.5) / 32.0).floor() as i64;
-    let chunk_position_z: i64 = ((z + 0.5) / 32.0).floor() as i64;
+    let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
+    let chunk_position_y: i64 = ((y + 0.5) / 16.0).floor() as i64;
+    let chunk_position_z: i64 = ((z + 0.5) / 16.0).floor() as i64;
 
-    let mut local_position_x = ((x + 0.5) % 32.0).floor() as i64;
-    let mut local_position_y = ((y + 0.5) % 32.0).floor() as i64;
-    let mut local_position_z = ((z + 0.5) % 32.0).floor() as i64;
-    if local_position_x < 0 { local_position_x = 32 + local_position_x; }
-    if local_position_y < 0 { local_position_y = 32 + local_position_y; }
-    if local_position_z < 0 { local_position_z = 32 + local_position_z; }
+    let mut local_position_x = ((x + 0.5) % 16.0).floor() as i64;
+    let mut local_position_y = ((y + 0.5) % 16.0).floor() as i64;
+    let mut local_position_z = ((z + 0.5) % 16.0).floor() as i64;
+    if local_position_x < 0 { local_position_x = 16 + local_position_x; }
+    if local_position_y < 0 { local_position_y = 16 + local_position_y; }
+    if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
     if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
         return get_block(chunk, local_position_x as usize, local_position_y as usize, local_position_z as usize);

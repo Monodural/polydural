@@ -23,16 +23,16 @@ pub fn break_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             let y = (game_data.camera_position[1] + forward.y * i as f32) / 2.0;
             let z = (game_data.camera_position[2] + forward.z * i as f32) / 2.0;
 
-            let chunk_position_x: i64 = ((x + 0.5) / 32.0).floor() as i64;
-            let chunk_position_y: i64 = ((y + 0.5) / 32.0).floor() as i64;
-            let chunk_position_z: i64 = ((z + 0.5) / 32.0).floor() as i64;
+            let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
+            let chunk_position_y: i64 = ((y + 0.5) / 16.0).floor() as i64;
+            let chunk_position_z: i64 = ((z + 0.5) / 16.0).floor() as i64;
 
-            let mut local_position_x = ((x + 0.5) % 32.0).floor() as i8;
-            let mut local_position_y = ((y + 0.5) % 32.0).floor() as i8;
-            let mut local_position_z = ((z + 0.5) % 32.0).floor() as i8;
-            if local_position_x < 0 { local_position_x = 32 + local_position_x; }
-            if local_position_y < 0 { local_position_y = 32 + local_position_y; }
-            if local_position_z < 0 { local_position_z = 32 + local_position_z; }
+            let mut local_position_x = ((x + 0.5) % 16.0).floor() as i8;
+            let mut local_position_y = ((y + 0.5) % 16.0).floor() as i8;
+            let mut local_position_z = ((z + 0.5) % 16.0).floor() as i8;
+            if local_position_x < 0 { local_position_x = 16 + local_position_x; }
+            if local_position_y < 0 { local_position_y = 16 + local_position_y; }
+            if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
             if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                 let chunk_data = chunk::set_block(chunk.clone(), local_position_x, local_position_y, local_position_z, 0);
@@ -76,16 +76,16 @@ pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             let y = (game_data.camera_position[1] + forward.y * i as f32) / 2.0;
             let z = (game_data.camera_position[2] + forward.z * i as f32) / 2.0;
 
-            let chunk_position_x: i64 = ((x + 0.5) / 32.0).floor() as i64;
-            let chunk_position_y: i64 = ((y + 0.5) / 32.0).floor() as i64;
-            let chunk_position_z: i64 = ((z + 0.5) / 32.0).floor() as i64;
+            let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
+            let chunk_position_y: i64 = ((y + 0.5) / 16.0).floor() as i64;
+            let chunk_position_z: i64 = ((z + 0.5) / 16.0).floor() as i64;
 
-            let mut local_position_x = ((x + 0.5) % 32.0).floor() as i8;
-            let mut local_position_y = ((y + 0.5) % 32.0).floor() as i8;
-            let mut local_position_z = ((z + 0.5) % 32.0).floor() as i8;
-            if local_position_x < 0 { local_position_x = 32 + local_position_x; }
-            if local_position_y < 0 { local_position_y = 32 + local_position_y; }
-            if local_position_z < 0 { local_position_z = 32 + local_position_z; }
+            let mut local_position_x = ((x + 0.5) % 16.0).floor() as i8;
+            let mut local_position_y = ((y + 0.5) % 16.0).floor() as i8;
+            let mut local_position_z = ((z + 0.5) % 16.0).floor() as i8;
+            if local_position_x < 0 { local_position_x = 16 + local_position_x; }
+            if local_position_y < 0 { local_position_y = 16 + local_position_y; }
+            if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
             if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                 let x: i8 = local_position_x;
