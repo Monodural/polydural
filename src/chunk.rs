@@ -26,11 +26,18 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                     } else if position_y < terrain_max_height {
                         chunk.push(6);
                     } else if position_y == terrain_max_height {
-                        let grass_number: bool = game_data.rng.gen();
-                        if grass_number == true {
+                        let folliage_number: bool = game_data.rng.gen();
+                        if folliage_number == true {
                             chunk.push(2);
                         } else {
                             chunk.push(3);
+                        }
+                    } else if position_y == (terrain_max_height + 1.0).floor() {
+                        let folliage_number: f32 = game_data.rng.gen();
+                        if folliage_number < 0.01 {
+                            chunk.push(5);
+                        } else {
+                            chunk.push(0);
                         }
                     } else {
                         chunk.push(0);
