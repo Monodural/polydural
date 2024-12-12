@@ -68,11 +68,15 @@ impl Textures {
 pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
     pub gui_objects: Vec<Vec<Vertex>>,
+    pub text_objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
     pub gui_positions: Vec<(f32, f32, f32)>,
+    pub text_positions: Vec<(f32, f32, f32)>,
     pub gui_scale: Vec<(f32, f32, f32)>,
+    pub text_scale: Vec<(f32, f32, f32)>,
     pub active: Vec<bool>,
     pub gui_active: Vec<bool>,
+    pub text_active: Vec<bool>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
     pub blocks: Vec<(String, Vec<i8>)>,
@@ -87,11 +91,15 @@ impl GameData {
         GameData {
             objects: Vec::new(),
             gui_objects: Vec::new(),
+            text_objects: Vec::new(),
             positions: Vec::new(),
             gui_positions: Vec::new(),
+            text_positions: Vec::new(),
             gui_scale: Vec::new(),
+            text_scale: Vec::new(),
             active: Vec::new(),
             gui_active: Vec::new(),
+            text_active: Vec::new(),
             camera_position: (-0.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
             blocks: Vec::new(),
@@ -109,6 +117,13 @@ impl GameData {
 
     pub fn add_block(&mut self, block_name: String, sides: Vec<i8>) {
         self.blocks.push((block_name, sides));
+    }
+
+    pub fn add_text_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool) {
+        self.text_objects.push(item);
+        self.text_positions.push(position);
+        self.text_scale.push(scale);
+        self.text_active.push(active);
     }
 
     pub fn add_gui_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool) {
