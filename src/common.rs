@@ -9,6 +9,7 @@ use winit::{
 };
 use bytemuck:: {Pod, Zeroable, cast_slice};
 use std::collections::HashMap;
+use std::collections::HashSet;
 use image::GenericImageView;
 use rust_embed::RustEmbed;
 use serde::Deserialize;
@@ -76,6 +77,7 @@ pub struct GameData {
     pub text_scale: Vec<(f32, f32, f32)>,
     pub active: Vec<bool>,
     pub active_chunks: Vec<usize>,
+    pub chunk_queue: HashSet<(i64, i64, i64)>,
     pub gui_active: Vec<bool>,
     pub text_active: Vec<bool>,
     pub camera_position: Point3<f32>,
@@ -100,6 +102,7 @@ impl GameData {
             text_scale: Vec::new(),
             active: Vec::new(),
             active_chunks: Vec::new(),
+            chunk_queue: HashSet::new(),
             gui_active: Vec::new(),
             text_active: Vec::new(),
             camera_position: (-0.0, 64.0, 0.0).into(),
@@ -902,9 +905,9 @@ impl State {
             self.game_data.active[*active] = false;
         }
         self.game_data.active_chunks = Vec::new();
-        for x in -2..2 {
+        for x in -4..4 {
             for y in -2..2 {
-                for z in -2..2 {
+                for z in -4..4 {
                     let chunk_position_x_with_offset = chunk_position_x as i64 + x;
                     let chunk_position_y_with_offset = chunk_position_y as i64 + y;
                     let chunk_position_z_with_offset = chunk_position_z as i64 + z;
@@ -912,23 +915,29 @@ impl State {
                         self.game_data.active[*chunk_index as usize] = true;
                         self.game_data.active_chunks.push(*chunk_index as usize);
                     } else {
-                        println!("creating chunk");
-                        let chunk_data = chunk::generate_chunk(
-                            chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, &mut self.game_data
-                        );
-                        let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data);
-                        let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
-                        self.game_data.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data);
-                        self.game_data.add_object(vertex_data_chunk.clone(), (chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset), true);
-                        let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
-                        self.vertex_buffers.push(vertex_buffer);
-                        self.num_vertices.push(num_vertices_);
-                        self.uniform_bind_groups.push(uniform_bind_group);
-                        self.vertex_uniform_buffers.push(vertex_uniform_buffer);
-                        self.game_data.active_chunks.push(self.vertex_buffers.len() - 1);
+                        self.game_data.chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
                     }
                 }
             }
+        }
+        if let Some(chunk_coordinates) = self.game_data.chunk_queue.iter().next() {
+            let chunk_position_x_with_offset = chunk_coordinates.0;
+            let chunk_position_y_with_offset = chunk_coordinates.1;
+            let chunk_position_z_with_offset = chunk_coordinates.2;
+            self.game_data.chunk_queue.remove(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+            let chunk_data = chunk::generate_chunk(
+                chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, &mut self.game_data
+            );
+            let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data);
+            let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+            self.game_data.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data);
+            self.game_data.add_object(vertex_data_chunk.clone(), (chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset), true);
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
+            self.vertex_buffers.push(vertex_buffer);
+            self.num_vertices.push(num_vertices_);
+            self.uniform_bind_groups.push(uniform_bind_group);
+            self.vertex_uniform_buffers.push(vertex_uniform_buffer);
+            self.game_data.active_chunks.push(self.vertex_buffers.len() - 1);
         }
 
         let up_direction = cgmath::Vector3::unit_y();
