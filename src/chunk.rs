@@ -454,7 +454,7 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, chunk_positio
 }
 
 pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> i8 {
-    if x < 0 || y < 0 || z < 0 {
+    if x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15 {
         if x < 0 && y >= 0 && z >= 0 && y < 16 && z < 16 {
             let chunk_position_x: i64 = chunk_position_x - 1;
             let chunk_position_y: i64 = chunk_position_y;
@@ -482,9 +482,6 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
                 return get_block(chunk, x, y, 15, game_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
-        return -1;
-    }
-    if x > 15 || y > 15 || z > 15 {
         if x > 15 && y >= 0 && z >= 0 && y < 16 && z < 16 {
             let chunk_position_x: i64 = chunk_position_x + 1;
             let chunk_position_y: i64 = chunk_position_y;

@@ -23,6 +23,8 @@ pub fn break_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             let y = (game_data.camera_position[1] + forward.y * i as f32) / 2.0;
             let z = (game_data.camera_position[2] + forward.z * i as f32) / 2.0;
 
+            println!("{} {} {}", x, y, z);
+
             let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
             let chunk_position_y: i64 = ((y + 0.5) / 16.0).floor() as i64;
             let chunk_position_z: i64 = ((z + 0.5) / 16.0).floor() as i64;
@@ -78,6 +80,8 @@ pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             let y = (game_data.camera_position[1] + forward.y * i as f32) / 2.0;
             let z = (game_data.camera_position[2] + forward.z * i as f32) / 2.0;
 
+            println!("{} {} {}", x, y, z);
+
             let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
             let chunk_position_y: i64 = ((y + 0.5) / 16.0).floor() as i64;
             let chunk_position_z: i64 = ((z + 0.5) / 16.0).floor() as i64;
@@ -93,7 +97,8 @@ pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
                 let x: i8 = local_position_x;
                 let y: i8 = local_position_y;
                 let z: i8 = local_position_z;
-                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, 1);
+
+                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, 6);
                 game_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
                 let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z
