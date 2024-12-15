@@ -85,8 +85,7 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, chunk_positio
                 if get_block(&chunk, x - 1, y, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
                     directions.push(true)
                 } else {
-                    if x == 0 { directions.push(true); }
-                    else { directions.push(false); }
+                    directions.push(false);
                 }
 
                 if get_block(&chunk, x, y + 1, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
@@ -98,8 +97,7 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, chunk_positio
                 if get_block(&chunk, x, y - 1, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
                     directions.push(true)
                 } else {
-                    if y == 0 { directions.push(true); }
-                    else { directions.push(false); }
+                    directions.push(false);
                 }
 
                 if get_block(&chunk, x, y, z + 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
@@ -111,8 +109,7 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, chunk_positio
                 if get_block(&chunk, x, y, z - 1, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
                     directions.push(true)
                 } else {
-                    if z == 0 { directions.push(true); }
-                    else { directions.push(false); }
+                    directions.push(false);
                 }
 
                 if get_block(&chunk, x + 1, y + 1, z, &game_data, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right top (6)

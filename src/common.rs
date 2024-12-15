@@ -987,6 +987,7 @@ impl State {
             self.vertex_uniform_buffers.push(vertex_uniform_buffer);
             self.game_data.active_chunks.push(self.vertex_buffers.len() - 1);
             self.game_data.updated_chunks.push(self.vertex_buffers.len() - 1);
+            self.game_data.chunk_update_queue.push(self.vertex_buffers.len() - 1);
             let model_mat = transforms::create_transforms([
                 chunk_position_x_with_offset as f32 * 32.0, 
                 chunk_position_y_with_offset as f32 * 32.0, 
@@ -1048,9 +1049,9 @@ impl State {
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
 
-        //let current_time_updated = std::time::Instant::now();
-        //let update_time = current_time_updated.duration_since(current_time).as_millis();
-        //println!("update time: {}ms", update_time);
+        let current_time_updated = std::time::Instant::now();
+        let update_time = current_time_updated.duration_since(current_time).as_millis();
+        println!("update time: {}ms", update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
