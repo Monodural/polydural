@@ -30,6 +30,7 @@ fn main(){
     let mut _inventory = containers::Inventory::new();
 
     println!("loading model files");
+    //common::load_texture_files(&mut game_data);
     common::load_block_model_files(&mut game_data);
     println!("loaded model files");
 

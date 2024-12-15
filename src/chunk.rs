@@ -24,22 +24,22 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
 
                 if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() > 10.0 {
                     if position_y > terrain_max_height - 4.0 && position_y < terrain_max_height {
-                        chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = 1;
+                        chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = game_data.block_index["dirt"] as i8;
                     } else if position_y < terrain_max_height {
-                        chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = 6;
+                        chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = game_data.block_index["stone"] as i8;
                     } else if position_y == terrain_max_height {
                         let folliage_number: bool = game_data.rng.gen();
                         if folliage_number == true {
-                            chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = 2;
+                            chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = game_data.block_index["grass_1"] as i8;
                         } else {
-                            chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = 3;
+                            chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = game_data.block_index["grass_2"] as i8;
                         }
                     } else if position_y == (terrain_max_height + 1.0).floor() {
                         let folliage_number: f32 = game_data.rng.gen();
                         if folliage_number < 0.01 {
                             for i in 0..5 {
                                 if y + i > 15 { continue; }
-                                chunk[x as usize * 16 * 16 + (y + i) as usize * 16 + z as usize] = 5;
+                                chunk[x as usize * 16 * 16 + (y + i) as usize * 16 + z as usize] = game_data.block_index["oak_log"] as i8;
                             }
                         }
                     }

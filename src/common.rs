@@ -15,6 +15,9 @@ use rust_embed::RustEmbed;
 use serde::Deserialize;
 use rand::rngs::ThreadRng;
 use noise::Perlin;
+use std::fs;
+use std::io::Read;
+use std::path::Path;
 
 use crate::chunk;
 use crate::interact;
@@ -86,7 +89,8 @@ pub struct GameData {
     pub _text_active: Vec<bool>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
-    pub blocks: Vec<(String, Vec<i8>)>,
+    pub blocks: Vec<(String, Vec<i8>, String)>,
+    pub block_index: HashMap<String, usize>,
     pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
     pub chunk_buffer_index: HashMap<(i64, i64, i64), i64>,
     pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
@@ -116,6 +120,7 @@ impl GameData {
             camera_position: (-0.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
             blocks: Vec::new(),
+            block_index: HashMap::new(),
             chunks: HashMap::new(),
             chunk_buffer_index: HashMap::new(),
             chunk_buffer_coordinates: Vec::new(),
@@ -128,8 +133,9 @@ impl GameData {
         self.chunks.insert((x, y, z), chunk_data);
     }
 
-    pub fn add_block(&mut self, block_name: String, sides: Vec<i8>) {
-        self.blocks.push((block_name, sides));
+    pub fn add_block(&mut self, block_name: String, sides: Vec<i8>, owner: String) {
+        self.blocks.push((block_name.clone(), sides, owner));
+        self.block_index.insert(block_name, self.blocks.len());
     }
 
     pub fn _add_text_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool) {
@@ -1106,26 +1112,59 @@ impl State {
     }
 }
 
-pub fn load_block_model_files(game_data: &mut GameData) {
-    let json_files: Vec<_> = Assets::iter()
-        .filter(|file| file.starts_with("models/") && file.ends_with(".json"))
-        .collect();
+fn handle_model_data(game_data: &mut GameData, json_content: &str) {
+    let model_data: ModelData = serde_json::from_str(json_content).expect("Failed to parse JSON");
 
-    // Print the JSON files
+    game_data.add_block(
+        model_data.block_name,
+        vec![
+            model_data.textures.sides(),
+            model_data.textures.sides(),
+            model_data.textures.top(),
+            model_data.textures.bottom(),
+            model_data.textures.sides(),
+            model_data.textures.sides(),
+        ],
+        model_data.creator
+    );
+}
+pub fn load_block_model_files(game_data: &mut GameData) {
+    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+    let exe_dir = exe_path.parent().expect("Failed to get executable directory");
+    let models_dir = exe_dir.join("assets/models/blocks");
+    let mut json_files = Vec::new();
+    if models_dir.exists() && models_dir.is_dir() {
+        println!("Found the modded directory for models");
+        for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.extension().map_or(false, |ext| ext == "json") {
+                    if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
+                        println!("Found the modded model file: {}", file_name);
+                        json_files.push(file_name.to_string());
+                    }
+                }
+            }
+        }
+    }
+    json_files.extend(
+        Assets::iter()
+            .filter(|file| file.starts_with("models/") && file.ends_with(".json"))
+            .map(|file| file.to_string())
+    );
+    json_files.sort();
+    json_files.dedup();
     for file in json_files {
         println!("Found JSON file: {}", file);
-        if let Some(file) = Assets::get(&file) {
-            let json_content = std::str::from_utf8(file.data.as_ref()).expect("Invalid UTF-8");
-            let model_data: ModelData = serde_json::from_str(json_content).expect("Failed to parse JSON");
-
-            game_data.add_block(
-                model_data.block_name + "." + &model_data.creator, 
-                vec![
-                    model_data.textures.sides(), model_data.textures.sides(), 
-                    model_data.textures.top(), model_data.textures.bottom(),
-                    model_data.textures.sides(), model_data.textures.sides()
-                ]
-            );
+        let file_path = exe_dir.join(&file);
+        if file_path.exists() {
+            let mut file_content = String::new();
+            let mut file = fs::File::open(&file_path).expect("Failed to open file");
+            file.read_to_string(&mut file_content).expect("Failed to read file");
+            handle_model_data(game_data, &file_content);
+        } else if let Some(asset) = Assets::get(&file) {
+            let json_content = std::str::from_utf8(asset.data.as_ref()).expect("Invalid UTF-8");
+            handle_model_data(game_data, json_content);
         }
     }
 }
