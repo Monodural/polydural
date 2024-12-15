@@ -35,7 +35,27 @@ pub fn break_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
             if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
-                let chunk_data = chunk::set_block(chunk.clone(), local_position_x, local_position_y, local_position_z, 0);
+                let x: i8 = local_position_x;
+                let y: i8 = local_position_y;
+                let z: i8 = local_position_z;
+
+                if x == 0 || x == 15 || y == 0 || y == 15 || z == 0 || z == 15 {
+                    if x == 0 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x - 1, chunk_position_y, chunk_position_z)] as usize);
+                    } else if x == 15 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x + 1, chunk_position_y, chunk_position_z)] as usize);
+                    } else if y == 0 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y - 1, chunk_position_z)] as usize);
+                    } else if y == 15 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y + 1, chunk_position_z)] as usize);
+                    } else if z == 0 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z - 1)] as usize);
+                    } else if z == 15 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z + 1)] as usize);
+                    }
+                }
+
+                let chunk_data = chunk::set_block(chunk.clone(), local_position_x, local_position_y, local_position_z, game_data.block_index["air"] as i8);
                 game_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
                 let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z
@@ -94,7 +114,23 @@ pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
                 let y: i8 = local_position_y;
                 let z: i8 = local_position_z;
 
-                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, 6);
+                if x == 0 || x == 15 || y == 0 || y == 15 || z == 0 || z == 15 {
+                    if x == 0 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x - 1, chunk_position_y, chunk_position_z)] as usize);
+                    } else if x == 15 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x + 1, chunk_position_y, chunk_position_z)] as usize);
+                    } else if y == 0 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y - 1, chunk_position_z)] as usize);
+                    } else if y == 15 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y + 1, chunk_position_z)] as usize);
+                    } else if z == 0 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z - 1)] as usize);
+                    } else if z == 15 {
+                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z + 1)] as usize);
+                    }
+                }
+
+                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, game_data.block_index["stone"] as i8);
                 game_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
                 let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z

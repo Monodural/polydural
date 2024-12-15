@@ -17,7 +17,7 @@ use rand::rngs::ThreadRng;
 use noise::Perlin;
 use std::fs;
 use std::io::Read;
-use std::path::Path;
+//use std::path::Path;
 
 use crate::chunk;
 use crate::interact;
@@ -947,6 +947,25 @@ impl State {
                 }
             }
         }
+        if self.game_data.chunk_queue.len() == 0 && self.game_data.chunk_update_queue.len() > 0 {
+            let chunk_position = self.game_data.chunk_buffer_coordinates[self.game_data.chunk_update_queue[0]];
+            let chunk_data = self.game_data.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
+            let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data, 
+                chunk_position.0, chunk_position.1, chunk_position.2
+            );
+            let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+            let mut buffer_index: usize = 0;
+            if let Some(chunk_index) = self.game_data.chunk_buffer_index.get(&(chunk_position.0, chunk_position.1, chunk_position.2)) {
+                buffer_index = *chunk_index as usize;
+            }
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
+            self.vertex_buffers[buffer_index as usize] = vertex_buffer;
+            self.num_vertices[buffer_index as usize] = num_vertices_;
+            self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
+            self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
+            self.game_data.updated_chunks.push(buffer_index as usize);
+            self.game_data.chunk_update_queue.remove(0);
+        }
         if let Some(chunk_coordinates) = self.game_data.chunk_queue.iter().next() {
             let chunk_position_x_with_offset = chunk_coordinates.0;
             let chunk_position_y_with_offset = chunk_coordinates.1;
@@ -1114,7 +1133,6 @@ impl State {
 
 fn handle_model_data(game_data: &mut GameData, json_content: &str) {
     let model_data: ModelData = serde_json::from_str(json_content).expect("Failed to parse JSON");
-
     game_data.add_block(
         model_data.block_name,
         vec![
@@ -1154,6 +1172,7 @@ pub fn load_block_model_files(game_data: &mut GameData) {
     );
     json_files.sort();
     json_files.dedup();
+    game_data.block_index.insert("air".to_string(), 0);
     for file in json_files {
         println!("Found JSON file: {}", file);
         let file_path = exe_dir.join(&file);
