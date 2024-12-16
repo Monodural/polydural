@@ -828,7 +828,6 @@ impl State {
                 self.num_vertices[buffer_index as usize] = num_vertices_;
                 self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
                 self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
-                let mut world_data = self.world_data.lock().unwrap();
                 world_data.updated_chunks.push(buffer_index as usize);
             }
         } else if  button == 1 {
@@ -840,7 +839,6 @@ impl State {
                 self.num_vertices[buffer_index as usize] = num_vertices_;
                 self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
                 self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
-                let mut world_data = self.world_data.lock().unwrap();
                 world_data.updated_chunks.push(buffer_index as usize);
             }
         }
@@ -920,9 +918,9 @@ impl State {
                 self.game_data.active[active] = false;
             }
             world_data.active_chunks = Vec::new();
-            for x in -1..1 {
-                for y in -1..1 {
-                    for z in -1..1 {
+            for x in -4..4 {
+                for y in -2..2 {
+                    for z in -4..4 {
                         let chunk_position_x_with_offset = chunk_position_x as i64 + x;
                         let chunk_position_y_with_offset = chunk_position_y as i64 + y;
                         let chunk_position_z_with_offset = chunk_position_z as i64 + z;
@@ -939,7 +937,7 @@ impl State {
                 }
             }
         }
-        /*if world_data.chunk_queue.len() == 0 && world_data.chunk_update_queue.len() > 0 {
+        if world_data.chunk_queue.len() == 0 && world_data.chunk_update_queue.len() > 0 {
             let chunk_position = world_data.chunk_buffer_coordinates[world_data.chunk_update_queue[0]];
             let chunk_data = world_data.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
             let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data, &mut world_data, 
@@ -957,14 +955,12 @@ impl State {
             self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
             world_data.updated_chunks.push(buffer_index as usize);
             world_data.chunk_update_queue.remove(0);
-        }*/
+        }
         if let Some(chunk_coordinates) = world_data.chunk_queue.iter().next() {
             let chunk_position_x_with_offset = chunk_coordinates.0;
             let chunk_position_y_with_offset = chunk_coordinates.1;
             let chunk_position_z_with_offset = chunk_coordinates.2;
-            println!("{}", world_data.chunk_queue.len());
             world_data.chunk_queue.remove(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
-            println!("{}", world_data.chunk_queue.len());
             let chunk_data = chunk::generate_chunk(
                 chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, &mut self.game_data, &mut self.randomness_functions, &mut world_data
             );
@@ -1013,8 +1009,8 @@ impl State {
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
         }
         world_data.updated_chunks = Vec::new();
-        println!("setting {} updated chunks", world_data.active_chunks.len());
         for i in &world_data.active_chunks {
+            if self.num_vertices[*i] == 0 { continue; }
             self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 64, bytemuck::cast_slice(view_projection_ref));
         }
 
@@ -1045,9 +1041,9 @@ impl State {
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
 
-        let current_time_updated = std::time::Instant::now();
-        let update_time = current_time_updated.duration_since(current_time).as_millis();
-        println!("update time: {}ms", update_time);
+        //let current_time_updated = std::time::Instant::now();
+        //let update_time = current_time_updated.duration_since(current_time).as_millis();
+        //println!("update time: {}ms", update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

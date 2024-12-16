@@ -24,22 +24,22 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
 
                 if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() > 10.0 {
                     if position_y > terrain_max_height - 4.0 && position_y < terrain_max_height {
-                        chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = world_data.block_index["dirt"] as i8;
+                        chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["dirt"] as i8;
                     } else if position_y < terrain_max_height {
-                        chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = world_data.block_index["stone"] as i8;
+                        chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["stone"] as i8;
                     } else if position_y == terrain_max_height {
                         let folliage_number: bool = randomness_functions.rng.gen();
                         if folliage_number == true {
-                            chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = world_data.block_index["grass_1"] as i8;
+                            chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["grass_1"] as i8;
                         } else {
-                            chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize] = world_data.block_index["grass_2"] as i8;
+                            chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["grass_2"] as i8;
                         }
                     } else if position_y == (terrain_max_height + 1.0).floor() {
                         let folliage_number: f32 = randomness_functions.rng.gen();
                         if folliage_number < 0.01 {
                             for i in 0..5 {
                                 if y + i > 15 { continue; }
-                                chunk[x as usize * 16 * 16 + (y + i) as usize * 16 + z as usize] = world_data.block_index["oak_log"] as i8;
+                                chunk[(x * 16 * 16 + (y + i) * 16 + z) as usize] = world_data.block_index["oak_log"] as i8;
                             }
                         }
                     }
@@ -68,111 +68,81 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
     let atlas_width = 8.0;
     let atlas_height = 8.0;
 
+    let world_data_clone = &world_data;
+
     for x in 0..16 {
         for y in 0..16 {
             for z in 0..16 {
-                let block_id = get_block(&chunk, x, y, z, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z);
+                let block_id = get_block(&chunk, x, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z);
                 if block_id == 0 { continue; }
 
-                let mut directions = Vec::new();
+                let mut directions = vec![
+                    false, false, false, false, false, false,
+                    false, false, false, false, false, false,
+                    false, false, false, false, false, false
+                ];
 
-                if get_block(&chunk, x + 1, y, z, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions.push(true)
-                } else {
-                    directions.push(false)
-                }
-
-                if get_block(&chunk, x - 1, y, z, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x + 1, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
+                    directions[0] = true;
                 }
 
-                if get_block(&chunk, x, y + 1, z, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions.push(true)
-                } else {
-                    directions.push(false)
+                if get_block(&chunk, x - 1, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
+                    directions[1] = true;
                 }
 
-                if get_block(&chunk, x, y - 1, z, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x, y + 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
+                    directions[2] = true;
                 }
 
-                if get_block(&chunk, x, y, z + 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions.push(true)
-                } else {
-                    directions.push(false)
+                if get_block(&chunk, x, y - 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
+                    directions[3] = true;
                 }
 
-                if get_block(&chunk, x, y, z - 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x, y, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
+                    directions[4] = true;
                 }
 
-                if get_block(&chunk, x + 1, y + 1, z, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right top (6)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
-                }
-                if get_block(&chunk, x + 1, y - 1, z, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right bottom (7)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
-                }
-                if get_block(&chunk, x - 1, y + 1, z, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left top (8)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
-                }
-                if get_block(&chunk, x - 1, y - 1, z, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left bottom (9)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x, y, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
+                    directions[5] = true;
                 }
 
-                if get_block(&chunk, x, y + 1, z + 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front top (10)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x + 1, y + 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right top (6)
+                    directions[6] = true;
                 }
-                if get_block(&chunk, x, y - 1, z + 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front bottom (11)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x + 1, y - 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right bottom (7)
+                    directions[7] = true;
                 }
-                if get_block(&chunk, x, y + 1, z - 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back top (12)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x - 1, y + 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left top (8)
+                    directions[8] = true;
                 }
-                if get_block(&chunk, x, y - 1, z - 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back bottom (13)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x - 1, y - 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left bottom (9)
+                    directions[9] = true;
                 }
 
-                if get_block(&chunk, x + 1, y, z + 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right front (14)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x, y + 1, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front top (10)
+                    directions[10] = true;
                 }
-                if get_block(&chunk, x + 1, y, z - 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right back (15)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x, y - 1, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front bottom (11)
+                    directions[11] = true;
                 }
-                if get_block(&chunk, x - 1, y , z + 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left front (16)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x, y + 1, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back top (12)
+                    directions[12] = true;
                 }
-                if get_block(&chunk, x - 1, y, z - 1, &game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left back (17)
-                    directions.push(true)
-                } else {
-                    directions.push(false);
+                if get_block(&chunk, x, y - 1, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back bottom (13)
+                    directions[13] = true;
+                }
+
+                if get_block(&chunk, x + 1, y, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right front (14)
+                    directions[14] = true;
+                }
+                if get_block(&chunk, x + 1, y, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right back (15)
+                    directions[15] = true;
+                }
+                if get_block(&chunk, x - 1, y , z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left front (16)
+                    directions[16] = true;
+                }
+                if get_block(&chunk, x - 1, y, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left back (17)
+                    directions[17] = true;
                 }
 
                 let block_position_x = x as i8;
@@ -450,7 +420,7 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
     return (vertices, normals, colors, uvs);
 }
 
-pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, world_data: world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> i8 {
+pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, world_data: &world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> i8 {
     if x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15 {
         if x < 0 && y >= 0 && z >= 0 && y < 16 && z < 16 {
             let chunk_position_x: i64 = chunk_position_x - 1;
@@ -460,7 +430,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, 15, y, z, game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, 15, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if y < 0 && x >= 0 && z >= 0 && x < 16 && z < 16 {
@@ -471,7 +441,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, 15, z, game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, 15, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if z < 0 && x >= 0 && y >= 0 && x < 16 && y < 16 {
@@ -482,7 +452,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, y, 15, game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, y, 15, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if x > 15 && y >= 0 && z >= 0 && y < 16 && z < 16 {
@@ -493,7 +463,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, 0, y, z, game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, 0, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if y > 15 && x >= 0 && z >= 0 && x < 16 && z < 16 {
@@ -504,7 +474,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, 0, z, game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, 0, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if z > 15 && x >= 0 && y >= 0 && x < 16 && y < 16 {
@@ -515,12 +485,12 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, y, 0, game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, y, 0, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         return -1;
     }
-    return chunk[x as usize * 16 * 16 + y as usize * 16 + z as usize];
+    return chunk[(x * 16 * 16 + y * 16 + z) as usize];
 }
 pub fn get_block_global(game_data: &common::GameData, world_data: world::WorldData, x: f32, y: f32, z: f32) -> i8 {
     let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
@@ -535,7 +505,7 @@ pub fn get_block_global(game_data: &common::GameData, world_data: world::WorldDa
     if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
     if let Some(chunk) = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
-        return get_block(chunk, local_position_x, local_position_y, local_position_z, game_data, world_data.clone(), chunk_position_x, chunk_position_y, chunk_position_z);
+        return get_block(chunk, local_position_x, local_position_y, local_position_z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
     } else {
         return -1;
     }
