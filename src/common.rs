@@ -937,7 +937,7 @@ impl State {
                 }
             }
         }
-        if world_data.chunk_queue.len() == 0 && world_data.chunk_update_queue.len() > 0 {
+        /*if world_data.chunk_queue.len() == 0 && world_data.chunk_update_queue.len() > 0 {
             let chunk_position = world_data.chunk_buffer_coordinates[world_data.chunk_update_queue[0]];
             let chunk_data = world_data.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
             let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data, &mut world_data, 
@@ -955,7 +955,7 @@ impl State {
             self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
             world_data.updated_chunks.push(buffer_index as usize);
             world_data.chunk_update_queue.remove(0);
-        }
+        }*/
         if let Some(chunk_coordinates) = world_data.chunk_queue.iter().next() {
             let chunk_position_x_with_offset = chunk_coordinates.0;
             let chunk_position_y_with_offset = chunk_coordinates.1;

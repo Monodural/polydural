@@ -116,7 +116,6 @@ pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::Wor
                 let y: i8 = local_position_y;
                 let z: i8 = local_position_z;
 
-                println!("{}", x);
                 if x == 0 || x == 15 || y == 0 || y == 15 || z == 0 || z == 15 {
                     if x == 0 {
                         world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x - 1, chunk_position_y, chunk_position_z)] as usize);
