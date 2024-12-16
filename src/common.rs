@@ -70,13 +70,13 @@ impl Textures {
 
 #[derive(Clone)]
 pub struct RandomnessFunctions {
-    pub rng: ThreadRng,
+    //pub rng: ThreadRng,
     pub noise: Perlin
 }
 impl RandomnessFunctions {
     pub fn new() -> Self {
         RandomnessFunctions {
-            rng: rand::thread_rng(),
+            //rng: rand::thread_rng(),
             noise: Perlin::new(78685746)
         }
     }
@@ -929,7 +929,8 @@ impl State {
                             self.game_data.active[chunk_index] = true;
                             world_data.active_chunks.push(chunk_index);
                         } else {
-                            if !world_data.chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
+                            if !world_data.chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) && 
+                                !world_data.created_chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
                                 world_data.chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
                             }
                         }
@@ -937,41 +938,23 @@ impl State {
                 }
             }
         }
-        /*if world_data.chunk_queue.len() == 0 && world_data.chunk_update_queue.len() > 0 {
-            let chunk_position = world_data.chunk_buffer_coordinates[world_data.chunk_update_queue[0]];
-            let chunk_data = world_data.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
-            let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data, &mut world_data, 
-                chunk_position.0, chunk_position.1, chunk_position.2
-            );
-            let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
-            let mut buffer_index: usize = 0;
-            if let Some(chunk_index) = world_data.chunk_buffer_index.get(&(chunk_position.0, chunk_position.1, chunk_position.2)) {
-                buffer_index = *chunk_index as usize;
-            }
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
-            self.vertex_buffers[buffer_index as usize] = vertex_buffer;
-            self.num_vertices[buffer_index as usize] = num_vertices_;
-            self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
-            self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
-            world_data.updated_chunks.push(buffer_index as usize);
-            world_data.chunk_update_queue.remove(0);
-        }*/
-        if let Some(chunk_coordinates) = world_data.chunk_queue.iter().next() {
-            let chunk_position_x_with_offset = chunk_coordinates.0;
-            let chunk_position_y_with_offset = chunk_coordinates.1;
-            let chunk_position_z_with_offset = chunk_coordinates.2;
-            world_data.chunk_queue.remove(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
-            let chunk_data = chunk::generate_chunk(
-                chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, &mut self.game_data, &mut self.randomness_functions, &mut world_data
-            );
-            let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &self.game_data, &mut world_data, 
-                chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset
-            );
-            let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
-            world_data.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data);
-            self.game_data.add_object(vertex_data_chunk.clone(), (chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset), true);
-            world_data.add_object((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
+        if world_data.updated_chunk_data.len() > 0 {
+            let updated_chunk = world_data.updated_chunk_data.clone();
+            let chunk_data = &updated_chunk[0];
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.1, &self.init, self.light_data, &self.uniform_bind_group_layout);
+            self.vertex_buffers[chunk_data.0] = vertex_buffer;
+            self.num_vertices[chunk_data.0] = num_vertices_;
+            self.uniform_bind_groups[chunk_data.0] = uniform_bind_group;
+            self.vertex_uniform_buffers[chunk_data.0] = vertex_uniform_buffer;
+            world_data.updated_chunks.push(chunk_data.0);
+            world_data.updated_chunk_data.remove(0);
+        }
+        if world_data.created_chunk_data.len() > 0 {
+            let updated_chunk = world_data.created_chunk_data.clone();
+            let chunk_data = &updated_chunk[0];
+            self.game_data.add_object(chunk_data.0.clone(), (chunk_data.1, chunk_data.2, chunk_data.3), true);
+            world_data.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.0, &self.init, self.light_data, &self.uniform_bind_group_layout);
             self.vertex_buffers.push(vertex_buffer);
             self.num_vertices.push(num_vertices_);
             self.uniform_bind_groups.push(uniform_bind_group);
@@ -979,15 +962,9 @@ impl State {
             world_data.active_chunks.push(self.vertex_buffers.len() - 1);
             world_data.updated_chunks.push(self.vertex_buffers.len() - 1);
             world_data.chunk_update_queue.push(self.vertex_buffers.len() - 1);
-            let model_mat = transforms::create_transforms([
-                chunk_position_x_with_offset as f32 * 32.0, 
-                chunk_position_y_with_offset as f32 * 32.0, 
-                chunk_position_z_with_offset as f32 * 32.0], 
-                [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
-            );
-            let normal_mat = (model_mat.invert().unwrap()).transpose();
-            self.game_data.model_matrices.push(model_mat);
-            self.game_data.normal_matrices.push(normal_mat);
+            self.game_data.model_matrices.push(chunk_data.4);
+            self.game_data.normal_matrices.push(chunk_data.5);
+            world_data.created_chunk_data.remove(0);
         }
 
         let up_direction = cgmath::Vector3::unit_y();
@@ -1041,9 +1018,9 @@ impl State {
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
 
-        //let current_time_updated = std::time::Instant::now();
-        //let update_time = current_time_updated.duration_since(current_time).as_millis();
-        //println!("update time: {}ms", update_time);
+        let current_time_updated = std::time::Instant::now();
+        let update_time = current_time_updated.duration_since(current_time).as_millis();
+        println!("update time: {}ms", update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

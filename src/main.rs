@@ -3,6 +3,7 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
+use cgmath::*;
 
 mod common;
 mod transforms;
@@ -68,8 +69,10 @@ fn main(){
 
     let world_data_backend = Arc::clone(&world_data);
     let game_data_backend = game_data.clone();
+    let randomness_functions_backend = randomness_functions.clone();
 
     thread::spawn(move || {
+        let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
         let update_interval = Duration::from_millis(20);
         loop {
             let start_time = Instant::now();
@@ -77,7 +80,6 @@ fn main(){
                 let mut world_data = world_data_backend.lock().unwrap();
                 //let random_value: f32 = data_backend.rng.gen(); // Example usage
                 if world_data.chunk_queue.len() == 0 && world_data.chunk_update_queue.len() > 0 {
-                    println!("updating chunk");
                     let chunk_position = world_data.chunk_buffer_coordinates[world_data.chunk_update_queue[0]];
                     let chunk_data = world_data.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
                     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data_backend, &mut world_data, 
@@ -88,13 +90,31 @@ fn main(){
                     if let Some(chunk_index) = world_data.chunk_buffer_index.get(&(chunk_position.0, chunk_position.1, chunk_position.2)) {
                         buffer_index = *chunk_index as usize;
                     }
-                    /*let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = common::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
-                    self.vertex_buffers[buffer_index as usize] = vertex_buffer;
-                    self.num_vertices[buffer_index as usize] = num_vertices_;
-                    self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
-                    self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
-                    world_data.updated_chunks.push(buffer_index as usize);*/
+                    world_data.updated_chunk_data.push((buffer_index, vertex_data_chunk));
                     world_data.chunk_update_queue.remove(0);
+                }
+                if let Some(chunk_coordinates) = world_data.chunk_queue.iter().next() {
+                    let chunk_position_x_with_offset = chunk_coordinates.0;
+                    let chunk_position_y_with_offset = chunk_coordinates.1;
+                    let chunk_position_z_with_offset = chunk_coordinates.2;
+                    world_data.chunk_queue.remove(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+                    let chunk_data = chunk::generate_chunk(
+                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, game_data_backend.clone(), &randomness_functions_backend, &mut rng, &mut world_data
+                    );
+                    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data_backend, &mut world_data, 
+                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset
+                    );
+                    let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+                    world_data.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data);
+                    let model_mat = transforms::create_transforms([
+                        chunk_position_x_with_offset as f32 * 32.0, 
+                        chunk_position_y_with_offset as f32 * 32.0, 
+                        chunk_position_z_with_offset as f32 * 32.0], 
+                        [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+                    );
+                    let normal_mat = (model_mat.invert().unwrap()).transpose();
+                    world_data.created_chunk_data.push((vertex_data_chunk, chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, model_mat, normal_mat));
+                    world_data.created_chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
                 }
             }
             let elapsed = start_time.elapsed();

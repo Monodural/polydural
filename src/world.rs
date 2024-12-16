@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use cgmath::*;
+
+use crate::common;
 
 #[derive(Clone)]
 pub struct WorldData {
@@ -7,11 +10,14 @@ pub struct WorldData {
     pub updated_chunks: Vec<usize>,
     pub chunk_update_queue: Vec<usize>,
     pub chunk_queue: HashSet<(i64, i64, i64)>,
+    pub created_chunk_queue: HashSet<(i64, i64, i64)>,
     pub blocks: Vec<(String, Vec<i8>, String)>,
     pub block_index: HashMap<String, usize>,
     pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
     pub chunk_buffer_index: HashMap<(i64, i64, i64), i64>,
-    pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>
+    pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
+    pub updated_chunk_data: Vec<(usize, Vec<common::Vertex>)>,
+    pub created_chunk_data: Vec<(Vec<common::Vertex>, i64, i64, i64, Matrix4<f32>, Matrix4<f32>)>
 }
 impl WorldData {
     pub fn new() -> Self {
@@ -20,11 +26,14 @@ impl WorldData {
             updated_chunks: Vec::new(),
             chunk_update_queue: Vec::new(),
             chunk_queue: HashSet::new(),
+            created_chunk_queue: HashSet::new(),
             blocks: Vec::new(),
             block_index: HashMap::new(),
             chunks: HashMap::new(),
             chunk_buffer_index: HashMap::new(),
-            chunk_buffer_coordinates: Vec::new()
+            chunk_buffer_coordinates: Vec::new(),
+            updated_chunk_data: Vec::new(),
+            created_chunk_data: Vec::new()
         }
     }
 

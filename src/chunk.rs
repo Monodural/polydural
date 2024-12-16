@@ -2,7 +2,7 @@ use crate::{common::{self, RandomnessFunctions}, world};
 use noise::NoiseFn;
 use rand::Rng;
 
-pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, _game_data: &mut common::GameData, randomness_functions: &mut RandomnessFunctions, world_data: &mut world::WorldData) -> Vec<i8> {
+pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, _game_data: common::GameData, randomness_functions: &RandomnessFunctions, rng: &mut rand::prelude::ThreadRng, world_data: &mut world::WorldData) -> Vec<i8> {
     let mut chunk: Vec<i8> = Vec::new();
 
     for _ in 0..16*16*16 {
@@ -28,14 +28,14 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                     } else if position_y < terrain_max_height {
                         chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["stone"] as i8;
                     } else if position_y == terrain_max_height {
-                        let folliage_number: bool = randomness_functions.rng.gen();
+                        let folliage_number: bool = rng.gen();
                         if folliage_number == true {
                             chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["grass_1"] as i8;
                         } else {
                             chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["grass_2"] as i8;
                         }
                     } else if position_y == (terrain_max_height + 1.0).floor() {
-                        let folliage_number: f32 = randomness_functions.rng.gen();
+                        let folliage_number: f32 = rng.gen();
                         if folliage_number < 0.01 {
                             for i in 0..5 {
                                 if y + i > 15 { continue; }
