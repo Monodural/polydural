@@ -125,5 +125,5 @@ fn main(){
     });
 
     let light_data = common::light([1.0,1.0,1.0], [1.0, 1.0, 0.0], 0.05, 0.6, 0.3, 30.0);
-    common::run(game_data, randomness_functions, world_data, light_data, "Polydural");
+    common::run(game_data, world_data, light_data, "Polydural");
 }

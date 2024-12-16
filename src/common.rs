@@ -12,14 +12,13 @@ use std::collections::HashMap;
 use image::GenericImageView;
 use rust_embed::RustEmbed;
 use serde::Deserialize;
-use rand::rngs::ThreadRng;
 use noise::Perlin;
 use std::fs;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
 //use std::path::Path;
 
-use crate::{chunk, world::{self, WorldData}};
+use crate::world::{self, WorldData};
 use crate::interact;
 
 #[path="../src/transforms.rs"]
@@ -221,7 +220,6 @@ struct State {
     uniform_bind_group_layout: wgpu::BindGroupLayout,
     light_data: Light,
     frame: usize,
-    randomness_functions: RandomnessFunctions,
     world_data: Arc<Mutex<world::WorldData>>
 }
 
@@ -591,7 +589,7 @@ impl State {
         return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
     }
 
-    async fn new(window: &Window, game_data: GameData, light_data: Light, randomness_functions: RandomnessFunctions, world_data: Arc<Mutex<WorldData>>) -> Self {        
+    async fn new(window: &Window, game_data: GameData, light_data: Light, world_data: Arc<Mutex<WorldData>>) -> Self {        
         let init =  transforms::InitWgpu::init_wgpu(window).await;
 
         let shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -797,7 +795,6 @@ impl State {
             uniform_bind_group_layout,
             light_data,
             frame,
-            randomness_functions,
             world_data
         }
     }
@@ -1161,7 +1158,7 @@ pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>) {
     }
 }
 
-pub fn run(game_data: GameData, randomness_functions: RandomnessFunctions, world_data: Arc<Mutex<world::WorldData>>, light_data: Light, title: &str) {
+pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, light_data: Light, title: &str) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
@@ -1172,7 +1169,7 @@ pub fn run(game_data: GameData, randomness_functions: RandomnessFunctions, world
     }
     window.set_cursor_visible(false);
 
-    let mut game_state = pollster::block_on(State::new(&window, game_data, light_data, randomness_functions, world_data));    
+    let mut game_state = pollster::block_on(State::new(&window, game_data, light_data, world_data));    
     let render_start_time = std::time::Instant::now();
 
     let mut keys_down: HashMap<&str, bool> = HashMap::new();
