@@ -1,5 +1,9 @@
 //#![windows_subsystem = "windows"]
 
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::{Duration, Instant};
+
 mod common;
 mod transforms;
 mod world;
@@ -25,13 +29,16 @@ fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f
 }
 
 fn main(){
+    //let mut game_data = common::GameData::new();
     let mut game_data = common::GameData::new();
-
+    let world_data = Arc::new(Mutex::new(world::WorldData::new()));
+    let randomness_functions = common::RandomnessFunctions::new();
     let mut _inventory = containers::Inventory::new();
 
     println!("loading model files");
     //common::load_texture_files(&mut game_data);
-    common::load_block_model_files(&mut game_data);
+    let world_data_thread = Arc::clone(&world_data);
+    common::load_block_model_files(world_data_thread);
     println!("loaded model files");
 
     // add gui elements
@@ -59,6 +66,24 @@ fn main(){
     );
     game_data.add_gui_object(vertex_data.clone(), (0.0, -0.6, 0.0), (0.04, 0.04, 0.04), true);
 
+    let game_data_backend = Arc::clone(&world_data);
+
+    /*thread::spawn(move || {
+        let update_interval = Duration::from_millis(20);
+        loop {
+            let start_time = Instant::now();
+            {
+                let data_backend = game_data_backend.lock().unwrap();
+                //let random_value: f32 = data_backend.rng.gen(); // Example usage
+                println!("chunk length: {}", data_backend.chunks.len());
+            }
+            let elapsed = start_time.elapsed();
+            if elapsed < update_interval {
+                thread::sleep(update_interval - elapsed);
+            }
+        }
+    });*/
+
     let light_data = common::light([1.0,1.0,1.0], [1.0, 1.0, 0.0], 0.05, 0.6, 0.3, 30.0);
-    common::run(game_data, light_data, "Polydural");
+    common::run(game_data, randomness_functions, world_data, light_data, "Polydural");
 }

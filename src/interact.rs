@@ -1,7 +1,7 @@
-use crate::{chunk, common};
+use crate::{chunk, common, world};
 use cgmath::*;
 
-pub fn break_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i32) {
+pub fn break_block(game_data: &mut common::GameData, world_data: &mut world::WorldData) -> (Vec<common::Vertex>, i32) {
     let forward = cgmath::Vector3::new(
         game_data.camera_rotation[1].cos() * game_data.camera_rotation[0].cos(),
         game_data.camera_rotation[0].sin(),
@@ -11,7 +11,7 @@ pub fn break_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
     let mut found_block = false;
     for i in 0..16 {
         if found_block { continue; }
-        let block_type = chunk::get_block_global(game_data, 
+        let block_type = chunk::get_block_global(game_data, world_data.clone(), 
             (game_data.camera_position[0] + forward.x * i as f32) / 2.0, 
             (game_data.camera_position[1] + forward.y * i as f32) / 2.0, 
             (game_data.camera_position[2] + forward.z * i as f32) / 2.0
@@ -34,38 +34,38 @@ pub fn break_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             if local_position_y < 0 { local_position_y = 16 + local_position_y; }
             if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
-            if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+            if let Some(chunk) = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                 let x: i8 = local_position_x;
                 let y: i8 = local_position_y;
                 let z: i8 = local_position_z;
 
                 if x == 0 || x == 15 || y == 0 || y == 15 || z == 0 || z == 15 {
                     if x == 0 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x - 1, chunk_position_y, chunk_position_z)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x - 1, chunk_position_y, chunk_position_z)] as usize);
                     } else if x == 15 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x + 1, chunk_position_y, chunk_position_z)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x + 1, chunk_position_y, chunk_position_z)] as usize);
                     }
                     if y == 0 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y - 1, chunk_position_z)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y - 1, chunk_position_z)] as usize);
                     } else if y == 15 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y + 1, chunk_position_z)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y + 1, chunk_position_z)] as usize);
                     }
                     if z == 0 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z - 1)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z - 1)] as usize);
                     } else if z == 15 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z + 1)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z + 1)] as usize);
                     }
                 }
 
-                let chunk_data = chunk::set_block(chunk.clone(), local_position_x, local_position_y, local_position_z, game_data.block_index["air"] as i8);
-                game_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
-                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, 
+                let chunk_data = chunk::set_block(chunk.clone(), local_position_x, local_position_y, local_position_z, world_data.block_index["air"] as i8);
+                world_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
+                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, world_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z
                 );
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
         
                 let mut buffer_index: usize = 0;
-                if let Some(chunk_index) = game_data.chunk_buffer_index.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                if let Some(chunk_index) = world_data.chunk_buffer_index.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                     buffer_index = *chunk_index as usize;
                 }
         
@@ -76,7 +76,7 @@ pub fn break_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
     return (Vec::new(), -1);
 }
 
-pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i32) {
+pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::WorldData) -> (Vec<common::Vertex>, i32) {
     let forward = cgmath::Vector3::new(
         game_data.camera_rotation[1].cos() * game_data.camera_rotation[0].cos(),
         game_data.camera_rotation[0].sin(),
@@ -86,7 +86,7 @@ pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
     let mut found_block = false;
     for mut i in 0..16 {
         if found_block { continue; }
-        let block_type = chunk::get_block_global(game_data, 
+        let block_type = chunk::get_block_global(game_data, world_data.clone(), 
             (game_data.camera_position[0] + forward.x * i as f32) / 2.0, 
             (game_data.camera_position[1] + forward.y * i as f32) / 2.0, 
             (game_data.camera_position[2] + forward.z * i as f32) / 2.0
@@ -111,7 +111,7 @@ pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
             if local_position_y < 0 { local_position_y = 16 + local_position_y; }
             if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
-            if let Some(chunk) = game_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+            if let Some(chunk) = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                 let x: i8 = local_position_x;
                 let y: i8 = local_position_y;
                 let z: i8 = local_position_z;
@@ -119,31 +119,31 @@ pub fn place_block(game_data: &mut common::GameData) -> (Vec<common::Vertex>, i3
                 println!("{}", x);
                 if x == 0 || x == 15 || y == 0 || y == 15 || z == 0 || z == 15 {
                     if x == 0 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x - 1, chunk_position_y, chunk_position_z)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x - 1, chunk_position_y, chunk_position_z)] as usize);
                     } else if x == 15 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x + 1, chunk_position_y, chunk_position_z)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x + 1, chunk_position_y, chunk_position_z)] as usize);
                     }
                     if y == 0 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y - 1, chunk_position_z)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y - 1, chunk_position_z)] as usize);
                     } else if y == 15 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y + 1, chunk_position_z)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y + 1, chunk_position_z)] as usize);
                     }
                     if z == 0 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z - 1)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z - 1)] as usize);
                     } else if z == 15 {
-                        game_data.chunk_update_queue.push(game_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z + 1)] as usize);
+                        world_data.chunk_update_queue.push(world_data.chunk_buffer_index[&(chunk_position_x, chunk_position_y, chunk_position_z + 1)] as usize);
                     }
                 }
 
-                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, game_data.block_index["stone"] as i8);
-                game_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
-                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, 
+                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, world_data.block_index["stone"] as i8);
+                world_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
+                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, world_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z
                 );
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
         
                 let mut buffer_index: usize = 0;
-                if let Some(chunk_index) = game_data.chunk_buffer_index.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                if let Some(chunk_index) = world_data.chunk_buffer_index.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                     buffer_index = *chunk_index as usize;
                 }
         
