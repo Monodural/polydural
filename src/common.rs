@@ -85,17 +85,18 @@ impl RandomnessFunctions {
 pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
     pub gui_objects: Vec<Vec<Vertex>>,
-    pub _text_objects: Vec<Vec<Vertex>>,
+    pub text_objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
     pub gui_positions: Vec<(f32, f32, f32)>,
-    pub _text_positions: Vec<(f32, f32, f32)>,
+    pub text_positions: Vec<(f32, f32, f32)>,
     pub model_matrices: Vec<Matrix4<f32>>,
     pub normal_matrices: Vec<Matrix4<f32>>,
     pub gui_scale: Vec<(f32, f32, f32)>,
-    pub _text_scale: Vec<(f32, f32, f32)>,
+    pub text_scale: Vec<(f32, f32, f32)>,
     pub active: Vec<bool>,
     pub gui_active: Vec<bool>,
-    pub _text_active: Vec<bool>,
+    pub text_active: Vec<bool>,
+    pub text: Vec<String>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
 }
@@ -104,27 +105,29 @@ impl GameData {
         GameData {
             objects: Vec::new(),
             gui_objects: Vec::new(),
-            _text_objects: Vec::new(),
+            text_objects: Vec::new(),
             positions: Vec::new(),
             gui_positions: Vec::new(),
-            _text_positions: Vec::new(),
+            text_positions: Vec::new(),
             model_matrices: Vec::new(),
             normal_matrices: Vec::new(),
             gui_scale: Vec::new(),
-            _text_scale: Vec::new(),
+            text_scale: Vec::new(),
             active: Vec::new(),
             gui_active: Vec::new(),
-            _text_active: Vec::new(),
+            text_active: Vec::new(),
+            text: Vec::new(),
             camera_position: (-0.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
         }
     }
 
-    pub fn _add_text_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool) {
-        self._text_objects.push(item);
-        self._text_positions.push(position);
-        self._text_scale.push(scale);
-        self._text_active.push(active);
+    pub fn add_text_object(&mut self, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool, text: String) {
+        //self.text_objects.push(item);
+        self.text_positions.push(position);
+        self.text_scale.push(scale);
+        self.text_active.push(active);
+        self.text.push(text);
     }
 
     pub fn add_gui_object(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool) {
@@ -206,15 +209,20 @@ struct State {
     init: transforms::InitWgpu,
     pipeline: wgpu::RenderPipeline,
     gui_pipeline: wgpu::RenderPipeline,
+    text_pipeline: wgpu::RenderPipeline,
     vertex_buffers: Vec<wgpu::Buffer>,
     gui_vertex_buffers: Vec<wgpu::Buffer>,
+    text_vertex_buffers: Vec<wgpu::Buffer>,
     uniform_bind_groups: Vec<wgpu::BindGroup>,
     gui_uniform_bind_groups: Vec<wgpu::BindGroup>,
+    text_uniform_bind_groups: Vec<wgpu::BindGroup>,
     vertex_uniform_buffers: Vec<wgpu::Buffer>,
     gui_vertex_uniform_buffers: Vec<wgpu::Buffer>,
+    text_vertex_uniform_buffers: Vec<wgpu::Buffer>,
     project_mat: Matrix4<f32>,
     num_vertices: Vec<u32>,
     gui_num_vertices: Vec<u32>,
+    text_num_vertices: Vec<u32>,
     game_data: GameData,
     previous_frame_time: std::time::Instant,
     uniform_bind_group_layout: wgpu::BindGroupLayout,
@@ -463,6 +471,127 @@ impl State {
             usage: wgpu::BufferUsages::VERTEX,
         });
         let num_vertices = game_data.gui_objects[i].len() as u32;
+
+        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
+    }
+    fn create_object_text(
+        _game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
+        uniform_bind_group_layout: &wgpu::BindGroupLayout, i: usize, vertex_data: Vec<Vertex>) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        // create vertex uniform buffer
+        // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
+        let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Vertex Uniform Buffer"),
+            size: 192,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+       
+        // create fragment uniform buffer. here we set eye_position = camera_position and light_position = eye_position
+        let fragment_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Fragment Uniform Buffer"),
+            size: 32,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // store light and eye positions
+        let light_position:&[f32; 3] = &Point3::new(0.0, 128.0, 0.0).into();
+        let eye_position:&[f32; 3] = &Point3::new(0.0, 128.0, 0.0).into();
+        init.queue.write_buffer(&fragment_uniform_buffer, 0, bytemuck::cast_slice(light_position));
+        init.queue.write_buffer(&fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
+
+        // create light uniform buffer
+        let light_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Light Uniform Buffer"),
+            size: 48,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // store light parameters
+        init.queue.write_buffer(&light_uniform_buffer, 0, bytemuck::cast_slice(&[light_data]));
+
+        let texture_data = Assets::get("textures/gui/gui_atlas.png").expect("Failed to load embedded texture");
+        let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
+        let rgba = img.to_rgba8();
+        let (width, height) = img.dimensions();
+        let texture_size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
+        
+        let texture = init.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Texture"),
+            size: texture_size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        
+        init.queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &rgba,
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * width),
+                rows_per_image: Some(height),
+            },
+            texture_size,
+        );
+        
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler = init.device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let uniform_bind_group = init.device.create_bind_group(&wgpu::BindGroupDescriptor{
+            layout: &uniform_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: vertex_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: fragment_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: light_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+            label: Some("Uniform Bind Group"),
+        });
+
+        let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: cast_slice(&vertex_data),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        let num_vertices = vertex_data.len() as u32;
 
         return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
     }
@@ -746,6 +875,50 @@ impl State {
             multisample: wgpu::MultisampleState::default(),
             multiview: None
         });
+        let text_pipeline = init.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("GUI Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &gui_shader,
+                entry_point: "vs_main",
+                buffers: &[Vertex::desc()],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &gui_shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: init.config.format,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                    }),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState{
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                cull_mode: Some(wgpu::Face::Back),
+                ..Default::default()
+            },
+            //depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth24Plus,
+                depth_write_enabled: false,
+                depth_compare: wgpu::CompareFunction::Always,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None
+        });
 
         let mut vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
         let mut num_vertices: Vec<u32> = Vec::new();
@@ -773,6 +946,67 @@ impl State {
             gui_vertex_uniform_buffers.push(vertex_uniform_buffer);
         }
 
+        let mut text_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
+        let mut text_num_vertices: Vec<u32> = Vec::new();
+        let mut text_uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
+        let mut text_vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
+
+        for i in 0..game_data.text.len() {
+            for character in game_data.text[i].chars() {
+                let mut uvs = vec![[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]];
+                match character {
+                    '1' => { uvs = vec![[0.039 + 0.000, 0.242], [0.015 + 0.000, 0.242], [0.015 + 0.000, 0.296], [0.039 + 0.000, 0.242], [0.015 + 0.000, 0.296], [0.039 + 0.000, 0.296]]; }
+                    '2' => { uvs = vec![[0.046 + 0.031, 0.242], [0.015 + 0.031, 0.242], [0.015 + 0.031, 0.296], [0.046 + 0.031, 0.242], [0.015 + 0.031, 0.296], [0.046 + 0.031, 0.296]]; }
+                    '3' => { uvs = vec![[0.046 + 0.070, 0.242], [0.015 + 0.070, 0.242], [0.015 + 0.070, 0.296], [0.046 + 0.070, 0.242], [0.015 + 0.070, 0.296], [0.046 + 0.070, 0.296]]; }
+                    '4' => { uvs = vec![[0.046 + 0.109, 0.242], [0.015 + 0.109, 0.242], [0.015 + 0.109, 0.296], [0.046 + 0.109, 0.242], [0.015 + 0.109, 0.296], [0.046 + 0.109, 0.296]]; }
+                    '5' => { uvs = vec![[0.046 + 0.148, 0.242], [0.015 + 0.148, 0.242], [0.015 + 0.148, 0.296], [0.046 + 0.148, 0.242], [0.015 + 0.148, 0.296], [0.046 + 0.148, 0.296]]; }
+                    '6' => { uvs = vec![[0.046 + 0.188, 0.242], [0.015 + 0.188, 0.242], [0.015 + 0.188, 0.296], [0.046 + 0.188, 0.242], [0.015 + 0.188, 0.296], [0.046 + 0.188, 0.296]]; }
+                    '7' => { uvs = vec![[0.046 + 0.227, 0.242], [0.015 + 0.227, 0.242], [0.015 + 0.227, 0.296], [0.046 + 0.227, 0.242], [0.015 + 0.227, 0.296], [0.046 + 0.227, 0.296]]; }
+                    '8' => { uvs = vec![[0.046 + 0.266, 0.242], [0.015 + 0.266, 0.242], [0.015 + 0.266, 0.296], [0.046 + 0.266, 0.242], [0.015 + 0.266, 0.296], [0.046 + 0.266, 0.296]]; }
+                    '9' => { uvs = vec![[0.046 + 0.305, 0.242], [0.015 + 0.305, 0.242], [0.015 + 0.305, 0.296], [0.046 + 0.305, 0.242], [0.015 + 0.305, 0.296], [0.046 + 0.305, 0.296]]; }
+                    '0' => { uvs = vec![[0.046 + 0.344, 0.242], [0.015 + 0.344, 0.242], [0.015 + 0.344, 0.296], [0.046 + 0.344, 0.242], [0.015 + 0.344, 0.296], [0.046 + 0.344, 0.296]]; }
+                    'a' => { uvs = vec![[0.039 + 0.000, 0.242 + 0.063], [0.008 + 0.000, 0.242 + 0.063], [0.008 + 0.000, 0.296 + 0.063], [0.039 + 0.000, 0.242 + 0.063], [0.008 + 0.000, 0.296 + 0.063], [0.039 + 0.000, 0.296 + 0.063]]; }
+                    'b' => { uvs = vec![[0.039 + 0.039, 0.242 + 0.063], [0.008 + 0.039, 0.242 + 0.063], [0.008 + 0.039, 0.296 + 0.063], [0.039 + 0.039, 0.242 + 0.063], [0.008 + 0.039, 0.296 + 0.063], [0.039 + 0.039, 0.296 + 0.063]]; }
+                    'c' => { uvs = vec![[0.039 + 0.078, 0.242 + 0.063], [0.008 + 0.078, 0.242 + 0.063], [0.008 + 0.078, 0.296 + 0.063], [0.039 + 0.078, 0.242 + 0.063], [0.008 + 0.078, 0.296 + 0.063], [0.039 + 0.078, 0.296 + 0.063]]; }
+                    'd' => { uvs = vec![[0.039 + 0.117, 0.242 + 0.063], [0.008 + 0.117, 0.242 + 0.063], [0.008 + 0.117, 0.296 + 0.063], [0.039 + 0.117, 0.242 + 0.063], [0.008 + 0.117, 0.296 + 0.063], [0.039 + 0.117, 0.296 + 0.063]]; }
+                    'e' => { uvs = vec![[0.039 + 0.156, 0.242 + 0.063], [0.008 + 0.156, 0.242 + 0.063], [0.008 + 0.156, 0.296 + 0.063], [0.039 + 0.156, 0.242 + 0.063], [0.008 + 0.156, 0.296 + 0.063], [0.039 + 0.156, 0.296 + 0.063]]; }
+                    'f' => { uvs = vec![[0.039 + 0.195, 0.242 + 0.063], [0.008 + 0.195, 0.242 + 0.063], [0.008 + 0.195, 0.296 + 0.063], [0.039 + 0.195, 0.242 + 0.063], [0.008 + 0.195, 0.296 + 0.063], [0.039 + 0.195, 0.296 + 0.063]]; }
+                    'g' => { uvs = vec![[0.039 + 0.234, 0.242 + 0.063], [0.008 + 0.234, 0.242 + 0.063], [0.008 + 0.234, 0.296 + 0.063], [0.039 + 0.234, 0.242 + 0.063], [0.008 + 0.234, 0.296 + 0.063], [0.039 + 0.234, 0.296 + 0.063]]; }
+                    'h' => { uvs = vec![[0.039 + 0.273, 0.242 + 0.063], [0.008 + 0.273, 0.242 + 0.063], [0.008 + 0.273, 0.296 + 0.063], [0.039 + 0.273, 0.242 + 0.063], [0.008 + 0.273, 0.296 + 0.063], [0.039 + 0.273, 0.296 + 0.063]]; }
+                    'i' => { uvs = vec![[0.039 + 0.312, 0.242 + 0.063], [0.015 + 0.312, 0.242 + 0.063], [0.015 + 0.312, 0.296 + 0.063], [0.039 + 0.312, 0.242 + 0.063], [0.015 + 0.312, 0.296 + 0.063], [0.039 + 0.312, 0.296 + 0.063]]; }
+                    'j' => { uvs = vec![[0.039 + 0.351, 0.242 + 0.063], [0.008 + 0.351, 0.242 + 0.063], [0.008 + 0.351, 0.296 + 0.063], [0.039 + 0.351, 0.242 + 0.063], [0.008 + 0.351, 0.296 + 0.063], [0.039 + 0.351, 0.296 + 0.063]]; }
+                    'k' => { uvs = vec![[0.039 + 0.000, 0.242 + 0.126], [0.008 + 0.000, 0.242 + 0.126], [0.008 + 0.000, 0.296 + 0.126], [0.039 + 0.000, 0.242 + 0.126], [0.008 + 0.000, 0.296 + 0.126], [0.039 + 0.000, 0.296 + 0.126]]; }
+                    'l' => { uvs = vec![[0.039 + 0.039, 0.242 + 0.126], [0.008 + 0.039, 0.242 + 0.126], [0.008 + 0.039, 0.296 + 0.126], [0.039 + 0.039, 0.242 + 0.126], [0.008 + 0.039, 0.296 + 0.126], [0.039 + 0.039, 0.296 + 0.126]]; }
+                    'm' => { uvs = vec![[0.046 + 0.078, 0.242 + 0.126], [0.008 + 0.078, 0.242 + 0.126], [0.008 + 0.078, 0.296 + 0.126], [0.046 + 0.078, 0.242 + 0.126], [0.008 + 0.078, 0.296 + 0.126], [0.046 + 0.078, 0.296 + 0.126]]; }
+                    'n' => { uvs = vec![[0.039 + 0.156, 0.242 + 0.126], [0.008 + 0.156, 0.242 + 0.126], [0.008 + 0.156, 0.296 + 0.126], [0.039 + 0.156, 0.242 + 0.126], [0.008 + 0.156, 0.296 + 0.126], [0.039 + 0.156, 0.296 + 0.126]]; }
+                    'o' => { uvs = vec![[0.039 + 0.195, 0.242 + 0.126], [0.008 + 0.195, 0.242 + 0.126], [0.008 + 0.195, 0.296 + 0.126], [0.039 + 0.195, 0.242 + 0.126], [0.008 + 0.195, 0.296 + 0.126], [0.039 + 0.195, 0.296 + 0.126]]; }
+                    'p' => { uvs = vec![[0.039 + 0.234, 0.242 + 0.126], [0.008 + 0.234, 0.242 + 0.126], [0.008 + 0.234, 0.296 + 0.126], [0.039 + 0.234, 0.242 + 0.126], [0.008 + 0.234, 0.296 + 0.126], [0.039 + 0.234, 0.296 + 0.126]]; }
+                    'q' => { uvs = vec![[0.039 + 0.273, 0.242 + 0.126], [0.008 + 0.273, 0.242 + 0.126], [0.008 + 0.273, 0.296 + 0.126], [0.039 + 0.273, 0.242 + 0.126], [0.008 + 0.273, 0.296 + 0.126], [0.039 + 0.273, 0.296 + 0.126]]; }
+                    'r' => { uvs = vec![[0.039 + 0.312, 0.242 + 0.126], [0.008 + 0.312, 0.242 + 0.126], [0.008 + 0.312, 0.296 + 0.126], [0.039 + 0.312, 0.242 + 0.126], [0.008 + 0.312, 0.296 + 0.126], [0.039 + 0.312, 0.296 + 0.126]]; }
+                    's' => { uvs = vec![[0.039 + 0.351, 0.242 + 0.126], [0.008 + 0.351, 0.242 + 0.126], [0.008 + 0.351, 0.296 + 0.126], [0.039 + 0.351, 0.242 + 0.126], [0.008 + 0.351, 0.296 + 0.126], [0.039 + 0.351, 0.296 + 0.126]]; }
+                    't' => { uvs = vec![[0.039 + 0.000, 0.242 + 0.189], [0.015 + 0.000, 0.242 + 0.189], [0.015 + 0.000, 0.296 + 0.189], [0.039 + 0.000, 0.242 + 0.189], [0.015 + 0.000, 0.296 + 0.189], [0.039 + 0.000, 0.296 + 0.189]]; }
+                    'u' => { uvs = vec![[0.039 + 0.078, 0.242 + 0.189], [0.008 + 0.078, 0.242 + 0.189], [0.008 + 0.078, 0.296 + 0.189], [0.039 + 0.078, 0.242 + 0.189], [0.008 + 0.078, 0.296 + 0.189], [0.039 + 0.078, 0.296 + 0.189]]; }
+                    'v' => { uvs = vec![[0.046 + 0.156, 0.242 + 0.189], [0.008 + 0.156, 0.242 + 0.189], [0.008 + 0.156, 0.296 + 0.189], [0.046 + 0.156, 0.242 + 0.189], [0.008 + 0.156, 0.296 + 0.189], [0.046 + 0.156, 0.296 + 0.189]]; }
+                    'w' => { uvs = vec![[0.046 + 0.234, 0.242 + 0.189], [0.008 + 0.234, 0.242 + 0.189], [0.008 + 0.234, 0.296 + 0.189], [0.046 + 0.234, 0.242 + 0.189], [0.008 + 0.234, 0.296 + 0.189], [0.046 + 0.234, 0.296 + 0.189]]; }
+                    'x' => { uvs = vec![[0.046 + 0.312, 0.242 + 0.189], [0.008 + 0.312, 0.242 + 0.189], [0.008 + 0.312, 0.296 + 0.189], [0.046 + 0.312, 0.242 + 0.189], [0.008 + 0.312, 0.296 + 0.189], [0.046 + 0.312, 0.296 + 0.189]]; }
+                    'y' => { uvs = vec![[0.046 + 0.000, 0.242 + 0.252], [0.008 + 0.000, 0.242 + 0.252], [0.008 + 0.000, 0.296 + 0.252], [0.046 + 0.000, 0.242 + 0.252], [0.008 + 0.000, 0.296 + 0.252], [0.046 + 0.000, 0.296 + 0.252]]; }
+                    'z' => { uvs = vec![[0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.296 + 0.252]]; }
+                    _ => {}
+                }
+                let vertex_data = create_vertices(
+                    vec![[-1, 1, 1], [1, 1, 1], [1, -1, 1], [-1, 1, 1], [1, -1, 1], [-1, -1, 1]], 
+                    vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
+                    vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
+                    uvs
+                );
+                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_text(&game_data, &init, light_data, &uniform_bind_group_layout, i, vertex_data);
+                text_vertex_buffers.push(vertex_buffer);
+                text_num_vertices.push(num_vertices_);
+                text_uniform_bind_groups.push(uniform_bind_group);
+                text_vertex_uniform_buffers.push(vertex_uniform_buffer);
+            }
+        }
+
         let previous_frame_time = std::time::Instant::now();
 
         let frame = 0;
@@ -781,15 +1015,20 @@ impl State {
             init,
             pipeline,
             gui_pipeline,
+            text_pipeline,
             vertex_buffers,
             gui_vertex_buffers,
+            text_vertex_buffers,
             uniform_bind_groups,
             gui_uniform_bind_groups,
+            text_uniform_bind_groups,
             vertex_uniform_buffers,
             gui_vertex_uniform_buffers,
+            text_vertex_uniform_buffers,
             project_mat,
             num_vertices,
             gui_num_vertices,
+            text_num_vertices,
             game_data,
             previous_frame_time,
             uniform_bind_group_layout,
@@ -1014,10 +1253,32 @@ impl State {
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
+        let mut j = 0;
+        for i in 0..self.game_data.text.len() {
+            let mut character_offset = 0.0;
+            for _ in self.game_data.text[i].chars() {
+                let position_x = gui_offset_normal.x.x * (-self.game_data.text_positions[i].0 + character_offset) + gui_offset_normal.y.x * self.game_data.text_positions[i].1 + forward.x + self.game_data.camera_position.x;
+                let position_y = gui_offset_normal.x.y * (-self.game_data.text_positions[i].0 + character_offset) + gui_offset_normal.y.y * self.game_data.text_positions[i].1 + forward.y + self.game_data.camera_position.y;
+                let position_z = gui_offset_normal.x.z * (-self.game_data.text_positions[i].0 + character_offset) + gui_offset_normal.y.z * self.game_data.text_positions[i].1 + forward.z + self.game_data.camera_position.z;
+                let model_mat = transforms::create_transforms(
+                    [position_x, position_y, position_z], 
+                    [rotation_x, rotation_y, rotation_z], 
+                    [self.game_data.text_scale[i].0, self.game_data.text_scale[i].1, self.game_data.text_scale[i].2]);
+                character_offset -= self.game_data.text_scale[i].0 * 2.5;
+                let normal_mat = (model_mat.invert().unwrap()).transpose();
+                let model_ref:&[f32; 16] = model_mat.as_ref();
+                let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-        let current_time_updated = std::time::Instant::now();
-        let update_time = current_time_updated.duration_since(current_time).as_millis();
-        println!("update time: {}ms", update_time);
+                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 0, bytemuck::cast_slice(model_ref));
+                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 64, bytemuck::cast_slice(view_projection_ref));
+                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 128, bytemuck::cast_slice(normal_ref));
+                j += 1;
+            }
+        }
+
+        //let current_time_updated = std::time::Instant::now();
+        //let update_time = current_time_updated.duration_since(current_time).as_millis();
+        //println!("update time: {}ms", update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -1090,6 +1351,17 @@ impl State {
                 render_pass.set_vertex_buffer(0, self.gui_vertex_buffers[i].slice(..));           
                 render_pass.set_bind_group(0, &self.gui_uniform_bind_groups[i], &[]);
                 render_pass.draw(0..self.gui_num_vertices[i], 0..1);
+            }
+            render_pass.set_pipeline(&self.text_pipeline);
+            let mut j = 0;
+            for i in 0..self.game_data.text.len() {
+                if !self.game_data.text_active[i] { continue; }
+                for _ in self.game_data.text[i].chars() {
+                    render_pass.set_vertex_buffer(0, self.text_vertex_buffers[j].slice(..));           
+                    render_pass.set_bind_group(0, &self.text_uniform_bind_groups[j], &[]);
+                    render_pass.draw(0..self.text_num_vertices[j], 0..1);
+                    j += 1;
+                }
             }
         }
 
@@ -1283,6 +1555,16 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, light_
                                 ElementState::Released => {
                                     return
                                 }
+                            }
+                        }
+                        WindowEvent::MouseWheel { delta, .. } => {
+                            match delta {
+                                MouseScrollDelta::LineDelta(_x, y) => {
+                                    slot_selected = slot_selected - y.floor() as i8;
+                                    if slot_selected < 0 { slot_selected = 8; }
+                                    if slot_selected > 8 { slot_selected = 0; }
+                                }
+                                MouseScrollDelta::PixelDelta(_pos) => {}
                             }
                         }
                         WindowEvent::CloseRequested {} => *control_flow = ControlFlow::Exit,

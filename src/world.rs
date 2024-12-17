@@ -42,8 +42,10 @@ impl WorldData {
     }
 
     pub fn add_block(&mut self, block_name: String, sides: Vec<i8>, owner: String) {
-        self.blocks.push((block_name.clone(), sides, owner));
-        self.block_index.insert(block_name, self.blocks.len());
+        if !self.block_index.contains_key(&block_name) {
+            self.blocks.push((block_name.clone(), sides, owner));
+            self.block_index.insert(block_name, self.blocks.len());
+        }
     }
 
     pub fn add_object(&mut self, position: (i64, i64, i64)) {
