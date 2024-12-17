@@ -1,4 +1,4 @@
-use crate::{chunk, common, world};
+use crate::{chunk, common, containers, world};
 use cgmath::*;
 
 pub fn break_block(game_data: &mut common::GameData, world_data: &mut world::WorldData) -> (Vec<common::Vertex>, i32) {
@@ -76,7 +76,7 @@ pub fn break_block(game_data: &mut common::GameData, world_data: &mut world::Wor
     return (Vec::new(), -1);
 }
 
-pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::WorldData) -> (Vec<common::Vertex>, i32) {
+pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::WorldData, slot_selected: i8, inventory: containers::Inventory) -> (Vec<common::Vertex>, i32) {
     let forward = cgmath::Vector3::new(
         game_data.camera_rotation[1].cos() * game_data.camera_rotation[0].cos(),
         game_data.camera_rotation[0].sin(),
@@ -134,7 +134,8 @@ pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::Wor
                     }
                 }
 
-                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, world_data.block_index["stone"] as i8);
+                let selected_item = &inventory.hotbar_slots[slot_selected as usize].0;
+                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, world_data.block_index[selected_item] as i8);
                 world_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
                 let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, world_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z

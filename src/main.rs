@@ -53,12 +53,19 @@ fn main(){
     game_data.add_text_object((0.44, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
 
     for slot in 0..inventory.hotbar_slots.len() {
-        let slot_data = inventory.hotbar_slots[slot];
+        let slot_data = inventory.hotbar_slots[slot].clone();
         let mut slot_number = format!("{}", slot_data.1);
         if slot_number.len() == 1 {
             slot_number = format!(" {}", slot_number);
         }
         game_data.text[slot] = slot_number;
+
+        let world_data_thread = Arc::clone(&world_data);
+        let vertex_data_items = containers::Inventory::render_item_block(world_data_thread, slot_data.0);
+        let vertex_data = create_vertices(
+            vertex_data_items.0, vertex_data_items.2, vertex_data_items.3, vertex_data_items.1
+        );
+        game_data.add_gui_item_block(vertex_data.clone(), (0.11 * (slot as f32 - 4.0), -0.6, 0.0), (0.02, 0.02, 0.02), (1.0, 1.0, 1.0), true);
     }
 
     // add gui elements
@@ -141,5 +148,5 @@ fn main(){
     });
 
     let light_data = common::light([1.0,1.0,1.0], [1.0, 1.0, 0.0], 0.05, 0.6, 0.3, 30.0);
-    common::run(game_data, world_data, light_data, "Polydural");
+    common::run(game_data, world_data, inventory, light_data, "Polydural");
 }

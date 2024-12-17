@@ -18,7 +18,7 @@ use std::io::Read;
 use std::sync::{Arc, Mutex};
 //use std::path::Path;
 
-use crate::world::{self, WorldData};
+use crate::{containers::Inventory, world::{self, WorldData}};
 use crate::interact;
 
 #[path="../src/transforms.rs"]
@@ -85,16 +85,20 @@ impl RandomnessFunctions {
 pub struct GameData {
     pub objects: Vec<Vec<Vertex>>,
     pub gui_objects: Vec<Vec<Vertex>>,
-    pub text_objects: Vec<Vec<Vertex>>,
+    pub gui_item_block_objects: Vec<Vec<Vertex>>,
     pub positions: Vec<(f32, f32, f32)>,
     pub gui_positions: Vec<(f32, f32, f32)>,
+    pub gui_item_block_positions: Vec<(f32, f32, f32)>,
+    pub gui_item_block_rotations: Vec<(f32, f32, f32)>,
     pub text_positions: Vec<(f32, f32, f32)>,
     pub model_matrices: Vec<Matrix4<f32>>,
     pub normal_matrices: Vec<Matrix4<f32>>,
     pub gui_scale: Vec<(f32, f32, f32)>,
+    pub gui_item_block_scale: Vec<(f32, f32, f32)>,
     pub text_scale: Vec<(f32, f32, f32)>,
     pub active: Vec<bool>,
     pub gui_active: Vec<bool>,
+    pub gui_item_block_active: Vec<bool>,
     pub text_active: Vec<bool>,
     pub text: Vec<String>,
     pub camera_position: Point3<f32>,
@@ -105,16 +109,20 @@ impl GameData {
         GameData {
             objects: Vec::new(),
             gui_objects: Vec::new(),
-            text_objects: Vec::new(),
+            gui_item_block_objects: Vec::new(),
             positions: Vec::new(),
             gui_positions: Vec::new(),
+            gui_item_block_positions: Vec::new(),
+            gui_item_block_rotations: Vec::new(),
             text_positions: Vec::new(),
             model_matrices: Vec::new(),
             normal_matrices: Vec::new(),
             gui_scale: Vec::new(),
+            gui_item_block_scale: Vec::new(),
             text_scale: Vec::new(),
             active: Vec::new(),
             gui_active: Vec::new(),
+            gui_item_block_active: Vec::new(),
             text_active: Vec::new(),
             text: Vec::new(),
             camera_position: (-0.0, 64.0, 0.0).into(),
@@ -123,7 +131,6 @@ impl GameData {
     }
 
     pub fn add_text_object(&mut self, position: (f32, f32, f32), scale: (f32, f32, f32), active: bool, text: String) {
-        //self.text_objects.push(item);
         self.text_positions.push(position);
         self.text_scale.push(scale);
         self.text_active.push(active);
@@ -135,6 +142,14 @@ impl GameData {
         self.gui_positions.push(position);
         self.gui_scale.push(scale);
         self.gui_active.push(active);
+    }
+
+    pub fn add_gui_item_block(&mut self, item: Vec<Vertex>, position: (f32, f32, f32), scale: (f32, f32, f32), rotation: (f32, f32, f32), active: bool) {
+        self.gui_item_block_objects.push(item);
+        self.gui_item_block_positions.push(position);
+        self.gui_item_block_rotations.push(rotation);
+        self.gui_item_block_scale.push(scale);
+        self.gui_item_block_active.push(active);
     }
 
     pub fn add_object(&mut self, item: Vec<Vertex>, position: (i64, i64, i64), active: bool) {
@@ -210,19 +225,24 @@ struct State {
     pipeline: wgpu::RenderPipeline,
     gui_pipeline: wgpu::RenderPipeline,
     text_pipeline: wgpu::RenderPipeline,
+    gui_item_block_pipeline: wgpu::RenderPipeline,
     vertex_buffers: Vec<wgpu::Buffer>,
     gui_vertex_buffers: Vec<wgpu::Buffer>,
     text_vertex_buffers: Vec<wgpu::Buffer>,
+    gui_item_block_vertex_buffers: Vec<wgpu::Buffer>,
     uniform_bind_groups: Vec<wgpu::BindGroup>,
     gui_uniform_bind_groups: Vec<wgpu::BindGroup>,
     text_uniform_bind_groups: Vec<wgpu::BindGroup>,
+    gui_item_block_uniform_bind_groups: Vec<wgpu::BindGroup>,
     vertex_uniform_buffers: Vec<wgpu::Buffer>,
     gui_vertex_uniform_buffers: Vec<wgpu::Buffer>,
     text_vertex_uniform_buffers: Vec<wgpu::Buffer>,
+    gui_item_block_vertex_uniform_buffers: Vec<wgpu::Buffer>,
     project_mat: Matrix4<f32>,
     num_vertices: Vec<u32>,
     gui_num_vertices: Vec<u32>,
     text_num_vertices: Vec<u32>,
+    gui_item_block_num_vertices: Vec<u32>,
     game_data: GameData,
     previous_frame_time: std::time::Instant,
     uniform_bind_group_layout: wgpu::BindGroupLayout,
@@ -595,6 +615,127 @@ impl State {
 
         return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
     }
+    fn create_object_gui_item_block(
+        game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
+        uniform_bind_group_layout: &wgpu::BindGroupLayout, i: usize) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        // create vertex uniform buffer
+        // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
+        let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Vertex Uniform Buffer"),
+            size: 192,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+       
+        // create fragment uniform buffer. here we set eye_position = camera_position and light_position = eye_position
+        let fragment_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Fragment Uniform Buffer"),
+            size: 32,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // store light and eye positions
+        let light_position:&[f32; 3] = &Point3::new(0.0, 128.0, 0.0).into();
+        let eye_position:&[f32; 3] = &Point3::new(0.0, 128.0, 0.0).into();
+        init.queue.write_buffer(&fragment_uniform_buffer, 0, bytemuck::cast_slice(light_position));
+        init.queue.write_buffer(&fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
+
+        // create light uniform buffer
+        let light_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Light Uniform Buffer"),
+            size: 48,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // store light parameters
+        init.queue.write_buffer(&light_uniform_buffer, 0, bytemuck::cast_slice(&[light_data]));
+
+        let texture_data = Assets::get("textures/blocks/atlas.png").expect("Failed to load embedded texture");
+        let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
+        let rgba = img.to_rgba8();
+        let (width, height) = img.dimensions();
+        let texture_size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
+        
+        let texture = init.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Texture"),
+            size: texture_size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        
+        init.queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &rgba,
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * width),
+                rows_per_image: Some(height),
+            },
+            texture_size,
+        );
+        
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler = init.device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let uniform_bind_group = init.device.create_bind_group(&wgpu::BindGroupDescriptor{
+            layout: &uniform_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: vertex_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: fragment_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: light_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+            label: Some("Uniform Bind Group"),
+        });
+
+        let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: cast_slice(&game_data.gui_item_block_objects[i]),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        let num_vertices = game_data.gui_item_block_objects[i].len() as u32;
+
+        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
+    }
     fn create_object_from_chunk(
         chunk: &Vec<Vertex>, init: &transforms::InitWgpu, light_data: Light, 
         uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
@@ -919,6 +1060,50 @@ impl State {
             multisample: wgpu::MultisampleState::default(),
             multiview: None
         });
+        let gui_item_block_pipeline = init.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("GUI Item Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &gui_shader,
+                entry_point: "vs_main",
+                buffers: &[Vertex::desc()],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &gui_shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: init.config.format,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                    }),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState{
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                cull_mode: Some(wgpu::Face::Back),
+                ..Default::default()
+            },
+            //depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth24Plus,
+                depth_write_enabled: false,
+                depth_compare: wgpu::CompareFunction::Always,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None
+        });
 
         let mut vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
         let mut num_vertices: Vec<u32> = Vec::new();
@@ -1007,6 +1192,19 @@ impl State {
             }
         }
 
+        let mut gui_item_block_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
+        let mut gui_item_block_num_vertices: Vec<u32> = Vec::new();
+        let mut gui_item_block_uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
+        let mut gui_item_block_vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
+
+        for i in 0..game_data.gui_item_block_objects.len() {
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_gui_item_block(&game_data, &init, light_data, &uniform_bind_group_layout, i);
+            gui_item_block_vertex_buffers.push(vertex_buffer);
+            gui_item_block_num_vertices.push(num_vertices_);
+            gui_item_block_uniform_bind_groups.push(uniform_bind_group);
+            gui_item_block_vertex_uniform_buffers.push(vertex_uniform_buffer);
+        }
+
         let previous_frame_time = std::time::Instant::now();
 
         let frame = 0;
@@ -1016,19 +1214,24 @@ impl State {
             pipeline,
             gui_pipeline,
             text_pipeline,
+            gui_item_block_pipeline,
             vertex_buffers,
             gui_vertex_buffers,
             text_vertex_buffers,
+            gui_item_block_vertex_buffers,
             uniform_bind_groups,
             gui_uniform_bind_groups,
             text_uniform_bind_groups,
+            gui_item_block_uniform_bind_groups,
             vertex_uniform_buffers,
             gui_vertex_uniform_buffers,
             text_vertex_uniform_buffers,
+            gui_item_block_vertex_uniform_buffers,
             project_mat,
             num_vertices,
             gui_num_vertices,
             text_num_vertices,
+            gui_item_block_num_vertices,
             game_data,
             previous_frame_time,
             uniform_bind_group_layout,
@@ -1054,7 +1257,7 @@ impl State {
         false
     }
 
-    fn mouse_input(&mut self, button: i8) {
+    fn mouse_input(&mut self, button: i8, slot_selected: i8, inventory: Inventory) {
         if button == 0 {
             let mut world_data = self.world_data.lock().unwrap();
             let (vertex_data_chunk, buffer_index) = interact::break_block(&mut self.game_data, &mut world_data);
@@ -1068,7 +1271,7 @@ impl State {
             }
         } else if  button == 1 {
             let mut world_data = self.world_data.lock().unwrap();
-            let (vertex_data_chunk, buffer_index) = interact::place_block(&mut self.game_data, &mut world_data);
+            let (vertex_data_chunk, buffer_index) = interact::place_block(&mut self.game_data, &mut world_data, slot_selected, inventory);
             if buffer_index != -1 {
                 let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
                 self.vertex_buffers[buffer_index as usize] = vertex_buffer;
@@ -1253,6 +1456,30 @@ impl State {
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
+        for i in 0..self.game_data.gui_item_block_objects.len() {
+            let position_x = gui_offset_normal.x.x * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.x * self.game_data.gui_item_block_positions[i].1 + forward.x + self.game_data.camera_position.x;
+            let position_y = gui_offset_normal.x.y * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.y * self.game_data.gui_item_block_positions[i].1 + forward.y + self.game_data.camera_position.y;
+            let position_z = gui_offset_normal.x.z * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.z * self.game_data.gui_item_block_positions[i].1 + forward.z + self.game_data.camera_position.z;
+            let model_mat = transforms::create_transforms(
+                [
+                    position_x, 
+                    position_y, 
+                    position_z
+                ], 
+                [
+                    0.0, 
+                    0.0, 
+                    0.0
+                ], 
+                [self.game_data.gui_item_block_scale[i].0, self.game_data.gui_item_block_scale[i].1, self.game_data.gui_item_block_scale[i].2]);
+            let normal_mat = (model_mat.invert().unwrap()).transpose();
+            let model_ref:&[f32; 16] = model_mat.as_ref();
+            let normal_ref:&[f32; 16] = normal_mat.as_ref();
+
+            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
+            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
+        }
         let mut j = 0;
         for i in 0..self.game_data.text.len() {
             let mut character_offset = 0.0;
@@ -1352,6 +1579,13 @@ impl State {
                 render_pass.set_bind_group(0, &self.gui_uniform_bind_groups[i], &[]);
                 render_pass.draw(0..self.gui_num_vertices[i], 0..1);
             }
+            render_pass.set_pipeline(&self.gui_item_block_pipeline);
+            for i in 0..self.game_data.gui_item_block_objects.len() {
+                if !self.game_data.gui_item_block_active[i] { continue; }
+                render_pass.set_vertex_buffer(0, self.gui_item_block_vertex_buffers[i].slice(..));           
+                render_pass.set_bind_group(0, &self.gui_item_block_uniform_bind_groups[i], &[]);
+                render_pass.draw(0..self.gui_item_block_num_vertices[i], 0..1);
+            }
             render_pass.set_pipeline(&self.text_pipeline);
             let mut j = 0;
             for i in 0..self.game_data.text.len() {
@@ -1430,7 +1664,7 @@ pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>) {
     }
 }
 
-pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, light_data: Light, title: &str) {
+pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, inventory: Inventory, light_data: Light, title: &str) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
@@ -1541,13 +1775,13 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, light_
                                                 window.set_cursor_visible(false);
                                                 mouse_locked = true;
                                             }
-                                            game_state.mouse_input(0);
+                                            game_state.mouse_input(0, slot_selected, inventory.clone());
                                         }
                                         MouseButton::Right => {
-                                            game_state.mouse_input(1);
+                                            game_state.mouse_input(1, slot_selected, inventory.clone());
                                         }
                                         MouseButton::Middle => {
-                                            game_state.mouse_input(2);
+                                            game_state.mouse_input(2, slot_selected, inventory.clone());
                                         }
                                         _ => {}
                                     }
