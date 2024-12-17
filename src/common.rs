@@ -496,7 +496,7 @@ impl State {
     }
     fn create_object_text(
         _game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout, i: usize, vertex_data: Vec<Vertex>) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        uniform_bind_group_layout: &wgpu::BindGroupLayout, _i: usize, vertex_data: Vec<Vertex>) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
