@@ -97,47 +97,58 @@ fn main(){
 
     thread::spawn(move || {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
-        let update_interval = Duration::from_millis(20);
+        let update_interval = Duration::from_millis(5);
         loop {
             let start_time = Instant::now();
-            {
-                let mut world_data = world_data_backend.lock().unwrap();
-                if world_data.chunk_queue.len() == 0 && world_data.chunk_update_queue.len() > 0 {
-                    let chunk_position = world_data.chunk_buffer_coordinates[world_data.chunk_update_queue[0]];
-                    let chunk_data = world_data.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
-                    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data_backend, &mut world_data, 
+            {   
+                let mut world_data_read: world::WorldData;
+                {
+                    let world_data = world_data_backend.lock().unwrap();
+                    world_data_read = world_data.clone();
+                }
+
+                if world_data_read.chunk_queue.len() == 0 && world_data_read.chunk_update_queue.len() > 0 {
+                    let chunk_position = world_data_read.chunk_buffer_coordinates[world_data_read.chunk_update_queue[0]];
+                    let chunk_data = world_data_read.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
+                    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data_backend, &mut world_data_read, 
                         chunk_position.0, chunk_position.1, chunk_position.2
                     );
                     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
                     let mut buffer_index: usize = 0;
-                    if let Some(chunk_index) = world_data.chunk_buffer_index.get(&(chunk_position.0, chunk_position.1, chunk_position.2)) {
+                    if let Some(chunk_index) = world_data_read.chunk_buffer_index.get(&(chunk_position.0, chunk_position.1, chunk_position.2)) {
                         buffer_index = *chunk_index as usize;
                     }
-                    world_data.updated_chunk_data.push((buffer_index, vertex_data_chunk));
-                    world_data.chunk_update_queue.remove(0);
+                    {
+                        let mut world_data_write = world_data_backend.lock().unwrap();
+                        world_data_write.updated_chunk_data.push((buffer_index, vertex_data_chunk));
+                        world_data_write.chunk_update_queue.remove(0);
+                    }
                 }
-                if let Some(chunk_coordinates) = world_data.chunk_queue.iter().next() {
+                if let Some(chunk_coordinates) = world_data_read.chunk_queue.iter().next() {
                     let chunk_position_x_with_offset = chunk_coordinates.0;
                     let chunk_position_y_with_offset = chunk_coordinates.1;
                     let chunk_position_z_with_offset = chunk_coordinates.2;
-                    world_data.chunk_queue.remove(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
                     let chunk_data = chunk::generate_chunk(
-                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, game_data_backend.clone(), &randomness_functions_backend, &mut rng, &mut world_data
+                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, game_data_backend.clone(), &randomness_functions_backend, &mut rng, &mut world_data_backend.lock().unwrap()
                     );
-                    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data_backend, &mut world_data, 
+                    let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data_backend, &mut world_data_backend.lock().unwrap(), 
                         chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset
                     );
                     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
-                    world_data.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data);
                     let model_mat = transforms::create_transforms([
                         chunk_position_x_with_offset as f32 * 32.0, 
                         chunk_position_y_with_offset as f32 * 32.0, 
                         chunk_position_z_with_offset as f32 * 32.0], 
                         [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
                     );
-                    let normal_mat = (model_mat.invert().unwrap()).transpose();
-                    world_data.created_chunk_data.push((vertex_data_chunk, chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, model_mat, normal_mat));
-                    world_data.created_chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+                    {
+                        let mut world_data_write = world_data_backend.lock().unwrap();
+                        let normal_mat = (model_mat.invert().unwrap()).transpose();
+                        world_data_write.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data);
+                        world_data_write.chunk_queue.remove(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+                        world_data_write.created_chunk_data.push((vertex_data_chunk, chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, model_mat, normal_mat));
+                        world_data_write.created_chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+                    }
                 }
             }
             let elapsed = start_time.elapsed();

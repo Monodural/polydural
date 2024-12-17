@@ -1349,7 +1349,7 @@ impl State {
         let chunk_position_x = (self.game_data.camera_position.x / 32.0).floor();
         let chunk_position_y = (self.game_data.camera_position.y / 32.0).floor();
         let chunk_position_z = (self.game_data.camera_position.z / 32.0).floor();
-
+        
         let mut world_data = self.world_data.lock().unwrap();
 
         if self.frame % 30 == 0 {
@@ -1564,14 +1564,16 @@ impl State {
                 }),
             });
 
-            let world_data = self.world_data.lock().unwrap();
-
-            render_pass.set_pipeline(&self.pipeline);
-            for i in &world_data.active_chunks {
-                render_pass.set_vertex_buffer(0, self.vertex_buffers[*i].slice(..));           
-                render_pass.set_bind_group(0, &self.uniform_bind_groups[*i], &[]);
-                render_pass.draw(0..self.num_vertices[*i], 0..1);
+            {
+                let world_data = self.world_data.lock().unwrap();
+                render_pass.set_pipeline(&self.pipeline);
+                for i in &world_data.active_chunks {
+                    render_pass.set_vertex_buffer(0, self.vertex_buffers[*i].slice(..));           
+                    render_pass.set_bind_group(0, &self.uniform_bind_groups[*i], &[]);
+                    render_pass.draw(0..self.num_vertices[*i], 0..1);
+                }
             }
+
             render_pass.set_pipeline(&self.gui_pipeline);
             for i in 0..self.game_data.gui_objects.len() {
                 if !self.game_data.gui_active[i] { continue; }
