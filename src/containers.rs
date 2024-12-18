@@ -17,7 +17,7 @@ impl Inventory {
                 ("stone".to_string(), 9), 
                 ("sand".to_string(), 9), 
                 ("cactus".to_string(), 9), 
-                ("air".to_string(), 0)
+                ("test".to_string(), 7)
             ]
         }
     }

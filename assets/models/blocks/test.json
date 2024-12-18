@@ -1,0 +1,12 @@
+{
+    "block_name": "test",
+    "creator": "polydural",
+    "textures": {
+        "top": 19,
+        "front": 19,
+        "back": 11,
+        "left": 3,
+        "right": 27,
+        "bottom": 27
+    }
+}

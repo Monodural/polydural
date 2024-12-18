@@ -17,7 +17,8 @@ pub struct WorldData {
     pub chunk_buffer_index: HashMap<(i64, i64, i64), i64>,
     pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
     pub updated_chunk_data: Vec<(usize, Vec<common::Vertex>)>,
-    pub created_chunk_data: Vec<(Vec<common::Vertex>, i64, i64, i64, Matrix4<f32>, Matrix4<f32>)>
+    pub created_chunk_data: Vec<(Vec<common::Vertex>, i64, i64, i64, Matrix4<f32>, Matrix4<f32>)>,
+    pub _biomes: Vec<(String, i8, i8, i8, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>)>
 }
 impl WorldData {
     pub fn new() -> Self {
@@ -33,7 +34,8 @@ impl WorldData {
             chunk_buffer_index: HashMap::new(),
             chunk_buffer_coordinates: Vec::new(),
             updated_chunk_data: Vec::new(),
-            created_chunk_data: Vec::new()
+            created_chunk_data: Vec::new(),
+            biomes: Vec::new()
         }
     }
 

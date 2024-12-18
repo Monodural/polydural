@@ -1,0 +1,13 @@
+{
+    "name": "plain_grasslands",
+
+    "temperature": 17,
+    "moisture": 30,
+    "height": 6,
+
+    "trees": {
+        "oak_tree": 0.01
+    },
+    "folliage": [],
+    "buildings": []
+}
