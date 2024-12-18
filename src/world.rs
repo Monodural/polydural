@@ -35,7 +35,7 @@ impl WorldData {
             chunk_buffer_coordinates: Vec::new(),
             updated_chunk_data: Vec::new(),
             created_chunk_data: Vec::new(),
-            biomes: Vec::new()
+            _biomes: Vec::new()
         }
     }
 
