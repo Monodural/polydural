@@ -41,19 +41,43 @@ struct ModelData {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum Textures {
+    Single { top: i8, left: i8, right: i8, front: i8, back: i8, bottom: i8 },
     Individual { top: i8, sides: i8, bottom: i8 },
     Uniform { all: i8 },
 }
 impl Textures {
     fn top(&self) -> i8 {
         match self {
+            Textures::Single { top, .. } => *top,
             Textures::Individual { top, .. } => *top,
             Textures::Uniform { all } => *all,
         }
     }
 
-    fn sides(&self) -> i8 {
+    fn left(&self) -> i8 {
         match self {
+            Textures::Single { left, .. } => *left,
+            Textures::Individual { sides, .. } => *sides,
+            Textures::Uniform { all } => *all,
+        }
+    }
+    fn right(&self) -> i8 {
+        match self {
+            Textures::Single { right, .. } => *right,
+            Textures::Individual { sides, .. } => *sides,
+            Textures::Uniform { all } => *all,
+        }
+    }
+    fn front(&self) -> i8 {
+        match self {
+            Textures::Single { front, .. } => *front,
+            Textures::Individual { sides, .. } => *sides,
+            Textures::Uniform { all } => *all,
+        }
+    }
+    fn back(&self) -> i8 {
+        match self {
+            Textures::Single { back, .. } => *back,
             Textures::Individual { sides, .. } => *sides,
             Textures::Uniform { all } => *all,
         }
@@ -61,6 +85,7 @@ impl Textures {
 
     fn bottom(&self) -> i8 {
         match self {
+            Textures::Single { bottom, .. } => *bottom,
             Textures::Individual { bottom, .. } => *bottom,
             Textures::Uniform { all } => *all,
         }
@@ -1613,12 +1638,12 @@ fn handle_model_data(world_data: &mut world::WorldData, json_content: &str) {
     world_data.add_block(
         model_data.block_name,
         vec![
-            model_data.textures.sides(),
-            model_data.textures.sides(),
+            model_data.textures.right(),
+            model_data.textures.left(),
             model_data.textures.top(),
             model_data.textures.bottom(),
-            model_data.textures.sides(),
-            model_data.textures.sides(),
+            model_data.textures.front(),
+            model_data.textures.back(),
         ],
         model_data.creator
     );
