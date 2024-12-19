@@ -35,11 +35,16 @@ fn main(){
     let randomness_functions = common::RandomnessFunctions::new();
     let inventory = containers::Inventory::new();
 
-    println!("loading model files");
     //common::load_texture_files(&mut game_data);
-    let world_data_thread = Arc::clone(&world_data);
-    common::load_block_model_files(world_data_thread);
-    println!("loaded model files");
+    {
+        let world_data_thread = Arc::clone(&world_data);
+        println!("loading structure files");
+        common::load_structure_files(&world_data_thread);
+        println!("loaded structure files");
+        println!("loading model files");
+        common::load_block_model_files(world_data_thread);
+        println!("loaded model files");
+    }
 
     // add a test string
     game_data.add_text_object((-0.46, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());

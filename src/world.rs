@@ -18,7 +18,8 @@ pub struct WorldData {
     pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
     pub updated_chunk_data: Vec<(usize, Vec<common::Vertex>)>,
     pub created_chunk_data: Vec<(Vec<common::Vertex>, i64, i64, i64, Matrix4<f32>, Matrix4<f32>)>,
-    pub _biomes: Vec<(String, i8, i8, i8, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>)>
+    pub _biomes: Vec<(String, i8, i8, i8, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>)>,
+    pub structures: HashMap<String, Vec<common::Block>>
 }
 impl WorldData {
     pub fn new() -> Self {
@@ -35,7 +36,8 @@ impl WorldData {
             chunk_buffer_coordinates: Vec::new(),
             updated_chunk_data: Vec::new(),
             created_chunk_data: Vec::new(),
-            _biomes: Vec::new()
+            _biomes: Vec::new(),
+            structures: HashMap::new()
         }
     }
 
@@ -47,6 +49,11 @@ impl WorldData {
         if !self.block_index.contains_key(&block_name) {
             self.blocks.push((block_name.clone(), sides, owner));
             self.block_index.insert(block_name, self.blocks.len());
+        }
+    }
+    pub fn add_structure(&mut self, structure_name: String, blocks: Vec<common::Block>) {
+        if !self.structures.contains_key(&structure_name) {
+            self.structures.insert(structure_name, blocks);
         }
     }
 
