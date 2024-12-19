@@ -18,6 +18,7 @@ pub struct WorldData {
     pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
     pub updated_chunk_data: Vec<(usize, Vec<common::Vertex>)>,
     pub created_chunk_data: Vec<(Vec<common::Vertex>, i64, i64, i64, Matrix4<f32>, Matrix4<f32>)>,
+    pub textures: Vec<(image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, wgpu::Extent3d, u32, u32)>,
     pub _biomes: Vec<(String, i8, i8, i8, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>)>,
     pub structures: HashMap<String, Vec<common::Block>>
 }
@@ -36,6 +37,7 @@ impl WorldData {
             chunk_buffer_coordinates: Vec::new(),
             updated_chunk_data: Vec::new(),
             created_chunk_data: Vec::new(),
+            textures: Vec::new(),
             _biomes: Vec::new(),
             structures: HashMap::new()
         }

@@ -38,6 +38,9 @@ fn main(){
     //common::load_texture_files(&mut game_data);
     {
         let world_data_thread = Arc::clone(&world_data);
+        println!("loading texture atlasses");
+        common::load_texture_atlasses(&world_data_thread);
+        println!("loaded texture atlasses");
         println!("loading structure files");
         common::load_structure_files(&world_data_thread);
         println!("loaded structure files");

@@ -775,7 +775,7 @@ impl State {
     }
     fn create_object_from_chunk(
         chunk: &Vec<Vertex>, init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        uniform_bind_group_layout: &wgpu::BindGroupLayout, world_data_thread: &Arc<Mutex<world::WorldData>>) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -809,18 +809,20 @@ impl State {
 
         // store light parameters
         init.queue.write_buffer(&light_uniform_buffer, 0, bytemuck::cast_slice(&[light_data]));
-
-        let texture_data = Assets::get("textures/blocks/atlas.png").expect("Failed to load embedded texture");
-        let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
-        let rgba = img.to_rgba8();
-        let (width, height) = img.dimensions();
-
-        let texture_size = wgpu::Extent3d {
-            width,
-            height,
-            depth_or_array_layers: 1,
-        };
         
+        let texture_size;
+        let rgba: Vec<u8>;
+        let width: u32;
+        let height: u32;
+
+        {
+            let world_data = world_data_thread.lock().unwrap();
+            texture_size = world_data.textures[0].1;
+            rgba = world_data.textures[0].0.to_vec();
+            width = world_data.textures[0].2;
+            height = world_data.textures[0].3;
+        }
+
         let texture = init.device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Texture"),
             size: texture_size,
@@ -1296,26 +1298,44 @@ impl State {
 
     fn mouse_input(&mut self, button: i8, slot_selected: i8, inventory: Inventory) {
         if button == 0 {
-            let mut world_data = self.world_data.lock().unwrap();
-            let (vertex_data_chunk, buffer_index) = interact::break_block(&mut self.game_data, &mut world_data);
+            println!("clicked");
+            let vertex_data_chunk: Vec<Vertex>;
+            let buffer_index: i32;
+            {
+                let mut world_data = self.world_data.lock().unwrap();
+                (vertex_data_chunk, buffer_index) = interact::break_block(&mut self.game_data, &mut world_data);
+            }
             if buffer_index != -1 {
-                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
+                println!("setting buffers");
+                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
+                println!("set buffers");
                 self.vertex_buffers[buffer_index as usize] = vertex_buffer;
                 self.num_vertices[buffer_index as usize] = num_vertices_;
                 self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
                 self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
-                world_data.updated_chunks.push(buffer_index as usize);
+                {
+                    let mut world_data = self.world_data.lock().unwrap();
+                    world_data.updated_chunks.push(buffer_index as usize);
+                }
+                println!("set updated chunks");
             }
         } else if  button == 1 {
-            let mut world_data = self.world_data.lock().unwrap();
-            let (vertex_data_chunk, buffer_index) = interact::place_block(&mut self.game_data, &mut world_data, slot_selected, inventory);
+            let vertex_data_chunk: Vec<Vertex>;
+            let buffer_index: i32;
+            {
+                let mut world_data = self.world_data.lock().unwrap();
+                (vertex_data_chunk, buffer_index) = interact::place_block(&mut self.game_data, &mut world_data, slot_selected, inventory);
+            }
             if buffer_index != -1 {
-                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout);
+                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
                 self.vertex_buffers[buffer_index as usize] = vertex_buffer;
                 self.num_vertices[buffer_index as usize] = num_vertices_;
                 self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
                 self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
-                world_data.updated_chunks.push(buffer_index as usize);
+                {
+                    let mut world_data = self.world_data.lock().unwrap();
+                    world_data.updated_chunks.push(buffer_index as usize);
+                }
             }
         }
     }
@@ -1387,9 +1407,9 @@ impl State {
         let chunk_position_y = (self.game_data.camera_position.y / 32.0).floor();
         let chunk_position_z = (self.game_data.camera_position.z / 32.0).floor();
         
-        let mut world_data = self.world_data.lock().unwrap();
-
         if self.frame % 30 == 0 {
+            println!("updating chunks in range");
+            let mut world_data = self.world_data.lock().unwrap();
             for active in world_data.active_chunks.clone() {
                 self.game_data.active[active] = false;
             }
@@ -1414,33 +1434,48 @@ impl State {
                 }
             }
         }
-        if world_data.updated_chunk_data.len() > 0 {
-            let updated_chunk = world_data.updated_chunk_data.clone();
+
+        let world_data_check;
+        {
+            world_data_check = self.world_data.lock().unwrap().clone();
+        }
+        if world_data_check.updated_chunk_data.len() > 0 {
+            let updated_chunk = world_data_check.updated_chunk_data;
             let chunk_data = &updated_chunk[0];
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.1, &self.init, self.light_data, &self.uniform_bind_group_layout);
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.1, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
             self.vertex_buffers[chunk_data.0] = vertex_buffer;
             self.num_vertices[chunk_data.0] = num_vertices_;
             self.uniform_bind_groups[chunk_data.0] = uniform_bind_group;
             self.vertex_uniform_buffers[chunk_data.0] = vertex_uniform_buffer;
-            world_data.updated_chunks.push(chunk_data.0);
-            world_data.updated_chunk_data.remove(0);
+            {
+                let mut world_data_setting = self.world_data.lock().unwrap();
+                world_data_setting.updated_chunks.push(chunk_data.0);
+                world_data_setting.updated_chunk_data.remove(0);
+            }
         }
-        if world_data.created_chunk_data.len() > 0 {
-            let updated_chunk = world_data.created_chunk_data.clone();
+        if world_data_check.created_chunk_data.len() > 0 {
+            let world_data_check;
+            {
+                world_data_check = self.world_data.lock().unwrap().clone();
+            }
+            let updated_chunk = world_data_check.created_chunk_data.clone();
             let chunk_data = &updated_chunk[0];
             self.game_data.add_object(chunk_data.0.clone(), (chunk_data.1, chunk_data.2, chunk_data.3), true);
-            world_data.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.0, &self.init, self.light_data, &self.uniform_bind_group_layout);
+            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.0, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
             self.vertex_buffers.push(vertex_buffer);
             self.num_vertices.push(num_vertices_);
             self.uniform_bind_groups.push(uniform_bind_group);
             self.vertex_uniform_buffers.push(vertex_uniform_buffer);
-            world_data.active_chunks.push(self.vertex_buffers.len() - 1);
-            world_data.updated_chunks.push(self.vertex_buffers.len() - 1);
-            world_data.chunk_update_queue.push(self.vertex_buffers.len() - 1);
             self.game_data.model_matrices.push(chunk_data.4);
             self.game_data.normal_matrices.push(chunk_data.5);
-            world_data.created_chunk_data.remove(0);
+            {
+                let mut world_data_set = self.world_data.lock().unwrap();
+                world_data_set.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
+                world_data_set.active_chunks.push(self.vertex_buffers.len() - 1);
+                world_data_set.updated_chunks.push(self.vertex_buffers.len() - 1);
+                world_data_set.chunk_update_queue.push(self.vertex_buffers.len() - 1);
+                world_data_set.created_chunk_data.remove(0);
+            }
         }
 
         let up_direction = cgmath::Vector3::unit_y();
@@ -1452,7 +1487,8 @@ impl State {
         let _dt = ANIMATION_SPEED * dt.as_secs_f32(); 
         let view_project_mat = project_mat * view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
-
+        
+        let mut world_data = self.world_data.lock().unwrap();
         for i in &world_data.updated_chunks {
             let model_mat = self.game_data.model_matrices[*i];
             let normal_mat = self.game_data.normal_matrices[*i];
@@ -1540,9 +1576,9 @@ impl State {
             }
         }
 
-        //let current_time_updated = std::time::Instant::now();
-        //let update_time = current_time_updated.duration_since(current_time).as_millis();
-        //println!("update time: {}ms", update_time);
+        let current_time_updated = std::time::Instant::now();
+        let update_time = current_time_updated.duration_since(current_time).as_millis();
+        println!("update time: {}ms", update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -1645,6 +1681,22 @@ impl State {
     }
 }
 
+pub fn load_texture_atlasses(world_data_thread: &Arc<Mutex<world::WorldData>>) {
+    let texture_data = Assets::get("textures/blocks/atlas.png").expect("Failed to load embedded texture");
+    let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
+    println!("loaded blocks/atlas");
+    let rgba = img.to_rgba8();
+    let (width, height) = img.dimensions();
+    let texture_size = wgpu::Extent3d {
+        width,
+        height,
+        depth_or_array_layers: 1,
+    };
+    {
+        let mut world_data = world_data_thread.lock().unwrap();
+        world_data.textures.push((rgba, texture_size, width, height));
+    }
+}
 fn handle_structure_data(world_data: &mut world::WorldData, json_content: &str) {
     let structure_data: StructureData = serde_json::from_str(json_content).expect("Failed to parse JSON");
     world_data.add_structure(
