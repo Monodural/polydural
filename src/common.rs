@@ -1413,7 +1413,10 @@ impl State {
             for active in world_data.active_chunks.clone() {
                 self.game_data.active[active] = false;
             }
-            world_data.active_chunks = Vec::new();
+            world_data.active_chunks.clear();
+
+            let mut used_buffers = std::collections::HashSet::new();
+
             for x in -4..4 {
                 for y in -2..2 {
                     for z in -4..4 {
@@ -1424,6 +1427,7 @@ impl State {
                             let chunk_index = *chunk_index as usize;
                             self.game_data.active[chunk_index] = true;
                             world_data.active_chunks.push(chunk_index);
+                            used_buffers.insert(chunk_index);
                         } else {
                             if !world_data.chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) && 
                                 !world_data.created_chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
@@ -1433,6 +1437,20 @@ impl State {
                     }
                 }
             }
+
+            /*let unused_buffers: Vec<usize> = self.vertex_buffers
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| !used_buffers.contains(index))
+                .map(|(index, _)| index)
+                .collect();
+
+            for &buffer_index in unused_buffers.iter().rev() { // Iterate in reverse to safely remove
+                self.vertex_buffers.remove(buffer_index);
+                self.num_vertices.remove(buffer_index);
+                self.uniform_bind_groups.remove(buffer_index);
+                self.vertex_uniform_buffers.remove(buffer_index);
+            }*/
         }
 
         let world_data_check;
