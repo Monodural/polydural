@@ -22,7 +22,8 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                     (16.0 + randomness_functions.noise.get([position_x as f64 / 12.5, position_z as f64 / 12.5]) as f32 * 4.0)
                 ) / 3.0).floor();
 
-                if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() > 10.0 {
+                if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() > 10.0 && 
+                    randomness_functions.noise.get([position_x as f64 / 12.5, position_y as f64 / 12.5, position_z as f64 / 12.5]) < 0.8 {
                     if position_y > terrain_max_height - 4.0 && position_y < terrain_max_height {
                         chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["dirt"] as i8;
                     } else if position_y < terrain_max_height {
