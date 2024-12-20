@@ -40,14 +40,14 @@ struct ModelData {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Block {
-    position: [i32; 3],
-    block: String,
+    pub position: [i32; 3],
+    pub block: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct StructureData {
-    structure_name: String,
-    blocks: Vec<Block>,
+    pub structure_name: String,
+    pub blocks: Vec<Block>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1577,8 +1577,9 @@ impl State {
         }
 
         let current_time_updated = std::time::Instant::now();
-        let update_time = current_time_updated.duration_since(current_time).as_millis();
-        println!("update time: {}ms", update_time);
+        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+        //println!("update time: {}ms fps: {}", update_time * 1000.0, 1.0 / update_time);
+        println!("fps: {}", 1.0 / update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

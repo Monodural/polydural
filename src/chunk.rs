@@ -36,11 +36,20 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                         }
                     } else if position_y == (terrain_max_height + 1.0).floor() {
                         let folliage_number: f32 = rng.gen();
-                        if folliage_number < 0.01 {
-                            for i in 0..5 {
+                        if folliage_number < 0.001 {
+                            for block in &world_data.structures["oak_tree_1"] {
+                                let block_position_x = block.position[0] as i64 + x;
+                                let block_position_y = block.position[1] as i64 + y;
+                                let block_position_z = block.position[2] as i64 + z;
+                                if block_position_x > 15 || block_position_x < 0 || block_position_y > 15 || block_position_y < 0 || block_position_z > 15 || block_position_z < 0 {
+                                    continue;
+                                }
+                                chunk[(block_position_x * 16 * 16 + block_position_y * 16 + block_position_z) as usize] = world_data.block_index[&block.block] as i8;
+                            }
+                            /*for i in 0..5 {
                                 if y + i > 15 { continue; }
                                 chunk[(x * 16 * 16 + (y + i) * 16 + z) as usize] = world_data.block_index["oak_log"] as i8;
-                            }
+                            }*/
                         }
                     }
                 }
