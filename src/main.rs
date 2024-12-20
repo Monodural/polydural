@@ -166,6 +166,6 @@ fn main(){
         }
     });
 
-    let light_data = common::light([1.0,1.0,1.0], [1.0, 1.0, 0.0], 0.05, 0.6, 0.3, 30.0);
+    let light_data = common::light([1.0, 1.0, 1.0], [1.0, 1.0, 0.0], 0.1, 0.6, 0.3, 30.0);
     common::run(game_data, world_data, inventory, light_data, "Polydural");
 }
