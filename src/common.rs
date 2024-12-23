@@ -1338,20 +1338,19 @@ impl State {
                 (vertex_data_chunk, buffer_index) = interact::break_block(&mut self.game_data, &mut world_data);
             }
             if buffer_index != -1 {
-                println!("setting buffers");
-                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
-                println!("set buffers");
-                self.vertex_buffers[buffer_index as usize] = vertex_buffer;
-                self.num_vertices[buffer_index as usize] = num_vertices_;
-                self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
-                self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
+                self.vertex_data[buffer_index as usize] = vertex_data_chunk;
                 {
                     let mut world_data = self.world_data.lock().unwrap();
                     world_data.updated_chunks.push(buffer_index as usize);
+                    let mut chunk: Vec<Vertex> = Vec::new();
+                    for i in &world_data.active_chunks {
+                        chunk.extend(&self.vertex_data[*i]);
+                    }
+                    self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
+                    self.world_num_vertices = chunk.len() as u32;
                 }
-                println!("set updated chunks");
             }
-        } else if  button == 1 {
+        } else if button == 1 {
             let vertex_data_chunk: Vec<Vertex>;
             let buffer_index: i32;
             {
@@ -1359,14 +1358,16 @@ impl State {
                 (vertex_data_chunk, buffer_index) = interact::place_block(&mut self.game_data, &mut world_data, slot_selected, inventory);
             }
             if buffer_index != -1 {
-                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&vertex_data_chunk, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
-                self.vertex_buffers[buffer_index as usize] = vertex_buffer;
-                self.num_vertices[buffer_index as usize] = num_vertices_;
-                self.uniform_bind_groups[buffer_index as usize] = uniform_bind_group;
-                self.vertex_uniform_buffers[buffer_index as usize] = vertex_uniform_buffer;
+                self.vertex_data[buffer_index as usize] = vertex_data_chunk;
                 {
                     let mut world_data = self.world_data.lock().unwrap();
                     world_data.updated_chunks.push(buffer_index as usize);
+                    let mut chunk: Vec<Vertex> = Vec::new();
+                    for i in &world_data.active_chunks {
+                        chunk.extend(&self.vertex_data[*i]);
+                    }
+                    self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
+                    self.world_num_vertices = chunk.len() as u32;
                 }
             }
         }
@@ -1470,39 +1471,28 @@ impl State {
                 }
             }
 
-            /*let unused_buffers: Vec<usize> = self.vertex_buffers
-                .iter()
-                .enumerate()
-                .filter(|(index, _)| !used_buffers.contains(index))
-                .map(|(index, _)| index)
-                .collect();
-
-            for &buffer_index in unused_buffers.iter().rev() { // Iterate in reverse to safely remove
-                self.vertex_buffers.remove(buffer_index);
-                self.num_vertices.remove(buffer_index);
-                self.uniform_bind_groups.remove(buffer_index);
-                self.vertex_uniform_buffers.remove(buffer_index);
-            }*/
+            let mut chunk: Vec<Vertex> = Vec::new();
+            for i in &world_data.active_chunks {
+                chunk.extend(&self.vertex_data[*i]);
+            }
+            self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
+            self.world_num_vertices = chunk.len() as u32;
         }
 
         let world_data_check;
         {
             world_data_check = self.world_data.lock().unwrap().clone();
         }
-        /*if world_data_check.updated_chunk_data.len() > 0 {
+        if world_data_check.updated_chunk_data.len() > 0 {
             let updated_chunk = world_data_check.updated_chunk_data;
             let chunk_data = &updated_chunk[0];
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.1, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
-            self.vertex_buffers[chunk_data.0] = vertex_buffer;
-            self.num_vertices[chunk_data.0] = num_vertices_;
-            self.uniform_bind_groups[chunk_data.0] = uniform_bind_group;
-            self.vertex_uniform_buffers[chunk_data.0] = vertex_uniform_buffer;
+            self.vertex_data[chunk_data.0] = chunk_data.1.clone();
             {
                 let mut world_data_setting = self.world_data.lock().unwrap();
                 world_data_setting.updated_chunks.push(chunk_data.0);
                 world_data_setting.updated_chunk_data.remove(0);
             }
-        }*/
+        }
         if world_data_check.created_chunk_data.len() > 0 {
             let world_data_check;
             {
@@ -1514,26 +1504,14 @@ impl State {
             self.model_matrices.push(chunk_data.4);
             self.normal_matrices.push(chunk_data.5);
             self.game_data.add_object(chunk_data.0.clone(), (chunk_data.1, chunk_data.2, chunk_data.3), true);
-            /*let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.0, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
-            self.vertex_buffers.push(vertex_buffer);
-            self.num_vertices.push(num_vertices_);
-            self.uniform_bind_groups.push(uniform_bind_group);
-            self.vertex_uniform_buffers.push(vertex_uniform_buffer);
-            self.game_data.model_matrices.push(chunk_data.4);
-            self.game_data.normal_matrices.push(chunk_data.5);*/
             {
                 let mut world_data_set = self.world_data.lock().unwrap();
 
                 world_data_set.active_chunks.push(self.vertex_data.len() - 1);
+                world_data_set.updated_chunks.push(self.vertex_data.len() - 1);
+                world_data_set.chunk_update_queue.push(self.vertex_data.len() - 1);
+                world_data_set.created_chunk_data.remove(0);
                 world_data_set.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
-
-                let mut chunk: Vec<Vertex> = Vec::new();
-                for i in &world_data_set.active_chunks {
-                    chunk.extend(&self.vertex_data[*i]);
-                }
-                self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
-                self.world_num_vertices = chunk.len() as u32;
-                println!("amount of vertices: {} amount of active chunks: {}", self.world_num_vertices, world_data_set.active_chunks.len());
 
                 let model_mat = transforms::create_transforms([
                     0 as f32, 0 as f32, 0 as f32], 
@@ -1545,12 +1523,6 @@ impl State {
                 let normal_ref:&[f32; 16] = normal_mat.as_ref();
                 self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
                 self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
-
-                /*world_data_set.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
-                world_data_set.active_chunks.push(self.vertex_buffers.len() - 1);
-                world_data_set.updated_chunks.push(self.vertex_buffers.len() - 1);
-                world_data_set.chunk_update_queue.push(self.vertex_buffers.len() - 1);*/
-                world_data_set.created_chunk_data.remove(0);
             }
         }
 
@@ -1564,34 +1536,7 @@ impl State {
         let view_project_mat = project_mat * view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
         
-        /*{
-            let mut world_data = self.world_data.lock().unwrap();
-            for i in &world_data.updated_chunks {
-                let model_mat = self.game_data.model_matrices[*i];
-                let normal_mat = self.game_data.normal_matrices[*i];
-                let model_ref:&[f32; 16] = model_mat.as_ref();
-                let normal_ref:&[f32; 16] = normal_mat.as_ref();
-                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
-                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
-            }
-            world_data.updated_chunks = Vec::new();
-            for i in &world_data.active_chunks {
-                if self.num_vertices[*i] == 0 { continue; }
-                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 64, bytemuck::cast_slice(view_projection_ref));
-            }
-        }*/
-        {
-            /*let mut world_data = self.world_data.lock().unwrap();
-            for i in &world_data.updated_chunks {
-                let model_mat = self.game_data.model_matrices[*i];
-                let normal_mat = self.game_data.normal_matrices[*i];
-                let model_ref:&[f32; 16] = model_mat.as_ref();
-                let normal_ref:&[f32; 16] = normal_mat.as_ref();
-                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
-                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
-            }*/
-            self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
-        }
+        self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
 
         self.game_data.gui_positions[2] = (0.11 * (slot_selected as f32 - 4.0), -0.6, 0.0);
 
