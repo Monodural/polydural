@@ -1519,19 +1519,21 @@ impl State {
         let view_project_mat = project_mat * view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
         
-        let mut world_data = self.world_data.lock().unwrap();
-        for i in &world_data.updated_chunks {
-            let model_mat = self.game_data.model_matrices[*i];
-            let normal_mat = self.game_data.normal_matrices[*i];
-            let model_ref:&[f32; 16] = model_mat.as_ref();
-            let normal_ref:&[f32; 16] = normal_mat.as_ref();
-            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
-            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
-        }
-        world_data.updated_chunks = Vec::new();
-        for i in &world_data.active_chunks {
-            if self.num_vertices[*i] == 0 { continue; }
-            self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 64, bytemuck::cast_slice(view_projection_ref));
+        {
+            let mut world_data = self.world_data.lock().unwrap();
+            for i in &world_data.updated_chunks {
+                let model_mat = self.game_data.model_matrices[*i];
+                let normal_mat = self.game_data.normal_matrices[*i];
+                let model_ref:&[f32; 16] = model_mat.as_ref();
+                let normal_ref:&[f32; 16] = normal_mat.as_ref();
+                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
+                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
+            }
+            world_data.updated_chunks = Vec::new();
+            for i in &world_data.active_chunks {
+                if self.num_vertices[*i] == 0 { continue; }
+                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 64, bytemuck::cast_slice(view_projection_ref));
+            }
         }
 
         self.game_data.gui_positions[2] = (0.11 * (slot_selected as f32 - 4.0), -0.6, 0.0);
