@@ -1,13 +1,20 @@
 {
-    "name": "plain_grasslands",
+    "biome_name": "plain_grasslands",
 
     "temperature": 17,
     "moisture": 30,
     "height": 6,
 
-    "trees": {
-        "oak_tree": 0.01
-    },
+    "block_levels": [
+        [["grass_1", "grass_2"], 0],
+        [["dirt"], 1],
+        [["stone"], 5]
+    ],
+    "sea_level": -1,
+
+    "trees": [
+        ["oak_tree", 0.01]
+    ],
     "folliage": [],
     "buildings": []
 }

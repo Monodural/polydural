@@ -19,7 +19,7 @@ pub struct WorldData {
     pub updated_chunk_data: Vec<(usize, Vec<common::Vertex>)>,
     pub created_chunk_data: Vec<(Vec<common::Vertex>, i64, i64, i64, Matrix4<f32>, Matrix4<f32>)>,
     pub textures: Vec<(image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, wgpu::Extent3d, u32, u32)>,
-    pub _biomes: Vec<(String, i8, i8, i8, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>, Vec<String>, Vec<f32>)>,
+    pub biomes: HashMap<String, (i8, i8, i8, Vec<(Vec<String>, i64)>, i64, Vec<(String, f32)>, Vec<(String, f32)>, Vec<(String, f32)>)>,
     pub structures: HashMap<String, Vec<common::Block>>
 }
 impl WorldData {
@@ -38,7 +38,7 @@ impl WorldData {
             updated_chunk_data: Vec::new(),
             created_chunk_data: Vec::new(),
             textures: Vec::new(),
-            _biomes: Vec::new(),
+            biomes: HashMap::new(),
             structures: HashMap::new()
         }
     }
@@ -56,6 +56,13 @@ impl WorldData {
     pub fn add_structure(&mut self, structure_name: String, blocks: Vec<common::Block>) {
         if !self.structures.contains_key(&structure_name) {
             self.structures.insert(structure_name, blocks);
+        }
+    }
+    pub fn add_biome(&mut self, biome_name: String, temperature: i8, moisture: i8, height: i8, 
+                    block_levels: Vec<(Vec<String>, i64)>, sea_level: i64, trees: Vec<(String, f32)>, 
+                    folliage: Vec<(String, f32)>, buildings: Vec<(String, f32)>) {
+        if !self.biomes.contains_key(&biome_name) {
+            self.biomes.insert(biome_name, (temperature, moisture, height, block_levels, sea_level, trees, folliage, buildings));
         }
     }
 

@@ -50,6 +50,19 @@ pub struct StructureData {
     pub blocks: Vec<Block>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct BiomeData {
+    pub biome_name: String,
+    pub temperature: i8,
+    pub moisture: i8,
+    pub height: i8,
+    pub block_levels: Vec<(Vec<String>, i64)>,
+    pub sea_level: i64,
+    pub trees: Vec<(String, f32)>,
+    pub folliage: Vec<(String, f32)>,
+    pub buildings: Vec<(String, f32)>
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum Textures {
@@ -1722,6 +1735,61 @@ fn handle_structure_data(world_data: &mut world::WorldData, json_content: &str) 
         structure_data.structure_name,
         structure_data.blocks
     );
+}
+fn handle_biome_data(world_data: &mut world::WorldData, json_content: &str) {
+    let biome_data: BiomeData = serde_json::from_str(json_content).expect("Failed to parse JSON");
+    world_data.add_biome(
+        biome_data.biome_name,
+        biome_data.temperature,
+        biome_data.moisture,
+        biome_data.height,
+        biome_data.block_levels,
+        biome_data.sea_level,
+        biome_data.trees,
+        biome_data.folliage,
+        biome_data.buildings
+    );
+}
+pub fn load_biome_files(world_data_thread: &Arc<Mutex<world::WorldData>>) {
+    let mut world_data = world_data_thread.lock().unwrap();
+    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+    let exe_dir = exe_path.parent().expect("Failed to get executable directory");
+    let models_dir = exe_dir.join("assets/biomes");
+    let mut json_files = Vec::new();
+    if models_dir.exists() && models_dir.is_dir() {
+        println!("Found the modded directory for biomes");
+        for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.extension().map_or(false, |ext| ext == "json") {
+                    if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
+                        println!("Found the modded biome file: {}", file_name);
+                        json_files.push(file_name.to_string());
+                    }
+                }
+            }
+        }
+    }
+    json_files.extend(
+        Assets::iter()
+            .filter(|file| file.starts_with("biomes/") && file.ends_with(".json"))
+            .map(|file| file.to_string())
+    );
+    json_files.sort();
+    json_files.dedup();
+    for file in json_files {
+        println!("Found JSON file: {}", file);
+        let file_path = exe_dir.join(&file);
+        if file_path.exists() {
+            let mut file_content = String::new();
+            let mut file = fs::File::open(&file_path).expect("Failed to open file");
+            file.read_to_string(&mut file_content).expect("Failed to read file");
+            handle_biome_data(&mut world_data, &file_content);
+        } else if let Some(asset) = Assets::get(&file) {
+            let json_content = std::str::from_utf8(asset.data.as_ref()).expect("Invalid UTF-8");
+            handle_biome_data(&mut world_data, json_content);
+        }
+    }
 }
 pub fn load_structure_files(world_data_thread: &Arc<Mutex<world::WorldData>>) {
     let mut world_data = world_data_thread.lock().unwrap();
