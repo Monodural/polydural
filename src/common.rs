@@ -1330,7 +1330,6 @@ impl State {
 
     fn mouse_input(&mut self, button: i8, slot_selected: i8, inventory: Inventory) {
         if button == 0 {
-            println!("clicked");
             let vertex_data_chunk: Vec<Vertex>;
             let buffer_index: i32;
             {
@@ -1441,7 +1440,6 @@ impl State {
         let chunk_position_z = (self.game_data.camera_position.z / 32.0).floor();
         
         if self.frame % 30 == 0 {
-            println!("updating chunks in range");
             let mut world_data = self.world_data.lock().unwrap();
             for active in world_data.active_chunks.clone() {
                 self.game_data.active[active] = false;
@@ -1560,9 +1558,9 @@ impl State {
             let model_ref:&[f32; 16] = model_mat.as_ref();
             let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-            //self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
-            //self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
-            //self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
+            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
+            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
         for i in 0..self.game_data.gui_item_block_objects.len() {
             let position_x = gui_offset_normal.x.x * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.x * self.game_data.gui_item_block_positions[i].1 + forward.x + self.game_data.camera_position.x;
@@ -1584,9 +1582,9 @@ impl State {
             let model_ref:&[f32; 16] = model_mat.as_ref();
             let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-            //self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
-            //self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
-            //self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
+            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
+            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
         let mut j = 0;
         for i in 0..self.game_data.text.len() {
@@ -1604,9 +1602,9 @@ impl State {
                 let model_ref:&[f32; 16] = model_mat.as_ref();
                 let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-                //self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 0, bytemuck::cast_slice(model_ref));
-                //self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 64, bytemuck::cast_slice(view_projection_ref));
-                //self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 128, bytemuck::cast_slice(normal_ref));
+                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 0, bytemuck::cast_slice(model_ref));
+                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 64, bytemuck::cast_slice(view_projection_ref));
+                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 128, bytemuck::cast_slice(normal_ref));
                 j += 1;
             }
         }
@@ -1614,7 +1612,7 @@ impl State {
         let current_time_updated = std::time::Instant::now();
         let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
         //println!("update time: {}ms fps: {}", update_time * 1000.0, 1.0 / update_time);
-        println!("fps: {}", 1.0 / update_time);
+        //println!("fps: {}", 1.0 / update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
