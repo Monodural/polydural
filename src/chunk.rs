@@ -67,8 +67,8 @@ pub fn set_block(chunk: Vec<i8>, x: i8, y: i8, z: i8, block_type: i8) -> Vec<i8>
     return new_chunk;
 }
 
-pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &mut world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> (Vec<[i8; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
-    let mut vertices: Vec<[i8; 3]> = Vec::new();
+pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &mut world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> (Vec<[i64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
+    let mut vertices: Vec<[i64; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
     let mut uvs: Vec<[f32; 2]> = Vec::new();
@@ -153,17 +153,17 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
                     directions[17] = true;
                 }
 
-                let block_position_x = x as i8;
-                let block_position_y = y as i8;
-                let block_position_z = z as i8;
+                let block_position_x = x as i64;
+                let block_position_y = y as i64;
+                let block_position_z = z as i64;
 
                 if !directions[0] {
-                    vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
 
                     let uv_x = (world_data.blocks[(block_id - 1) as usize].1[0] as f32 % atlas_width).floor();
                     let uv_y = (world_data.blocks[(block_id - 1) as usize].1[0] as f32 / atlas_height).floor();
@@ -198,12 +198,12 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
                     colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[1] {
-                    vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
 
                     let uv_x = (world_data.blocks[(block_id - 1) as usize].1[1] as f32 % atlas_width).floor();
                     let uv_y = (world_data.blocks[(block_id - 1) as usize].1[1] as f32 / atlas_height).floor();
@@ -238,12 +238,12 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
                     colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[2] {
-                    vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
 
                     let uv_x = (world_data.blocks[(block_id - 1) as usize].1[2] as f32 % atlas_width).floor();
                     let uv_y = (world_data.blocks[(block_id - 1) as usize].1[2] as f32 / atlas_height).floor();
@@ -290,12 +290,12 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
                     }
                 }
                 if !directions[3] {
-                    vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
 
                     let uv_x = (world_data.blocks[(block_id - 1) as usize].1[3] as f32 % atlas_width).floor();
                     let uv_y = (world_data.blocks[(block_id - 1) as usize].1[3] as f32 / atlas_height).floor();
@@ -342,12 +342,12 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
                     }
                 }
                 if !directions[4] {
-                    vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2,  1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2,  1 + block_position_z * 2]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
 
                     let uv_x = (world_data.blocks[(block_id - 1) as usize].1[4] as f32 % atlas_width).floor();
                     let uv_y = (world_data.blocks[(block_id - 1) as usize].1[4] as f32 / atlas_height).floor();
@@ -382,12 +382,12 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
                     colors.push([1.0, 1.0, 1.0]);
                 }
                 if !directions[5] {
-                    vertices.push([ 1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([ 1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2, -1 + block_position_y * 2, -1 + block_position_z * 2]);
-                    vertices.push([-1 + block_position_x * 2,  1 + block_position_y * 2, -1 + block_position_z * 2]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
 
                     let uv_x = (world_data.blocks[(block_id - 1) as usize].1[5] as f32 % atlas_width).floor();
                     let uv_y = (world_data.blocks[(block_id - 1) as usize].1[5] as f32 / atlas_height).floor();

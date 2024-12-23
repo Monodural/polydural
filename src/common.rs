@@ -242,7 +242,7 @@ pub struct Vertex {
 }
 
 #[allow(dead_code)]
-pub fn vertex(p:[i8;3], n:[i8; 3], c:[f32; 3], u:[f32; 2]) -> Vertex {
+pub fn vertex(p:[i64;3], n:[i8; 3], c:[f32; 3], u:[f32; 2]) -> Vertex {
     return Vertex {
         position: [p[0] as f32, p[1] as f32, p[2] as f32, 1.0],
         normal: [n[0] as f32, n[1] as f32, n[2] as f32, 1.0],
@@ -251,7 +251,7 @@ pub fn vertex(p:[i8;3], n:[i8; 3], c:[f32; 3], u:[f32; 2]) -> Vertex {
     }
 }
 
-pub fn create_vertices(vertices: Vec<[i8; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f32; 3]>, uvs: Vec<[f32; 2]>) -> Vec<Vertex> {
+pub fn create_vertices(vertices: Vec<[i64; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f32; 3]>, uvs: Vec<[f32; 2]>) -> Vec<Vertex> {
     let mut data:Vec<Vertex> = Vec::with_capacity(vertices.len());
     for i in 0..vertices.len() {
         data.push(vertex(vertices[i], normals[i], colors[i], uvs[i]));
@@ -293,7 +293,7 @@ struct State {
     gui_item_block_vertex_uniform_buffers: Vec<wgpu::Buffer>,
     project_mat: Matrix4<f32>,
     num_vertices: Vec<u32>,
-    world_num_vertices: u64,
+    world_num_vertices: u32,
     gui_num_vertices: Vec<u32>,
     text_num_vertices: Vec<u32>,
     gui_item_block_num_vertices: Vec<u32>,
@@ -302,6 +302,9 @@ struct State {
     uniform_bind_group_layout: wgpu::BindGroupLayout,
     light_data: Light,
     frame: usize,
+    vertex_data: Vec<Vec<Vertex>>,
+    model_matrices: Vec<Matrix4<f32>>,
+    normal_matrices: Vec<Matrix4<f32>>,
     world_data: Arc<Mutex<world::WorldData>>
 }
 
@@ -671,7 +674,7 @@ impl State {
     }
     fn create_world_buffer(
         init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout, world_data_thread: &Arc<Mutex<world::WorldData>>) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u64) {
+        uniform_bind_group_layout: &wgpu::BindGroupLayout, world_data_thread: &Arc<Mutex<world::WorldData>>) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -784,7 +787,7 @@ impl State {
             label: Some("Uniform Bind Group"),
         });
 
-        let max_buffer_size = 1024 * 1024; // Example: 1MB buffer
+        let max_buffer_size = 1024 * 1024 * 16; // Example: 16MB buffer
         let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
             size: max_buffer_size as u64,
@@ -1266,6 +1269,10 @@ impl State {
 
         let frame = 0;
 
+        let vertex_data = Vec::new();
+        let model_matrices = Vec::new();
+        let normal_matrices = Vec::new();
+
         Self {
             init,
             pipeline,
@@ -1298,6 +1305,9 @@ impl State {
             uniform_bind_group_layout,
             light_data,
             frame,
+            vertex_data,
+            model_matrices,
+            normal_matrices,
             world_data
         }
     }
@@ -1479,7 +1489,7 @@ impl State {
         {
             world_data_check = self.world_data.lock().unwrap().clone();
         }
-        if world_data_check.updated_chunk_data.len() > 0 {
+        /*if world_data_check.updated_chunk_data.len() > 0 {
             let updated_chunk = world_data_check.updated_chunk_data;
             let chunk_data = &updated_chunk[0];
             let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.1, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
@@ -1492,7 +1502,7 @@ impl State {
                 world_data_setting.updated_chunks.push(chunk_data.0);
                 world_data_setting.updated_chunk_data.remove(0);
             }
-        }
+        }*/
         if world_data_check.created_chunk_data.len() > 0 {
             let world_data_check;
             {
@@ -1500,20 +1510,46 @@ impl State {
             }
             let updated_chunk = world_data_check.created_chunk_data.clone();
             let chunk_data = &updated_chunk[0];
+            self.vertex_data.push(chunk_data.0.clone());
+            self.model_matrices.push(chunk_data.4);
+            self.normal_matrices.push(chunk_data.5);
             self.game_data.add_object(chunk_data.0.clone(), (chunk_data.1, chunk_data.2, chunk_data.3), true);
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.0, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
+            /*let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_from_chunk(&chunk_data.0, &self.init, self.light_data, &self.uniform_bind_group_layout, &self.world_data);
             self.vertex_buffers.push(vertex_buffer);
             self.num_vertices.push(num_vertices_);
             self.uniform_bind_groups.push(uniform_bind_group);
             self.vertex_uniform_buffers.push(vertex_uniform_buffer);
             self.game_data.model_matrices.push(chunk_data.4);
-            self.game_data.normal_matrices.push(chunk_data.5);
+            self.game_data.normal_matrices.push(chunk_data.5);*/
             {
                 let mut world_data_set = self.world_data.lock().unwrap();
+
+                world_data_set.active_chunks.push(self.vertex_data.len() - 1);
                 world_data_set.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
+
+                let mut chunk: Vec<Vertex> = Vec::new();
+                for i in &world_data_set.active_chunks {
+                    chunk.extend(&self.vertex_data[*i]);
+                }
+                self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
+                self.world_num_vertices = chunk.len() as u32;
+                println!("amount of vertices: {} amount of active chunks: {}", self.world_num_vertices, world_data_set.active_chunks.len());
+
+                let model_mat = transforms::create_transforms([
+                    0 as f32, 0 as f32, 0 as f32], 
+                    [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+                );
+                let normal_mat = (model_mat.invert().unwrap()).transpose();
+
+                let model_ref:&[f32; 16] = model_mat.as_ref();
+                let normal_ref:&[f32; 16] = normal_mat.as_ref();
+                self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
+                self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
+
+                /*world_data_set.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
                 world_data_set.active_chunks.push(self.vertex_buffers.len() - 1);
                 world_data_set.updated_chunks.push(self.vertex_buffers.len() - 1);
-                world_data_set.chunk_update_queue.push(self.vertex_buffers.len() - 1);
+                world_data_set.chunk_update_queue.push(self.vertex_buffers.len() - 1);*/
                 world_data_set.created_chunk_data.remove(0);
             }
         }
@@ -1528,7 +1564,7 @@ impl State {
         let view_project_mat = project_mat * view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
         
-        {
+        /*{
             let mut world_data = self.world_data.lock().unwrap();
             for i in &world_data.updated_chunks {
                 let model_mat = self.game_data.model_matrices[*i];
@@ -1543,6 +1579,18 @@ impl State {
                 if self.num_vertices[*i] == 0 { continue; }
                 self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 64, bytemuck::cast_slice(view_projection_ref));
             }
+        }*/
+        {
+            /*let mut world_data = self.world_data.lock().unwrap();
+            for i in &world_data.updated_chunks {
+                let model_mat = self.game_data.model_matrices[*i];
+                let normal_mat = self.game_data.normal_matrices[*i];
+                let model_ref:&[f32; 16] = model_mat.as_ref();
+                let normal_ref:&[f32; 16] = normal_mat.as_ref();
+                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 0, bytemuck::cast_slice(model_ref));
+                self.init.queue.write_buffer(&self.vertex_uniform_buffers[*i], 128, bytemuck::cast_slice(normal_ref));
+            }*/
+            self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
         }
 
         self.game_data.gui_positions[2] = (0.11 * (slot_selected as f32 - 4.0), -0.6, 0.0);
@@ -1567,9 +1615,9 @@ impl State {
             let model_ref:&[f32; 16] = model_mat.as_ref();
             let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
-            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
-            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
+            //self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+            //self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
+            //self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
         for i in 0..self.game_data.gui_item_block_objects.len() {
             let position_x = gui_offset_normal.x.x * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.x * self.game_data.gui_item_block_positions[i].1 + forward.x + self.game_data.camera_position.x;
@@ -1591,9 +1639,9 @@ impl State {
             let model_ref:&[f32; 16] = model_mat.as_ref();
             let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
-            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
-            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
+            //self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+            //self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
+            //self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
         }
         let mut j = 0;
         for i in 0..self.game_data.text.len() {
@@ -1611,9 +1659,9 @@ impl State {
                 let model_ref:&[f32; 16] = model_mat.as_ref();
                 let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 0, bytemuck::cast_slice(model_ref));
-                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 64, bytemuck::cast_slice(view_projection_ref));
-                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 128, bytemuck::cast_slice(normal_ref));
+                //self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 0, bytemuck::cast_slice(model_ref));
+                //self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 64, bytemuck::cast_slice(view_projection_ref));
+                //self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 128, bytemuck::cast_slice(normal_ref));
                 j += 1;
             }
         }
@@ -1680,7 +1728,7 @@ impl State {
                 }),
             });
 
-            {
+            /*{
                 let world_data = self.world_data.lock().unwrap();
                 render_pass.set_pipeline(&self.pipeline);
                 for i in &world_data.active_chunks {
@@ -1688,7 +1736,11 @@ impl State {
                     render_pass.set_bind_group(0, &self.uniform_bind_groups[*i], &[]);
                     render_pass.draw(0..self.num_vertices[*i], 0..1);
                 }
-            }
+            }*/
+            render_pass.set_pipeline(&self.pipeline);
+            render_pass.set_vertex_buffer(0, self.world_vertex_buffer.slice(..));           
+            render_pass.set_bind_group(0, &self.world_uniform_bind_group, &[]);
+            render_pass.draw(0..self.world_num_vertices, 0..1);
 
             render_pass.set_pipeline(&self.gui_pipeline);
             for i in 0..self.game_data.gui_objects.len() {
