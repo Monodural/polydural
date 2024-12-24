@@ -1956,7 +1956,7 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, invent
                                         &VirtualKeyCode::Key8 => { slot_selected = 7; }
                                         &VirtualKeyCode::Key9 => { slot_selected = 8; }
                                         //&VirtualKeyCode::Key0 => { slot_selected = 9; }
-                                        &VirtualKeyCode::Escape => {
+                                        &VirtualKeyCode::Escape | &VirtualKeyCode::LWin | &VirtualKeyCode::RWin => {
                                             mouse_locked = false;
                                             if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
                                                 eprintln!("Failed to unlock the cursor: {:?}", err);
@@ -1978,6 +1978,15 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, invent
                                         _ => {}
                                     }
                                 }
+                            }
+                        }
+                        WindowEvent::Focused(focused) => {
+                            if !focused {
+                                mouse_locked = false;
+                                if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
+                                    eprintln!("Failed to unlock the cursor: {:?}", err);
+                                }
+                                window.set_cursor_visible(true);
                             }
                         }
                         WindowEvent::CursorMoved { position, .. } => {
