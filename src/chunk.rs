@@ -17,10 +17,12 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                 let position_z = (z + 16 * chunk_position_z) as f32;
 
                 let terrain_max_height: f32 = ((
+                    (16.0 + randomness_functions.noise.get([position_x as f64 / 200.0, position_z as f64 / 200.0]) as f32 * 64.0) +
+                    (16.0 + randomness_functions.noise.get([position_x as f64 / 100.0, position_z as f64 / 100.0]) as f32 * 32.0) +
                     (16.0 + randomness_functions.noise.get([position_x as f64 / 50.0, position_z as f64 / 50.0]) as f32 * 16.0) +
                     (16.0 + randomness_functions.noise.get([position_x as f64 / 25.0, position_z as f64 / 25.0]) as f32 * 8.0) +
                     (16.0 + randomness_functions.noise.get([position_x as f64 / 12.5, position_z as f64 / 12.5]) as f32 * 4.0)
-                ) / 3.0).floor();
+                ) / 5.0).floor();
 
                 if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() > 10.0 && 
                     randomness_functions.noise.get([position_x as f64 / 12.5, position_y as f64 / 12.5, position_z as f64 / 12.5]) < 0.8 {

@@ -1376,8 +1376,6 @@ impl State {
         self.frame += 1;
         let current_time = std::time::Instant::now();
         let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
-        //let fps = 1.0 / current_time.duration_since(self.previous_frame_time).as_secs_f32();
-        //println!("fps: {}", fps);
         self.previous_frame_time = current_time;
 
         if let Some(is_pressed) = keys_down.get("right") {
@@ -1391,8 +1389,8 @@ impl State {
             }
         }
 
-        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * (frame_time * 0.003);
-        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * (frame_time * 0.003);
+        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * (frame_time * 0.006);
+        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * (frame_time * 0.006);
         self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.1, std::f32::consts::FRAC_PI_2 / 1.1);
 
         let forward = Vector3::new(
