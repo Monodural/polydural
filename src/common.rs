@@ -31,6 +31,18 @@ struct Assets;
 const ANIMATION_SPEED:f32 = 1.0;
 const IS_PERSPECTIVE:bool = true;
 
+#[derive(Deserialize, Debug, Clone)]
+pub struct Element {
+    from: [f32; 3],
+    to: [f32; 3],
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ShapeData {
+    shape_name: String,
+    elements: Vec<Element>,
+}
+
 #[derive(Debug, Deserialize)]
 struct ModelData {
     block_name: String,
@@ -777,7 +789,7 @@ impl State {
             label: Some("Uniform Bind Group"),
         });
 
-        let max_buffer_size = 1024 * 1024 * 16; // Example: 16MB buffer
+        let max_buffer_size = 1024 * 1024 * 16; // 16MB buffer
         let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
             size: max_buffer_size as u64,
@@ -1609,6 +1621,54 @@ fn handle_biome_data(world_data: &mut world::WorldData, json_content: &str) {
         biome_data.buildings
     );
 }
+fn handle_shape_data(world_data: &mut world::WorldData, json_content: &str) {
+    let shape_data: ShapeData = serde_json::from_str(json_content).expect("Failed to parse JSON");
+    world_data.add_shape(
+        shape_data.shape_name,
+        shape_data.elements
+    );
+}
+pub fn load_shape_files(world_data_thread: &Arc<Mutex<world::WorldData>>) {
+    let mut world_data = world_data_thread.lock().unwrap();
+    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+    let exe_dir = exe_path.parent().expect("Failed to get executable directory");
+    let models_dir = exe_dir.join("assets/models/shapes");
+    let mut json_files = Vec::new();
+    if models_dir.exists() && models_dir.is_dir() {
+        println!("Found the modded directory for shapes");
+        for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.extension().map_or(false, |ext| ext == "json") {
+                    if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
+                        println!("Found the modded shape file: {}", file_name);
+                        json_files.push(file_name.to_string());
+                    }
+                }
+            }
+        }
+    }
+    json_files.extend(
+        Assets::iter()
+            .filter(|file| file.starts_with("models/shapes/") && file.ends_with(".json"))
+            .map(|file| file.to_string())
+    );
+    json_files.sort();
+    json_files.dedup();
+    for file in json_files {
+        println!("Found JSON file: {}", file);
+        let file_path = exe_dir.join(&file);
+        if file_path.exists() {
+            let mut file_content = String::new();
+            let mut file = fs::File::open(&file_path).expect("Failed to open file");
+            file.read_to_string(&mut file_content).expect("Failed to read file");
+            handle_shape_data(&mut world_data, &file_content);
+        } else if let Some(asset) = Assets::get(&file) {
+            let json_content = std::str::from_utf8(asset.data.as_ref()).expect("Invalid UTF-8");
+            handle_shape_data(&mut world_data, json_content);
+        }
+    }
+}
 pub fn load_biome_files(world_data_thread: &Arc<Mutex<world::WorldData>>) {
     let mut world_data = world_data_thread.lock().unwrap();
     let exe_path = std::env::current_exe().expect("Failed to get current executable path");
@@ -1728,7 +1788,7 @@ pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>) {
     }
     json_files.extend(
         Assets::iter()
-            .filter(|file| file.starts_with("models/") && file.ends_with(".json"))
+            .filter(|file| file.starts_with("models/blocks/") && file.ends_with(".json"))
             .map(|file| file.to_string())
     );
     json_files.sort();

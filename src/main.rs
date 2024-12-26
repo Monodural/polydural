@@ -47,6 +47,9 @@ fn main(){
         println!("loading structure files");
         common::load_structure_files(&world_data_thread);
         println!("loaded structure files");
+        println!("loading shape files");
+        common::load_shape_files(&world_data_thread);
+        println!("loaded shape files");
         println!("loading model files");
         common::load_block_model_files(world_data_thread);
         println!("loaded model files");

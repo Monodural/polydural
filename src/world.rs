@@ -11,6 +11,8 @@ pub struct WorldData {
     pub chunk_update_queue: Vec<usize>,
     pub chunk_queue: HashSet<(i64, i64, i64)>,
     pub created_chunk_queue: HashSet<(i64, i64, i64)>,
+    pub shapes: Vec<(String, Vec<common::Element>)>,
+    pub shape_index: HashMap<String, usize>,
     pub blocks: Vec<(String, Vec<i8>, String)>,
     pub block_index: HashMap<String, usize>,
     pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
@@ -30,6 +32,8 @@ impl WorldData {
             chunk_update_queue: Vec::new(),
             chunk_queue: HashSet::new(),
             created_chunk_queue: HashSet::new(),
+            shapes: Vec::new(),
+            shape_index: HashMap::new(),
             blocks: Vec::new(),
             block_index: HashMap::new(),
             chunks: HashMap::new(),
@@ -47,6 +51,12 @@ impl WorldData {
         self.chunks.insert((x, y, z), chunk_data);
     }
 
+    pub fn add_shape(&mut self, shape_name: String, elements: Vec<common::Element>) {
+        if !self.shape_index.contains_key(&shape_name) {
+            self.shapes.push((shape_name.clone(), elements));
+            self.shape_index.insert(shape_name, self.shapes.len());
+        }
+    }
     pub fn add_block(&mut self, block_name: String, sides: Vec<i8>, owner: String) {
         if !self.block_index.contains_key(&block_name) {
             self.blocks.push((block_name.clone(), sides, owner));
