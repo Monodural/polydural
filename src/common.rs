@@ -48,6 +48,8 @@ struct ModelData {
     block_name: String,
     creator: String,
     textures: Textures,
+    shape: String,
+    sides: bool
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -1763,7 +1765,9 @@ fn handle_model_data(world_data: &mut world::WorldData, json_content: &str) {
             model_data.textures.front(),
             model_data.textures.back(),
         ],
-        model_data.creator
+        model_data.creator,
+        model_data.shape,
+        model_data.sides
     );
 }
 pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>) {

@@ -3,5 +3,7 @@
     "creator": "polydural",
     "textures": {
         "all": 43
-    }
+    },
+    "shape": "default",
+    "sides": false
 }

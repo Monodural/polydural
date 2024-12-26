@@ -5,5 +5,7 @@
         "top": 40,
         "sides": 48,
         "bottom": 43
-    }
+    },
+    "shape": "default",
+    "sides": false
 }

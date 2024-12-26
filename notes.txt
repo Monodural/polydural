@@ -1,0 +1,2 @@
+idea's:
+- add a really long estimated wait time somewhere and load it much faster after fooling the player >:)

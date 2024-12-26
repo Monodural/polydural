@@ -8,5 +8,7 @@
         "left": 3,
         "right": 27,
         "bottom": 27
-    }
+    },
+    "shape": "default",
+    "sides": false
 }
