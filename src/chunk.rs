@@ -69,11 +69,16 @@ pub fn set_block(chunk: Vec<i8>, x: i8, y: i8, z: i8, block_type: i8) -> Vec<i8>
     return new_chunk;
 }
 
-pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &mut world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> (Vec<[i64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
-    let mut vertices: Vec<[i64; 3]> = Vec::new();
+pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &mut world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> (Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
+    let mut vertices: Vec<[f64; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
     let mut uvs: Vec<[f32; 2]> = Vec::new();
+
+    /*let mut vertices_transparent: Vec<[f64; 3]> = Vec::new();
+    let mut normals_transparent: Vec<[i8; 3]> = Vec::new();
+    let mut colors_transparent: Vec<[f32; 3]> = Vec::new();
+    let mut uvs_transparent: Vec<[f32; 2]> = Vec::new();*/
 
     let atlas_width = 8.0;
     let atlas_height = 8.0;
@@ -86,342 +91,350 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
                 let block_id = get_block(&chunk, x, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z);
                 if block_id == 0 { continue; }
 
-                let mut directions = vec![
-                    false, false, false, false, false, false,
-                    false, false, false, false, false, false,
-                    false, false, false, false, false, false
-                ];
+                let shape_index = world_data.shape_index[&world_data.blocks[(block_id - 1) as usize].3];
+                let elements = &world_data.shapes[shape_index - 1].1;
 
-                if get_block(&chunk, x + 1, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions[0] = true;
-                }
+                for element in elements {
+                    let vertices_from = element.from;
+                    let vertices_to = element.to;
 
-                if get_block(&chunk, x - 1, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions[1] = true;
-                }
+                    let mut directions = vec![
+                        false, false, false, false, false, false,
+                        false, false, false, false, false, false,
+                        false, false, false, false, false, false
+                    ];
 
-                if get_block(&chunk, x, y + 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions[2] = true;
-                }
-
-                if get_block(&chunk, x, y - 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions[3] = true;
-                }
-
-                if get_block(&chunk, x, y, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions[4] = true;
-                }
-
-                if get_block(&chunk, x, y, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) != 0 {
-                    directions[5] = true;
-                }
-
-                if get_block(&chunk, x + 1, y + 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right top (6)
-                    directions[6] = true;
-                }
-                if get_block(&chunk, x + 1, y - 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right bottom (7)
-                    directions[7] = true;
-                }
-                if get_block(&chunk, x - 1, y + 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left top (8)
-                    directions[8] = true;
-                }
-                if get_block(&chunk, x - 1, y - 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left bottom (9)
-                    directions[9] = true;
-                }
-
-                if get_block(&chunk, x, y + 1, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front top (10)
-                    directions[10] = true;
-                }
-                if get_block(&chunk, x, y - 1, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front bottom (11)
-                    directions[11] = true;
-                }
-                if get_block(&chunk, x, y + 1, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back top (12)
-                    directions[12] = true;
-                }
-                if get_block(&chunk, x, y - 1, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back bottom (13)
-                    directions[13] = true;
-                }
-
-                if get_block(&chunk, x + 1, y, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right front (14)
-                    directions[14] = true;
-                }
-                if get_block(&chunk, x + 1, y, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right back (15)
-                    directions[15] = true;
-                }
-                if get_block(&chunk, x - 1, y , z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left front (16)
-                    directions[16] = true;
-                }
-                if get_block(&chunk, x - 1, y, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left back (17)
-                    directions[17] = true;
-                }
-
-                let block_position_x = x as i64;
-                let block_position_y = y as i64;
-                let block_position_z = z as i64;
-
-                if !directions[0] {
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-
-                    let uv_x = (world_data.blocks[(block_id - 1) as usize].1[0] as f32 % atlas_width).floor();
-                    let uv_y = (world_data.blocks[(block_id - 1) as usize].1[0] as f32 / atlas_height).floor();
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-
-                    normals.push([1, 0, 0]);
-                    normals.push([1, 0, 0]);
-                    normals.push([1, 0, 0]);
-                    normals.push([1, 0, 0]);
-                    normals.push([1, 0, 0]);
-                    normals.push([1, 0, 0]);
-
-                    if !directions[7] {
-                        colors.push([1.0, 1.0, 1.0]);
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                        colors.push([0.5, 0.5, 0.5]);
+                    if get_block_transparent(&chunk, x + 1, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) == false {
+                        directions[0] = true;
                     }
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    if !directions[7] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                    }
-                    colors.push([1.0, 1.0, 1.0]);
-                }
-                if !directions[1] {
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
 
-                    let uv_x = (world_data.blocks[(block_id - 1) as usize].1[1] as f32 % atlas_width).floor();
-                    let uv_y = (world_data.blocks[(block_id - 1) as usize].1[1] as f32 / atlas_height).floor();
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    if get_block_transparent(&chunk, x - 1, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) == false {
+                        directions[1] = true;
+                    }
 
-                    normals.push([-1, 0, 0]);
-                    normals.push([-1, 0, 0]);
-                    normals.push([-1, 0, 0]);
-                    normals.push([-1, 0, 0]);
-                    normals.push([-1, 0, 0]);
-                    normals.push([-1, 0, 0]);
+                    if get_block_transparent(&chunk, x, y + 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) == false {
+                        directions[2] = true;
+                    }
 
-                    if !directions[9] {
-                        colors.push([1.0, 1.0, 1.0]);
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                        colors.push([0.5, 0.5, 0.5]);
+                    if get_block_transparent(&chunk, x, y - 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) == false {
+                        directions[3] = true;
                     }
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    if !directions[9] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                    }
-                    colors.push([1.0, 1.0, 1.0]);
-                }
-                if !directions[2] {
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
 
-                    let uv_x = (world_data.blocks[(block_id - 1) as usize].1[2] as f32 % atlas_width).floor();
-                    let uv_y = (world_data.blocks[(block_id - 1) as usize].1[2] as f32 / atlas_height).floor();
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    if get_block_transparent(&chunk, x, y, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) == false {
+                        directions[4] = true;
+                    }
 
-                    normals.push([0, 1, 0]);
-                    normals.push([0, 1, 0]);
-                    normals.push([0, 1, 0]);
-                    normals.push([0, 1, 0]);
-                    normals.push([0, 1, 0]);
-                    normals.push([0, 1, 0]);
+                    if get_block_transparent(&chunk, x, y, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) == false {
+                        directions[5] = true;
+                    }
 
-                    if !directions[8] && ! directions[10] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
+                    if get_block(&chunk, x + 1, y + 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right top (6)
+                        directions[6] = true;
                     }
-                    if !directions[6] && ! directions[10] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
+                    if get_block(&chunk, x + 1, y - 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right bottom (7)
+                        directions[7] = true;
                     }
-                    if !directions[8] && ! directions[12] {
-                        colors.push([1.0, 1.0, 1.0]);
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                        colors.push([0.5, 0.5, 0.5]);
+                    if get_block(&chunk, x - 1, y + 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left top (8)
+                        directions[8] = true;
                     }
-                    if !directions[6] && ! directions[10] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
+                    if get_block(&chunk, x - 1, y - 1, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left bottom (9)
+                        directions[9] = true;
                     }
-                    if !directions[6] && ! directions[12] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                    }
-                }
-                if !directions[3] {
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
 
-                    let uv_x = (world_data.blocks[(block_id - 1) as usize].1[3] as f32 % atlas_width).floor();
-                    let uv_y = (world_data.blocks[(block_id - 1) as usize].1[3] as f32 / atlas_height).floor();
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    if get_block(&chunk, x, y + 1, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front top (10)
+                        directions[10] = true;
+                    }
+                    if get_block(&chunk, x, y - 1, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // front bottom (11)
+                        directions[11] = true;
+                    }
+                    if get_block(&chunk, x, y + 1, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back top (12)
+                        directions[12] = true;
+                    }
+                    if get_block(&chunk, x, y - 1, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // back bottom (13)
+                        directions[13] = true;
+                    }
 
-                    normals.push([0, -1, 0]);
-                    normals.push([0, -1, 0]);
-                    normals.push([0, -1, 0]);
-                    normals.push([0, -1, 0]);
-                    normals.push([0, -1, 0]);
-                    normals.push([0, -1, 0]);
+                    if get_block(&chunk, x + 1, y, z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right front (14)
+                        directions[14] = true;
+                    }
+                    if get_block(&chunk, x + 1, y, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // right back (15)
+                        directions[15] = true;
+                    }
+                    if get_block(&chunk, x - 1, y , z + 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left front (16)
+                        directions[16] = true;
+                    }
+                    if get_block(&chunk, x - 1, y, z - 1, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z) > 0 { // left back (17)
+                        directions[17] = true;
+                    }
 
-                    if !directions[9] && !directions[13] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                    }
-                    if !directions[7] && !directions[13] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                    }
-                    if !directions[9] && !directions[11] {
-                        colors.push([1.0, 1.0, 1.0]);
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                        colors.push([0.5, 0.5, 0.5]);
-                    }
-                    if !directions[7] && !directions[13] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                    }
-                    if !directions[7] && !directions[11] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                    }
-                }
-                if !directions[4] {
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32,  1 + block_position_z * 2 + chunk_position_z * 32]);
+                    let block_position_x = x as f64;
+                    let block_position_y = y as f64;
+                    let block_position_z = z as f64;
 
-                    let uv_x = (world_data.blocks[(block_id - 1) as usize].1[4] as f32 % atlas_width).floor();
-                    let uv_y = (world_data.blocks[(block_id - 1) as usize].1[4] as f32 / atlas_height).floor();
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                    if !directions[0] {
+                        vertices.push([ (1.0 / 16.0 * vertices_to[0]) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([ (1.0 / 16.0 * vertices_to[0]) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([ (1.0 / 16.0 * vertices_to[0]) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([ (1.0 / 16.0 * vertices_to[0]) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([ (1.0 / 16.0 * vertices_to[0]) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([ (1.0 / 16.0 * vertices_to[0]) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
 
-                    normals.push([0, 0, 1]);
-                    normals.push([0, 0, 1]);
-                    normals.push([0, 0, 1]);
-                    normals.push([0, 0, 1]);
-                    normals.push([0, 0, 1]);
-                    normals.push([0, 0, 1]);
+                        let uv_x = (world_data.blocks[(block_id - 1) as usize].1[0] as f32 % atlas_width).floor();
+                        let uv_y = (world_data.blocks[(block_id - 1) as usize].1[0] as f32 / atlas_height).floor();
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
 
-                    if !directions[11] {
+                        normals.push([1, 0, 0]);
+                        normals.push([1, 0, 0]);
+                        normals.push([1, 0, 0]);
+                        normals.push([1, 0, 0]);
+                        normals.push([1, 0, 0]);
+                        normals.push([1, 0, 0]);
+
+                        if !directions[7] {
+                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
                         colors.push([1.0, 1.0, 1.0]);
                         colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                        colors.push([0.5, 0.5, 0.5]);
+                        if !directions[7] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        colors.push([1.0, 1.0, 1.0]);
                     }
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    if !directions[11] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                    }
-                    colors.push([1.0, 1.0, 1.0]);
-                }
-                if !directions[5] {
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([ 1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32, -1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
-                    vertices.push([-1 + block_position_x * 2 + chunk_position_x * 32,  1 + block_position_y * 2 + chunk_position_y * 32, -1 + block_position_z * 2 + chunk_position_z * 32]);
+                    if !directions[1] {
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
 
-                    let uv_x = (world_data.blocks[(block_id - 1) as usize].1[5] as f32 % atlas_width).floor();
-                    let uv_y = (world_data.blocks[(block_id - 1) as usize].1[5] as f32 / atlas_height).floor();
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-                    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        let uv_x = (world_data.blocks[(block_id - 1) as usize].1[1] as f32 % atlas_width).floor();
+                        let uv_y = (world_data.blocks[(block_id - 1) as usize].1[1] as f32 / atlas_height).floor();
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
 
-                    normals.push([0, 0, -1]);
-                    normals.push([0, 0, -1]);
-                    normals.push([0, 0, -1]);
-                    normals.push([0, 0, -1]);
-                    normals.push([0, 0, -1]);
-                    normals.push([0, 0, -1]);
+                        normals.push([-1, 0, 0]);
+                        normals.push([-1, 0, 0]);
+                        normals.push([-1, 0, 0]);
+                        normals.push([-1, 0, 0]);
+                        normals.push([-1, 0, 0]);
+                        normals.push([-1, 0, 0]);
 
-                    if !directions[13] {
+                        if !directions[9] {
+                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
                         colors.push([1.0, 1.0, 1.0]);
                         colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
-                        colors.push([0.5, 0.5, 0.5]);
+                        if !directions[9] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        colors.push([1.0, 1.0, 1.0]);
                     }
-                    colors.push([1.0, 1.0, 1.0]);
-                    colors.push([1.0, 1.0, 1.0]);
-                    if !directions[13] {
-                        colors.push([1.0, 1.0, 1.0]);
-                    } else  {
-                        colors.push([0.5, 0.5, 0.5]);
+                    if !directions[2] {
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+
+                        let uv_x = (world_data.blocks[(block_id - 1) as usize].1[2] as f32 % atlas_width).floor();
+                        let uv_y = (world_data.blocks[(block_id - 1) as usize].1[2] as f32 / atlas_height).floor();
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+
+                        normals.push([0, 1, 0]);
+                        normals.push([0, 1, 0]);
+                        normals.push([0, 1, 0]);
+                        normals.push([0, 1, 0]);
+                        normals.push([0, 1, 0]);
+                        normals.push([0, 1, 0]);
+
+                        if !directions[8] && ! directions[10] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        if !directions[6] && ! directions[10] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        if !directions[8] && ! directions[12] {
+                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        if !directions[6] && ! directions[10] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        if !directions[6] && ! directions[12] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
                     }
-                    colors.push([1.0, 1.0, 1.0]);
+                    if !directions[3] {
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+
+                        let uv_x = (world_data.blocks[(block_id - 1) as usize].1[3] as f32 % atlas_width).floor();
+                        let uv_y = (world_data.blocks[(block_id - 1) as usize].1[3] as f32 / atlas_height).floor();
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+
+                        normals.push([0, -1, 0]);
+                        normals.push([0, -1, 0]);
+                        normals.push([0, -1, 0]);
+                        normals.push([0, -1, 0]);
+                        normals.push([0, -1, 0]);
+                        normals.push([0, -1, 0]);
+
+                        if !directions[9] && !directions[13] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        if !directions[7] && !directions[13] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        if !directions[9] && !directions[11] {
+                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        if !directions[7] && !directions[13] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        if !directions[7] && !directions[11] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                    }
+                    if !directions[4] {
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 * (vertices_to[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+
+                        let uv_x = (world_data.blocks[(block_id - 1) as usize].1[4] as f32 % atlas_width).floor();
+                        let uv_y = (world_data.blocks[(block_id - 1) as usize].1[4] as f32 / atlas_height).floor();
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+
+                        normals.push([0, 0, 1]);
+                        normals.push([0, 0, 1]);
+                        normals.push([0, 0, 1]);
+                        normals.push([0, 0, 1]);
+                        normals.push([0, 0, 1]);
+                        normals.push([0, 0, 1]);
+
+                        if !directions[11] {
+                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        colors.push([1.0, 1.0, 1.0]);
+                        colors.push([1.0, 1.0, 1.0]);
+                        if !directions[11] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        colors.push([1.0, 1.0, 1.0]);
+                    }
+                    if !directions[5] {
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([( 1.0 * (vertices_to[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 * (1.0 - vertices_from[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+                        vertices.push([(-1.0 * (1.0 - vertices_from[0] / 16.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 * (vertices_to[1] / 16.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 * (1.0 - vertices_from[2] / 16.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
+
+                        let uv_x = (world_data.blocks[(block_id - 1) as usize].1[5] as f32 % atlas_width).floor();
+                        let uv_y = (world_data.blocks[(block_id - 1) as usize].1[5] as f32 / atlas_height).floor();
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+                        uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
+
+                        normals.push([0, 0, -1]);
+                        normals.push([0, 0, -1]);
+                        normals.push([0, 0, -1]);
+                        normals.push([0, 0, -1]);
+                        normals.push([0, 0, -1]);
+                        normals.push([0, 0, -1]);
+
+                        if !directions[13] {
+                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        colors.push([1.0, 1.0, 1.0]);
+                        colors.push([1.0, 1.0, 1.0]);
+                        if !directions[13] {
+                            colors.push([1.0, 1.0, 1.0]);
+                        } else  {
+                            colors.push([0.5, 0.5, 0.5]);
+                        }
+                        colors.push([1.0, 1.0, 1.0]);
+                    }
                 }
             }
         }
@@ -430,6 +443,83 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
     return (vertices, normals, colors, uvs);
 }
 
+pub fn get_block_transparent(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, world_data: &world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> bool {
+    if x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15 {
+        if x < 0 && y >= 0 && z >= 0 && y < 16 && z < 16 {
+            let chunk_position_x: i64 = chunk_position_x - 1;
+            let chunk_position_y: i64 = chunk_position_y;
+            let chunk_position_z: i64 = chunk_position_z;
+
+            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+
+            if let Some(chunk) = maybe_chunk {
+                return get_block_transparent(chunk, 15, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        if y < 0 && x >= 0 && z >= 0 && x < 16 && z < 16 {
+            let chunk_position_x: i64 = chunk_position_x;
+            let chunk_position_y: i64 = chunk_position_y - 1;
+            let chunk_position_z: i64 = chunk_position_z;
+
+            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+
+            if let Some(chunk) = maybe_chunk {
+                return get_block_transparent(chunk, x, 15, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        if z < 0 && x >= 0 && y >= 0 && x < 16 && y < 16 {
+            let chunk_position_x: i64 = chunk_position_x;
+            let chunk_position_y: i64 = chunk_position_y;
+            let chunk_position_z: i64 = chunk_position_z - 1;
+
+            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+
+            if let Some(chunk) = maybe_chunk {
+                return get_block_transparent(chunk, x, y, 15, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        if x > 15 && y >= 0 && z >= 0 && y < 16 && z < 16 {
+            let chunk_position_x: i64 = chunk_position_x + 1;
+            let chunk_position_y: i64 = chunk_position_y;
+            let chunk_position_z: i64 = chunk_position_z;
+
+            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+
+            if let Some(chunk) = maybe_chunk {
+                return get_block_transparent(chunk, 0, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        if y > 15 && x >= 0 && z >= 0 && x < 16 && z < 16 {
+            let chunk_position_x: i64 = chunk_position_x;
+            let chunk_position_y: i64 = chunk_position_y + 1;
+            let chunk_position_z: i64 = chunk_position_z;
+
+            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+
+            if let Some(chunk) = maybe_chunk {
+                return get_block_transparent(chunk, x, 0, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        if z > 15 && x >= 0 && y >= 0 && x < 16 && y < 16 {
+            let chunk_position_x: i64 = chunk_position_x;
+            let chunk_position_y: i64 = chunk_position_y;
+            let chunk_position_z: i64 = chunk_position_z + 1;
+
+            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+
+            if let Some(chunk) = maybe_chunk {
+                return get_block_transparent(chunk, x, y, 0, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+            }
+        }
+        return false;
+    }
+    let block_found = chunk[(x * 16 * 16 + y * 16 + z) as usize];
+    if block_found == 0 {
+        return true;
+    }
+    let is_transparent = world_data.blocks[block_found as usize - 1].4;
+    return is_transparent;
+}
 pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, world_data: &world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> i8 {
     if x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15 {
         if x < 0 && y >= 0 && z >= 0 && y < 16 && z < 16 {

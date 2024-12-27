@@ -33,8 +33,8 @@ const IS_PERSPECTIVE:bool = true;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Element {
-    from: [f32; 3],
-    to: [f32; 3],
+    pub from: [f64; 3],
+    pub to: [f64; 3],
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -252,7 +252,7 @@ pub struct Vertex {
 }
 
 #[allow(dead_code)]
-pub fn vertex(p:[i64;3], n:[i8; 3], c:[f32; 3], u:[f32; 2]) -> Vertex {
+pub fn vertex(p:[f64;3], n:[i8; 3], c:[f32; 3], u:[f32; 2]) -> Vertex {
     return Vertex {
         position: [p[0] as f32, p[1] as f32, p[2] as f32, 1.0],
         normal: [n[0] as f32, n[1] as f32, n[2] as f32, 1.0],
@@ -261,7 +261,7 @@ pub fn vertex(p:[i64;3], n:[i8; 3], c:[f32; 3], u:[f32; 2]) -> Vertex {
     }
 }
 
-pub fn create_vertices(vertices: Vec<[i64; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f32; 3]>, uvs: Vec<[f32; 2]>) -> Vec<Vertex> {
+pub fn create_vertices(vertices: Vec<[f64; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f32; 3]>, uvs: Vec<[f32; 2]>) -> Vec<Vertex> {
     let mut data:Vec<Vertex> = Vec::with_capacity(vertices.len());
     for i in 0..vertices.len() {
         data.push(vertex(vertices[i], normals[i], colors[i], uvs[i]));
@@ -791,7 +791,7 @@ impl State {
             label: Some("Uniform Bind Group"),
         });
 
-        let max_buffer_size = 1024 * 1024 * 16; // 16MB buffer
+        let max_buffer_size = 1024 * 1024 * 32; // 32MB buffer
         let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
             size: max_buffer_size as u64,
@@ -1114,7 +1114,7 @@ impl State {
                     _ => {}
                 }
                 let vertex_data = create_vertices(
-                    vec![[-1, 1, 1], [1, 1, 1], [1, -1, 1], [-1, 1, 1], [1, -1, 1], [-1, -1, 1]], 
+                    vec![[-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]], 
                     vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
                     vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
                     uvs
