@@ -8,6 +8,9 @@ include = ["src/**/*", "assets/**/*"]
 [profile.release]
 lto = true
 
+[build-dependencies]
+winres = "0.1"
+
 [dependencies]
 wgpu = "0.17"
 cgmath = "0.18"
