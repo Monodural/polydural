@@ -4,7 +4,7 @@ use cgmath::*;
 use wgpu::{util::DeviceExt, BindGroup};
 use winit::{
     event::*,
-    window::Window,
+    window::{Icon, Window},
     event_loop::{ControlFlow, EventLoop},
 };
 use bytemuck:: {Pod, Zeroable, cast_slice};
@@ -16,6 +16,7 @@ use noise::Perlin;
 use std::fs;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
+use std::io::Cursor;
 //use std::path::Path;
 
 use crate::{containers::Inventory, world::{self, WorldData}};
@@ -1813,11 +1814,24 @@ pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>) {
     }
 }
 
+fn load_icon_from_bytes(data: &[u8]) -> Option<Icon> {
+    let img = image::load(Cursor::new(data), image::ImageFormat::Png).ok()?;
+    let (width, height) = img.dimensions();
+    let rgba = img.into_rgba8().into_raw();
+
+    Icon::from_rgba(rgba, width, height).ok()
+}
+
 pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, inventory: Inventory, light_data: Light, title: &str) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title(title);
+
+    let logo_data = Assets::get("logo.png").expect("Logo file not found in assets");
+    let icon = load_icon_from_bytes(logo_data.data.as_ref());
+
+    window.set_window_icon(icon);
     
     if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
         eprintln!("Failed to lock the cursor: {:?}", err);
