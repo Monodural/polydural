@@ -1,13 +1,12 @@
 {
-    "biome_name": "plain_grasslands",
+    "biome_name": "subtropical_desert",
 
-    "temperature": 17,
-    "moisture": 30,
+    "temperature": 25,
+    "moisture": 10,
     "height": 6,
 
     "block_levels": [
-        [["grass_1", "grass_2"], 0],
-        [["dirt"], 1],
+        [["sand_1", "sand_2"], 0],
         [["stone"], 5]
     ],
     "sea_level": -1,
