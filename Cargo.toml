@@ -1,7 +1,10 @@
 [package]
 name = "polydural"
-version = "0.1.0"
+version = "0.0.4"
 edition = "2021"
+authors = ["Charli van Nood <charli.vannood@gmail.com>"]
+description = "Just your average voxel game where an unknown entity is trying to communicate with you..."
+homepage = "https://polydural.com/"
 
 include = ["src/**/*", "assets/**/*"]
 
@@ -29,3 +32,9 @@ rust-embed = "6.6.0"
 glob = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+[package.metadata.wix]
+product_name = "Polydural"
+manufacturer = "Nyan Games"
+description = "Just your average voxel game where an unknown entity is trying to communicate with you..."
+upgrade_code = "a63b4e33-3169-4167-af56-9f9b467c5d47"
