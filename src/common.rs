@@ -284,23 +284,28 @@ impl Vertex {
 struct State {
     init: transforms::InitWgpu,
     pipeline: wgpu::RenderPipeline,
+    pipeline_transparent: wgpu::RenderPipeline,
     gui_pipeline: wgpu::RenderPipeline,
     text_pipeline: wgpu::RenderPipeline,
     gui_item_block_pipeline: wgpu::RenderPipeline,
     world_vertex_buffer: wgpu::Buffer,
+    world_vertex_buffer_transparent: wgpu::Buffer,
     gui_vertex_buffers: Vec<wgpu::Buffer>,
     text_vertex_buffers: Vec<wgpu::Buffer>,
     gui_item_block_vertex_buffers: Vec<wgpu::Buffer>,
     world_uniform_bind_group: wgpu::BindGroup,
+    world_uniform_bind_group_transparent: wgpu::BindGroup,
     gui_uniform_bind_groups: Vec<wgpu::BindGroup>,
     text_uniform_bind_groups: Vec<wgpu::BindGroup>,
     gui_item_block_uniform_bind_groups: Vec<wgpu::BindGroup>,
     world_vertex_uniform_buffer: wgpu::Buffer,
+    world_vertex_uniform_buffer_transparent: wgpu::Buffer,
     gui_vertex_uniform_buffers: Vec<wgpu::Buffer>,
     text_vertex_uniform_buffers: Vec<wgpu::Buffer>,
     gui_item_block_vertex_uniform_buffers: Vec<wgpu::Buffer>,
     project_mat: Matrix4<f32>,
     world_num_vertices: u32,
+    world_num_vertices_transparent: u32,
     gui_num_vertices: Vec<u32>,
     text_num_vertices: Vec<u32>,
     gui_item_block_num_vertices: Vec<u32>,
@@ -308,8 +313,11 @@ struct State {
     previous_frame_time: std::time::Instant,
     frame: usize,
     vertex_data: Vec<Vec<Vertex>>,
+    vertex_data_transparent: Vec<Vec<Vertex>>,
     model_matrices: Vec<Matrix4<f32>>,
+    model_matrices_transparent: Vec<Matrix4<f32>>,
     normal_matrices: Vec<Matrix4<f32>>,
+    normal_matrices_transparent: Vec<Matrix4<f32>>,
     world_data: Arc<Mutex<world::WorldData>>
 }
 
@@ -917,6 +925,50 @@ impl State {
             multisample: wgpu::MultisampleState::default(),
             multiview: None
         });
+        let pipeline_transparent = init.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: "vs_main",
+                buffers: &[Vertex::desc()],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: init.config.format,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                    }),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState{
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                cull_mode: Some(wgpu::Face::Back),
+                ..Default::default()
+            },
+            //depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth24Plus,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::LessEqual,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None
+        });
         let gui_pipeline = init.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("GUI Render Pipeline"),
             layout: Some(&pipeline_layout),
@@ -1052,6 +1104,8 @@ impl State {
 
         let (world_uniform_bind_group, world_vertex_uniform_buffer, world_vertex_buffer, world_num_vertices) = 
             Self::create_world_buffer(&init, light_data, &uniform_bind_group_layout, &world_data);
+        let (world_uniform_bind_group_transparent, world_vertex_uniform_buffer_transparent, world_vertex_buffer_transparent, world_num_vertices_transparent) = 
+            Self::create_world_buffer(&init, light_data, &uniform_bind_group_layout, &world_data);
 
         let mut gui_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
         let mut gui_num_vertices: Vec<u32> = Vec::new();
@@ -1149,26 +1203,35 @@ impl State {
         let model_matrices = Vec::new();
         let normal_matrices = Vec::new();
 
+        let vertex_data_transparent = Vec::new();
+        let model_matrices_transparent = Vec::new();
+        let normal_matrices_transparent = Vec::new();
+
         Self {
             init,
             pipeline,
+            pipeline_transparent,
             gui_pipeline,
             text_pipeline,
             gui_item_block_pipeline,
             world_vertex_buffer,
+            world_vertex_buffer_transparent,
             gui_vertex_buffers,
             text_vertex_buffers,
             gui_item_block_vertex_buffers,
             world_uniform_bind_group,
+            world_uniform_bind_group_transparent,
             gui_uniform_bind_groups,
             text_uniform_bind_groups,
             gui_item_block_uniform_bind_groups,
             world_vertex_uniform_buffer,
+            world_vertex_uniform_buffer_transparent,
             gui_vertex_uniform_buffers,
             text_vertex_uniform_buffers,
             gui_item_block_vertex_uniform_buffers,
             project_mat,
             world_num_vertices,
+            world_num_vertices_transparent,
             gui_num_vertices,
             text_num_vertices,
             gui_item_block_num_vertices,
@@ -1176,8 +1239,11 @@ impl State {
             previous_frame_time,
             frame,
             vertex_data,
+            vertex_data_transparent,
             model_matrices,
+            model_matrices_transparent,
             normal_matrices,
+            normal_matrices_transparent,
             world_data
         }
     }
@@ -1548,7 +1614,7 @@ impl State {
                     render_pass.draw(0..self.num_vertices[*i], 0..1);
                 }
             }*/
-            render_pass.set_pipeline(&self.pipeline);
+            render_pass.set_pipeline(&self.pipeline_transparent);
             render_pass.set_vertex_buffer(0, self.world_vertex_buffer.slice(..));           
             render_pass.set_bind_group(0, &self.world_uniform_bind_group, &[]);
             render_pass.draw(0..self.world_num_vertices, 0..1);

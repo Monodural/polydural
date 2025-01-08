@@ -55,5 +55,7 @@ fn fs_main(@location(0) v_position: vec4<f32>, @location(1) v_normal: vec4<f32>,
     let specular: f32 = light_uniforms.specular_intensity * pow(max(dot(N, H),0.0), light_uniforms.specular_shininess);
     let ambient:f32 = light_uniforms.ambient_intensity;
     let texture_color: vec4<f32> = textureSample(texture, texture_sampler, v_uv.xy);
-    return light_uniforms.color * texture_color * v_color * (ambient + diffuse)/* + light_uniforms.specular_color * specular*/;
+    let rgb_effect: vec3<f32> = light_uniforms.color.rgb * texture_color.rgb * v_color.rgb * (ambient + diffuse);
+    let alpha:f32 = light_uniforms.color.a * texture_color.a * v_color.a;
+    return vec4(rgb_effect, alpha);
 }
