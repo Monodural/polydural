@@ -17,7 +17,7 @@ impl Inventory {
                 ("stone".to_string(), 9), 
                 ("sand_1".to_string(), 9), 
                 ("sand_2".to_string(), 9), 
-                ("cactus".to_string(), 9)
+                ("oak_glass".to_string(), 9)
             ]
         }
     }
