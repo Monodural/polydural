@@ -1614,10 +1614,15 @@ impl State {
                     render_pass.draw(0..self.num_vertices[*i], 0..1);
                 }
             }*/
-            render_pass.set_pipeline(&self.pipeline_transparent);
+            render_pass.set_pipeline(&self.pipeline);
             render_pass.set_vertex_buffer(0, self.world_vertex_buffer.slice(..));           
             render_pass.set_bind_group(0, &self.world_uniform_bind_group, &[]);
             render_pass.draw(0..self.world_num_vertices, 0..1);
+
+            render_pass.set_pipeline(&self.pipeline_transparent);
+            render_pass.set_vertex_buffer(0, self.world_vertex_buffer_transparent.slice(..));           
+            render_pass.set_bind_group(0, &self.world_uniform_bind_group_transparent, &[]);
+            render_pass.draw(0..self.world_num_vertices_transparent, 0..1);
 
             render_pass.set_pipeline(&self.gui_pipeline);
             for i in 0..self.game_data.gui_objects.len() {
