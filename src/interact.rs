@@ -1,7 +1,7 @@
 use crate::{chunk, common, containers, world};
 use cgmath::*;
 
-pub fn break_block(game_data: &mut common::GameData, world_data: &mut world::WorldData) -> (Vec<common::Vertex>, i32) {
+pub fn break_block(game_data: &mut common::GameData, world_data: &mut world::WorldData) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>, i32) {
     let forward = cgmath::Vector3::new(
         game_data.camera_rotation[1].cos() * game_data.camera_rotation[0].cos(),
         game_data.camera_rotation[0].sin(),
@@ -59,24 +59,31 @@ pub fn break_block(game_data: &mut common::GameData, world_data: &mut world::Wor
 
                 let chunk_data = chunk::set_block(chunk.clone(), local_position_x, local_position_y, local_position_z, world_data.block_index["air"] as i8);
                 world_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
-                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, world_data, 
+                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs, 
+                    chunk_vertices_transparent_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
+                    ) = chunk::render_chunk(&chunk_data, &game_data, world_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z
                 );
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+                let vertex_data_chunk_transparent = common::create_vertices(chunk_vertices_transparent_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent);
         
                 let mut buffer_index: usize = 0;
                 if let Some(chunk_index) = world_data.chunk_buffer_index.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                     buffer_index = *chunk_index as usize;
                 }
+                let mut buffer_index_transparent: usize = 0;
+                if let Some(chunk_index) = world_data.chunk_buffer_index_transparent.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                    buffer_index_transparent = *chunk_index as usize;
+                }
         
-                return (vertex_data_chunk, buffer_index as i32);
+                return (vertex_data_chunk, buffer_index as i32, vertex_data_chunk_transparent, buffer_index_transparent as i32);
             }
         }
     }
-    return (Vec::new(), -1);
+    return (Vec::new(), -1, Vec::new(), -1);
 }
 
-pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::WorldData, slot_selected: i8, inventory: containers::Inventory) -> (Vec<common::Vertex>, i32) {
+pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::WorldData, slot_selected: i8, inventory: containers::Inventory) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>, i32) {
     let forward = cgmath::Vector3::new(
         game_data.camera_rotation[1].cos() * game_data.camera_rotation[0].cos(),
         game_data.camera_rotation[0].sin(),
@@ -137,19 +144,26 @@ pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::Wor
                 let selected_item = &inventory.hotbar_slots[slot_selected as usize].0;
                 let chunk_data = chunk::set_block(chunk.clone(), x, y, z, world_data.block_index[selected_item] as i8);
                 world_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
-                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs) = chunk::render_chunk(&chunk_data, &game_data, world_data, 
+                let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
+                    chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
+                    ) = chunk::render_chunk(&chunk_data, &game_data, world_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z
                 );
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
+                let vertex_data_chunk_transparent = common::create_vertices(chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent);
         
                 let mut buffer_index: usize = 0;
                 if let Some(chunk_index) = world_data.chunk_buffer_index.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                     buffer_index = *chunk_index as usize;
                 }
+                let mut buffer_index_transparent: usize = 0;
+                if let Some(chunk_index) = world_data.chunk_buffer_index_transparent.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+                    buffer_index_transparent = *chunk_index as usize;
+                }
         
-                return (vertex_data_chunk, buffer_index as i32);
+                return (vertex_data_chunk, buffer_index as i32, vertex_data_chunk_transparent, buffer_index_transparent as i32);
             }
         }
     }
-    return (Vec::new(), -1);
+    return (Vec::new(), -1, Vec::new(), -1);
 }
