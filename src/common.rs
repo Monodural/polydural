@@ -803,7 +803,7 @@ impl State {
             label: Some("Uniform Bind Group"),
         });
 
-        let max_buffer_size = 1024 * 1024 * 32; // 32MB buffer
+        let max_buffer_size = 1024 * 1024 * 256; // 256MB buffer
         let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
             size: max_buffer_size as u64,

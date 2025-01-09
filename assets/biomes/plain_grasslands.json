@@ -13,7 +13,7 @@
     "sea_level": -1,
 
     "trees": [
-        ["oak_tree_1", 0.01]
+        ["oak_tree_1", 0.001]
     ],
     "folliage": [],
     "buildings": []

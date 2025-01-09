@@ -16,8 +16,8 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                 let position_y = (y + 16 * chunk_position_y) as f32;
                 let position_z = (z + 16 * chunk_position_z) as f32;
 
-                let temperature = randomness_functions.noise.get([position_x as f64 / 200.0, position_z as f64 / 200.0]) as f32 * 70.0 - 20.0;
-                let moisture = randomness_functions.noise.get([position_x as f64 / 200.0, position_z as f64 / 200.0]) as f32 * 100.0;
+                let temperature = randomness_functions.noise.get([position_x as f64 / 1000.0, position_z as f64 / 1000.0]) as f32 * 70.0 - 20.0;
+                let moisture = randomness_functions.noise.get([position_x as f64 / 1000.0, position_z as f64 / 1000.0]) as f32 * 100.0;
 
                 let mut closest = (10000.0, &"".to_string());
                 let biomes = &world_data.biomes;
@@ -31,7 +31,8 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                     }
                 }
 
-                let block_layers = &world_data.biomes[closest.1];
+                let block_layers = &world_data.biomes[closest.1].3;
+                let trees = &world_data.biomes[closest.1].5;
 
                 let terrain_max_height: f32 = ((
                     (16.0 + randomness_functions.noise.get([position_x as f64 / 200.0, position_z as f64 / 200.0]) as f32 * 64.0) +
@@ -44,8 +45,8 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                 if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() > 10.0 && 
                     randomness_functions.noise.get([position_x as f64 / 12.5, position_y as f64 / 12.5, position_z as f64 / 12.5]) < 0.8 {
                     let mut found_layer = false;
-                    for layer_ in 0..block_layers.3.len() {
-                        let layer = &block_layers.3[block_layers.3.len() - layer_ - 1];
+                    for layer_ in 0..block_layers.len() {
+                        let layer = &block_layers[block_layers.len() - layer_ - 1];
                         if found_layer { continue; }
                         if position_y <= terrain_max_height - layer.1 as f32 {
                             let mut block_index = 0;
@@ -57,9 +58,11 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                         }
                     }
                     if position_y == (terrain_max_height + 1.0).floor() {
+                        let tree_chosen = rng.gen_range(0..trees.len());
+                        let tree = &trees[tree_chosen];
                         let folliage_number: f32 = rng.gen();
-                        if folliage_number < 0.001 {
-                            for block in &world_data.structures["oak_tree_1"] {
+                        if folliage_number < tree.1 {
+                            for block in &world_data.structures[&tree.0] {
                                 let block_position_x = block.position[0] as i64 + x;
                                 let block_position_y = block.position[1] as i64 + y;
                                 let block_position_z = block.position[2] as i64 + z;

@@ -1,0 +1,8 @@
+{
+    "structure_name": "cactus_1",
+    "blocks": [
+        {"position":[0,0,0],"block":"cactus"},
+        {"position":[0,1,0],"block":"cactus"},
+        {"position":[0,2,0],"block":"cactus"}
+    ]
+}

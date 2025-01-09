@@ -1,0 +1,9 @@
+{
+    "block_name": "snow",
+    "creator": "polydural",
+    "textures": {
+        "all": 33
+    },
+    "shape": "default",
+    "sides": false
+}

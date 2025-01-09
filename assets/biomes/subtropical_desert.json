@@ -6,13 +6,14 @@
     "height": 6,
 
     "block_levels": [
-        [["sand_1", "sand_2"], 0],
+        [["sand_1", "sand_2", "sand_1", "sand_1", "sand_1"], 0],
         [["stone"], 5]
     ],
     "sea_level": -1,
 
     "trees": [
-        ["oak_tree_1", 0.01]
+        ["cactus_1", 0.01],
+        ["cactus_2", 0.005]
     ],
     "folliage": [],
     "buildings": []
