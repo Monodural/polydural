@@ -10,5 +10,6 @@
         "bottom": 27
     },
     "shape": "default",
-    "sides": false
+    "sides": false,
+    "transparent": false
 }

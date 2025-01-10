@@ -5,5 +5,6 @@
         "all": 5
     },
     "shape": "leaves",
-    "sides": true
+    "sides": true,
+    "transparent": true
 }

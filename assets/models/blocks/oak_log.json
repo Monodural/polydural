@@ -7,5 +7,6 @@
         "bottom": 47
     },
     "shape": "default",
-    "sides": false
+    "sides": false,
+    "transparent": false
 }

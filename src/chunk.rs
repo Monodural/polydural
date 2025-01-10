@@ -120,7 +120,7 @@ pub fn render_chunk(chunk: &Vec<i8>, game_data: &common::GameData, world_data: &
 
                 let shape_index = world_data.shape_index[&world_data.blocks[(block_id - 1) as usize].3];
                 let elements = &world_data.shapes[shape_index - 1].1;
-                let is_transparent = &world_data.blocks[(block_id - 1) as usize].4;
+                let is_transparent = &world_data.blocks[(block_id - 1) as usize].5;
 
                 if !is_transparent {
                     for element in elements {

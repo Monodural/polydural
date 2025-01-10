@@ -5,5 +5,6 @@
         "all": 15
     },
     "shape": "default",
-    "sides": true
+    "sides": true,
+    "transparent": true
 }
