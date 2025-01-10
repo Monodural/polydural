@@ -285,6 +285,10 @@ impl Vertex {
     }
 }
 
+fn squared_distance(a: &[f32; 4], b: &[f32; 4]) -> f32 {
+    (a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)
+}
+
 struct State {
     init: transforms::InitWgpu,
     pipeline: wgpu::RenderPipeline,
@@ -1424,6 +1428,26 @@ impl State {
                 chunk.extend(&self.vertex_data[*i]);
                 chunk_transparent.extend(&self.vertex_data_transparent[*i]);
             }
+            /*
+            the start of object sorting
+
+            chunk_transparent.sort_by(|a, b| {
+                let centroid_a = [
+                    (a.position[0]) / 3.0,
+                    (a.position[1]) / 3.0,
+                    (a.position[2]) / 3.0,
+                    1.0, // Assume w is 1.0
+                ];
+                let centroid_b = [
+                    (b.position[0]) / 3.0,
+                    (b.position[1]) / 3.0,
+                    (b.position[2]) / 3.0,
+                    1.0,
+                ];
+                squared_distance(&centroid_b, &[self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z, 1.0])
+                    .partial_cmp(&squared_distance(&centroid_a, &[self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z, 1.0]))
+                    .unwrap()
+            });*/
             self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
             self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
             self.world_num_vertices = chunk.len() as u32;
