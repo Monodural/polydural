@@ -173,6 +173,8 @@ pub struct GameData {
     pub camera_rotation: Point3<f32>,
     pub camera_acceleration: Point3<f32>,
     pub camera_acceleration_walking: Point3<f32>,
+    pub grounded: bool,
+    pub jumping: bool,
 }
 impl GameData {
     pub fn new() -> Self {
@@ -198,6 +200,8 @@ impl GameData {
             camera_rotation: (0.0, 0.0, 0.0).into(),
             camera_acceleration: (0.0, 0.0, 0.0).into(),
             camera_acceleration_walking: (0.0, 0.0, 0.0).into(),
+            grounded: false,
+            jumping: false
         }
     }
 
@@ -1369,7 +1373,7 @@ impl State {
             -self.game_data.camera_rotation[1].cos(),
         ).normalize();
 
-        self.game_data.camera_acceleration_walking = (0.0, 0.0, 0.0).into();
+        self.game_data.camera_acceleration_walking = (0.0, self.game_data.camera_acceleration_walking[1], 0.0).into();
         if let Some(is_pressed) = keys_down.get("w") {
             if is_pressed == &true {
                 self.game_data.camera_acceleration_walking[0] += frame_time * forward[0];
@@ -1399,12 +1403,13 @@ impl State {
             }
         }
         if let Some(is_pressed) = keys_down.get("space") {
-            if is_pressed == &true {
-                self.game_data.camera_acceleration_walking[1] += frame_time * 1.0;
+            if is_pressed == &true && !self.game_data.jumping && self.game_data.grounded {
+                self.game_data.camera_acceleration_walking[1] = frame_time * 2.0;
+                self.game_data.jumping = true;
             }
         }
 
-        physics::update(&mut self.game_data, &mut self.world_data);
+        physics::update(&mut self.game_data, &mut self.world_data, frame_time);
 
         let chunk_position_x = (self.game_data.camera_position.x / 32.0).floor();
         let chunk_position_y = (self.game_data.camera_position.y / 32.0).floor();

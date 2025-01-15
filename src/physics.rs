@@ -3,28 +3,40 @@ use crate::world::WorldData;
 use crate::common;
 use super::GameData;
 
-pub fn update(game_data: &mut GameData, mut world_data: &mut Arc<Mutex<WorldData>>) {
+pub fn update(game_data: &mut GameData, mut world_data: &mut Arc<Mutex<WorldData>>, frame_time: f32) {
     let block_type = get_block_global(game_data, &mut world_data, 
         game_data.camera_position.x as f32 / 2.0, 
         game_data.camera_position.y as f32 / 2.0 - 2.0, 
         game_data.camera_position.z as f32 / 2.0
     );
-    let grounded = block_type > 0;
+    let grounded = block_type != 0;
+    game_data.grounded = grounded;
 
-    // update the walked direction
-    game_data.camera_position.x += game_data.camera_acceleration_walking.x;
-    game_data.camera_position.z += game_data.camera_acceleration_walking.z;
+    if game_data.camera_acceleration_walking.x != 0.0 || game_data.camera_acceleration_walking.z != 0.0 {
+        let block_type = get_block_global(game_data, &mut world_data, 
+            (game_data.camera_position.x + game_data.camera_acceleration_walking.x * 1.5) as f32 / 2.0, 
+            game_data.camera_position.y as f32 / 2.0 - 1.5, 
+            (game_data.camera_position.z + game_data.camera_acceleration_walking.z * 1.5) as f32 / 2.0
+        );
+        let can_walk = block_type < 1;
+
+        // update the walked direction
+        if can_walk {
+            game_data.camera_position.x += game_data.camera_acceleration_walking.x;
+            game_data.camera_position.z += game_data.camera_acceleration_walking.z;
+        }
+    }
+    if game_data.camera_acceleration_walking.y > 0.0 {
+        game_data.camera_position.y += game_data.camera_acceleration_walking.y;
+        game_data.camera_acceleration_walking.y /= 1.2;
+    }
 
     if !grounded {
         game_data.camera_position.y -= game_data.camera_acceleration.y;
-        game_data.camera_acceleration.y += 0.01;
+        game_data.camera_acceleration.y += 0.01 * frame_time;
     } else {
-        // check if movement is up, else you'll go in the ground
-        if game_data.camera_acceleration_walking.y > 0.0 {
-            game_data.camera_position.y += game_data.camera_acceleration_walking.y;
-        }
-
         game_data.camera_acceleration.y = 0.0;
+        game_data.jumping = false;
 
         // the distance into the block is the float distance from the full block
         let distance_in_block = ((game_data.camera_position.y as f32 / 2.0 - 2.0).floor() - 0.5) - (game_data.camera_position.y as f32 / 2.0 - 2.0) + 1.0;
