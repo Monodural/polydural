@@ -290,9 +290,9 @@ impl Vertex {
     }
 }
 
-fn squared_distance(a: &[f32; 4], b: &[f32; 4]) -> f32 {
+/*fn squared_distance(a: &[f32; 4], b: &[f32; 4]) -> f32 {
     (a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)
-}
+}*/
 
 struct State {
     init: transforms::InitWgpu,

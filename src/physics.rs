@@ -1,22 +1,27 @@
 use std::sync::{Arc, Mutex};
 use crate::world::WorldData;
 use crate::common;
-use crate::world;
 use super::GameData;
 
 pub fn update(game_data: &mut GameData, mut world_data: &mut Arc<Mutex<WorldData>>) {
-    let grounded = false;
-
     let block_type = get_block_global(game_data, &mut world_data, 
-        0 as f32, 
-        0 as f32, 
-        0 as f32
+        game_data.camera_position.x as f32 / 2.0, 
+        game_data.camera_position.y as f32 / 2.0 - 2.0, 
+        game_data.camera_position.z as f32 / 2.0
     );
     println!("block type: {}", block_type);
+
+    let grounded = block_type > 0;
 
     if !grounded {
         game_data.camera_position.y -= game_data.camera_acceleration.y;
         game_data.camera_acceleration.y += 0.01;
+    } else {
+        game_data.camera_acceleration.y = 0.0;
+
+        let distance_in_block = ((game_data.camera_position.y as f32 / 2.0 - 2.0).floor() - 0.5) - (game_data.camera_position.y as f32 / 2.0 - 2.0) + 1.0;
+        game_data.camera_position.y += distance_in_block;
+        println!("distance in block: {}", distance_in_block)
     }
 }
 
