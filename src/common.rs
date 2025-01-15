@@ -309,25 +309,25 @@ struct State {
     gui_item_block_pipeline: wgpu::RenderPipeline,
     world_vertex_buffer: wgpu::Buffer,
     world_vertex_buffer_transparent: wgpu::Buffer,
-    gui_vertex_buffers: Vec<wgpu::Buffer>,
-    text_vertex_buffers: Vec<wgpu::Buffer>,
-    gui_item_block_vertex_buffers: Vec<wgpu::Buffer>,
+    gui_vertex_buffer: wgpu::Buffer,
+    text_vertex_buffer: wgpu::Buffer,
+    gui_item_block_vertex_buffer: wgpu::Buffer,
     world_uniform_bind_group: wgpu::BindGroup,
     world_uniform_bind_group_transparent: wgpu::BindGroup,
-    gui_uniform_bind_groups: Vec<wgpu::BindGroup>,
-    text_uniform_bind_groups: Vec<wgpu::BindGroup>,
-    gui_item_block_uniform_bind_groups: Vec<wgpu::BindGroup>,
+    gui_uniform_bind_group: wgpu::BindGroup,
+    text_uniform_bind_group: wgpu::BindGroup,
+    gui_item_block_uniform_bind_group: wgpu::BindGroup,
     world_vertex_uniform_buffer: wgpu::Buffer,
     world_vertex_uniform_buffer_transparent: wgpu::Buffer,
-    gui_vertex_uniform_buffers: Vec<wgpu::Buffer>,
-    text_vertex_uniform_buffers: Vec<wgpu::Buffer>,
-    gui_item_block_vertex_uniform_buffers: Vec<wgpu::Buffer>,
+    gui_vertex_uniform_buffer: wgpu::Buffer,
+    text_vertex_uniform_buffer: wgpu::Buffer,
+    gui_item_block_vertex_uniform_buffer: wgpu::Buffer,
     project_mat: Matrix4<f32>,
     world_num_vertices: u32,
     world_num_vertices_transparent: u32,
-    gui_num_vertices: Vec<u32>,
-    text_num_vertices: Vec<u32>,
-    gui_item_block_num_vertices: Vec<u32>,
+    gui_num_vertices_: u32,
+    text_num_vertices_: u32,
+    gui_item_block_num_vertices_: u32,
     game_data: GameData,
     previous_frame_time: std::time::Instant,
     frame: usize,
@@ -343,7 +343,7 @@ struct State {
 impl State {
     fn create_object_gui(
         game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout, i: usize) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -453,18 +453,27 @@ impl State {
             label: Some("Uniform Bind Group"),
         });
 
-        let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let max_buffer_size = 1024 * 1024 * 16; // 16MB buffer
+        let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Vertex Buffer"),
+            size: max_buffer_size as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let num_vertices = 0;
+
+        /*let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: cast_slice(&game_data.gui_objects[i]),
             usage: wgpu::BufferUsages::VERTEX,
         });
-        let num_vertices = game_data.gui_objects[i].len() as u32;
+        let num_vertices = game_data.gui_objects[i].len() as u32;*/
 
         return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
     }
     fn create_object_text(
         _game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout, _i: usize, vertex_data: Vec<Vertex>) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -574,18 +583,27 @@ impl State {
             label: Some("Uniform Bind Group"),
         });
 
-        let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let max_buffer_size = 1024 * 1024 * 16; // 16MB buffer
+        let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Vertex Buffer"),
+            size: max_buffer_size as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let num_vertices = 0;
+
+        /*let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: cast_slice(&vertex_data),
             usage: wgpu::BufferUsages::VERTEX,
         });
-        let num_vertices = vertex_data.len() as u32;
+        let num_vertices = vertex_data.len() as u32;*/
 
         return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
     }
     fn create_object_gui_item_block(
         game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout, i: usize) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -695,12 +713,21 @@ impl State {
             label: Some("Uniform Bind Group"),
         });
 
-        let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let max_buffer_size = 1024 * 1024 * 16; // 16MB buffer
+        let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Vertex Buffer"),
+            size: max_buffer_size as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let num_vertices = 0;
+
+        /*let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: cast_slice(&game_data.gui_item_block_objects[i]),
             usage: wgpu::BufferUsages::VERTEX,
         });
-        let num_vertices = game_data.gui_item_block_objects[i].len() as u32;
+        let num_vertices = game_data.gui_item_block_objects[i].len() as u32;*/
 
         return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
     }
@@ -1126,7 +1153,7 @@ impl State {
         let (world_uniform_bind_group_transparent, world_vertex_uniform_buffer_transparent, world_vertex_buffer_transparent, world_num_vertices_transparent) = 
             Self::create_world_buffer(&init, light_data, &uniform_bind_group_layout, &world_data);
 
-        let mut gui_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
+        /*let mut gui_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
         let mut gui_num_vertices: Vec<u32> = Vec::new();
         let mut gui_uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
         let mut gui_vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
@@ -1138,9 +1165,22 @@ impl State {
             gui_num_vertices.push(num_vertices_);
             gui_uniform_bind_groups.push(uniform_bind_group);
             gui_vertex_uniform_buffers.push(vertex_uniform_buffer);
-        }
+        }*/
 
-        let mut text_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
+        let (
+            gui_uniform_bind_group, 
+            gui_vertex_uniform_buffer, 
+            gui_vertex_buffer, 
+            mut gui_num_vertices_
+        ) = Self::create_object_gui(&game_data, &init, light_data, &uniform_bind_group_layout);
+        let mut gui_element: Vec<Vertex> = Vec::new();
+        for i in 0..game_data.gui_objects.len() {
+            gui_element.extend(&game_data.gui_objects[i]);
+        }
+        init.queue.write_buffer(&gui_vertex_buffer, 0, bytemuck::cast_slice(&gui_element));
+        gui_num_vertices_ = gui_element.len() as u32;
+
+        /*let mut text_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
         let mut text_num_vertices: Vec<u32> = Vec::new();
         let mut text_uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
         let mut text_vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
@@ -1199,9 +1239,70 @@ impl State {
                 text_uniform_bind_groups.push(uniform_bind_group);
                 text_vertex_uniform_buffers.push(vertex_uniform_buffer);
             }
-        }
+        }*/
 
-        let mut gui_item_block_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
+        let (
+            text_uniform_bind_group, 
+            text_vertex_uniform_buffer, 
+            text_vertex_buffer, 
+            mut text_num_vertices_
+        ) = Self::create_object_text(&game_data, &init, light_data, &uniform_bind_group_layout);
+        let mut text_characters: Vec<Vertex> = Vec::new();
+        for i in 0..game_data.text.len() {
+            for character in game_data.text[i].chars() {
+                let mut uvs = vec![[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]];
+                match character {
+                    '1' => { uvs = vec![[0.039 + 0.000, 0.242], [0.015 + 0.000, 0.242], [0.015 + 0.000, 0.296], [0.039 + 0.000, 0.242], [0.015 + 0.000, 0.296], [0.039 + 0.000, 0.296]]; }
+                    '2' => { uvs = vec![[0.046 + 0.031, 0.242], [0.015 + 0.031, 0.242], [0.015 + 0.031, 0.296], [0.046 + 0.031, 0.242], [0.015 + 0.031, 0.296], [0.046 + 0.031, 0.296]]; }
+                    '3' => { uvs = vec![[0.046 + 0.070, 0.242], [0.015 + 0.070, 0.242], [0.015 + 0.070, 0.296], [0.046 + 0.070, 0.242], [0.015 + 0.070, 0.296], [0.046 + 0.070, 0.296]]; }
+                    '4' => { uvs = vec![[0.046 + 0.109, 0.242], [0.015 + 0.109, 0.242], [0.015 + 0.109, 0.296], [0.046 + 0.109, 0.242], [0.015 + 0.109, 0.296], [0.046 + 0.109, 0.296]]; }
+                    '5' => { uvs = vec![[0.046 + 0.148, 0.242], [0.015 + 0.148, 0.242], [0.015 + 0.148, 0.296], [0.046 + 0.148, 0.242], [0.015 + 0.148, 0.296], [0.046 + 0.148, 0.296]]; }
+                    '6' => { uvs = vec![[0.046 + 0.188, 0.242], [0.015 + 0.188, 0.242], [0.015 + 0.188, 0.296], [0.046 + 0.188, 0.242], [0.015 + 0.188, 0.296], [0.046 + 0.188, 0.296]]; }
+                    '7' => { uvs = vec![[0.046 + 0.227, 0.242], [0.015 + 0.227, 0.242], [0.015 + 0.227, 0.296], [0.046 + 0.227, 0.242], [0.015 + 0.227, 0.296], [0.046 + 0.227, 0.296]]; }
+                    '8' => { uvs = vec![[0.046 + 0.266, 0.242], [0.015 + 0.266, 0.242], [0.015 + 0.266, 0.296], [0.046 + 0.266, 0.242], [0.015 + 0.266, 0.296], [0.046 + 0.266, 0.296]]; }
+                    '9' => { uvs = vec![[0.046 + 0.305, 0.242], [0.015 + 0.305, 0.242], [0.015 + 0.305, 0.296], [0.046 + 0.305, 0.242], [0.015 + 0.305, 0.296], [0.046 + 0.305, 0.296]]; }
+                    '0' => { uvs = vec![[0.046 + 0.344, 0.242], [0.015 + 0.344, 0.242], [0.015 + 0.344, 0.296], [0.046 + 0.344, 0.242], [0.015 + 0.344, 0.296], [0.046 + 0.344, 0.296]]; }
+                    'a' => { uvs = vec![[0.039 + 0.000, 0.242 + 0.063], [0.008 + 0.000, 0.242 + 0.063], [0.008 + 0.000, 0.296 + 0.063], [0.039 + 0.000, 0.242 + 0.063], [0.008 + 0.000, 0.296 + 0.063], [0.039 + 0.000, 0.296 + 0.063]]; }
+                    'b' => { uvs = vec![[0.039 + 0.039, 0.242 + 0.063], [0.008 + 0.039, 0.242 + 0.063], [0.008 + 0.039, 0.296 + 0.063], [0.039 + 0.039, 0.242 + 0.063], [0.008 + 0.039, 0.296 + 0.063], [0.039 + 0.039, 0.296 + 0.063]]; }
+                    'c' => { uvs = vec![[0.039 + 0.078, 0.242 + 0.063], [0.008 + 0.078, 0.242 + 0.063], [0.008 + 0.078, 0.296 + 0.063], [0.039 + 0.078, 0.242 + 0.063], [0.008 + 0.078, 0.296 + 0.063], [0.039 + 0.078, 0.296 + 0.063]]; }
+                    'd' => { uvs = vec![[0.039 + 0.117, 0.242 + 0.063], [0.008 + 0.117, 0.242 + 0.063], [0.008 + 0.117, 0.296 + 0.063], [0.039 + 0.117, 0.242 + 0.063], [0.008 + 0.117, 0.296 + 0.063], [0.039 + 0.117, 0.296 + 0.063]]; }
+                    'e' => { uvs = vec![[0.039 + 0.156, 0.242 + 0.063], [0.008 + 0.156, 0.242 + 0.063], [0.008 + 0.156, 0.296 + 0.063], [0.039 + 0.156, 0.242 + 0.063], [0.008 + 0.156, 0.296 + 0.063], [0.039 + 0.156, 0.296 + 0.063]]; }
+                    'f' => { uvs = vec![[0.039 + 0.195, 0.242 + 0.063], [0.008 + 0.195, 0.242 + 0.063], [0.008 + 0.195, 0.296 + 0.063], [0.039 + 0.195, 0.242 + 0.063], [0.008 + 0.195, 0.296 + 0.063], [0.039 + 0.195, 0.296 + 0.063]]; }
+                    'g' => { uvs = vec![[0.039 + 0.234, 0.242 + 0.063], [0.008 + 0.234, 0.242 + 0.063], [0.008 + 0.234, 0.296 + 0.063], [0.039 + 0.234, 0.242 + 0.063], [0.008 + 0.234, 0.296 + 0.063], [0.039 + 0.234, 0.296 + 0.063]]; }
+                    'h' => { uvs = vec![[0.039 + 0.273, 0.242 + 0.063], [0.008 + 0.273, 0.242 + 0.063], [0.008 + 0.273, 0.296 + 0.063], [0.039 + 0.273, 0.242 + 0.063], [0.008 + 0.273, 0.296 + 0.063], [0.039 + 0.273, 0.296 + 0.063]]; }
+                    'i' => { uvs = vec![[0.039 + 0.312, 0.242 + 0.063], [0.015 + 0.312, 0.242 + 0.063], [0.015 + 0.312, 0.296 + 0.063], [0.039 + 0.312, 0.242 + 0.063], [0.015 + 0.312, 0.296 + 0.063], [0.039 + 0.312, 0.296 + 0.063]]; }
+                    'j' => { uvs = vec![[0.039 + 0.351, 0.242 + 0.063], [0.008 + 0.351, 0.242 + 0.063], [0.008 + 0.351, 0.296 + 0.063], [0.039 + 0.351, 0.242 + 0.063], [0.008 + 0.351, 0.296 + 0.063], [0.039 + 0.351, 0.296 + 0.063]]; }
+                    'k' => { uvs = vec![[0.039 + 0.000, 0.242 + 0.126], [0.008 + 0.000, 0.242 + 0.126], [0.008 + 0.000, 0.296 + 0.126], [0.039 + 0.000, 0.242 + 0.126], [0.008 + 0.000, 0.296 + 0.126], [0.039 + 0.000, 0.296 + 0.126]]; }
+                    'l' => { uvs = vec![[0.039 + 0.039, 0.242 + 0.126], [0.008 + 0.039, 0.242 + 0.126], [0.008 + 0.039, 0.296 + 0.126], [0.039 + 0.039, 0.242 + 0.126], [0.008 + 0.039, 0.296 + 0.126], [0.039 + 0.039, 0.296 + 0.126]]; }
+                    'm' => { uvs = vec![[0.046 + 0.078, 0.242 + 0.126], [0.008 + 0.078, 0.242 + 0.126], [0.008 + 0.078, 0.296 + 0.126], [0.046 + 0.078, 0.242 + 0.126], [0.008 + 0.078, 0.296 + 0.126], [0.046 + 0.078, 0.296 + 0.126]]; }
+                    'n' => { uvs = vec![[0.039 + 0.156, 0.242 + 0.126], [0.008 + 0.156, 0.242 + 0.126], [0.008 + 0.156, 0.296 + 0.126], [0.039 + 0.156, 0.242 + 0.126], [0.008 + 0.156, 0.296 + 0.126], [0.039 + 0.156, 0.296 + 0.126]]; }
+                    'o' => { uvs = vec![[0.039 + 0.195, 0.242 + 0.126], [0.008 + 0.195, 0.242 + 0.126], [0.008 + 0.195, 0.296 + 0.126], [0.039 + 0.195, 0.242 + 0.126], [0.008 + 0.195, 0.296 + 0.126], [0.039 + 0.195, 0.296 + 0.126]]; }
+                    'p' => { uvs = vec![[0.039 + 0.234, 0.242 + 0.126], [0.008 + 0.234, 0.242 + 0.126], [0.008 + 0.234, 0.296 + 0.126], [0.039 + 0.234, 0.242 + 0.126], [0.008 + 0.234, 0.296 + 0.126], [0.039 + 0.234, 0.296 + 0.126]]; }
+                    'q' => { uvs = vec![[0.039 + 0.273, 0.242 + 0.126], [0.008 + 0.273, 0.242 + 0.126], [0.008 + 0.273, 0.296 + 0.126], [0.039 + 0.273, 0.242 + 0.126], [0.008 + 0.273, 0.296 + 0.126], [0.039 + 0.273, 0.296 + 0.126]]; }
+                    'r' => { uvs = vec![[0.039 + 0.312, 0.242 + 0.126], [0.008 + 0.312, 0.242 + 0.126], [0.008 + 0.312, 0.296 + 0.126], [0.039 + 0.312, 0.242 + 0.126], [0.008 + 0.312, 0.296 + 0.126], [0.039 + 0.312, 0.296 + 0.126]]; }
+                    's' => { uvs = vec![[0.039 + 0.351, 0.242 + 0.126], [0.008 + 0.351, 0.242 + 0.126], [0.008 + 0.351, 0.296 + 0.126], [0.039 + 0.351, 0.242 + 0.126], [0.008 + 0.351, 0.296 + 0.126], [0.039 + 0.351, 0.296 + 0.126]]; }
+                    't' => { uvs = vec![[0.039 + 0.000, 0.242 + 0.189], [0.015 + 0.000, 0.242 + 0.189], [0.015 + 0.000, 0.296 + 0.189], [0.039 + 0.000, 0.242 + 0.189], [0.015 + 0.000, 0.296 + 0.189], [0.039 + 0.000, 0.296 + 0.189]]; }
+                    'u' => { uvs = vec![[0.039 + 0.078, 0.242 + 0.189], [0.008 + 0.078, 0.242 + 0.189], [0.008 + 0.078, 0.296 + 0.189], [0.039 + 0.078, 0.242 + 0.189], [0.008 + 0.078, 0.296 + 0.189], [0.039 + 0.078, 0.296 + 0.189]]; }
+                    'v' => { uvs = vec![[0.046 + 0.156, 0.242 + 0.189], [0.008 + 0.156, 0.242 + 0.189], [0.008 + 0.156, 0.296 + 0.189], [0.046 + 0.156, 0.242 + 0.189], [0.008 + 0.156, 0.296 + 0.189], [0.046 + 0.156, 0.296 + 0.189]]; }
+                    'w' => { uvs = vec![[0.046 + 0.234, 0.242 + 0.189], [0.008 + 0.234, 0.242 + 0.189], [0.008 + 0.234, 0.296 + 0.189], [0.046 + 0.234, 0.242 + 0.189], [0.008 + 0.234, 0.296 + 0.189], [0.046 + 0.234, 0.296 + 0.189]]; }
+                    'x' => { uvs = vec![[0.046 + 0.312, 0.242 + 0.189], [0.008 + 0.312, 0.242 + 0.189], [0.008 + 0.312, 0.296 + 0.189], [0.046 + 0.312, 0.242 + 0.189], [0.008 + 0.312, 0.296 + 0.189], [0.046 + 0.312, 0.296 + 0.189]]; }
+                    'y' => { uvs = vec![[0.046 + 0.000, 0.242 + 0.252], [0.008 + 0.000, 0.242 + 0.252], [0.008 + 0.000, 0.296 + 0.252], [0.046 + 0.000, 0.242 + 0.252], [0.008 + 0.000, 0.296 + 0.252], [0.046 + 0.000, 0.296 + 0.252]]; }
+                    'z' => { uvs = vec![[0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.296 + 0.252]]; }
+                    _ => {}
+                }
+                let vertex_data = create_vertices(
+                    vec![[-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]], 
+                    vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
+                    vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
+                    uvs
+                );
+                text_characters.extend(vertex_data);
+            }
+        }
+        init.queue.write_buffer(&text_vertex_buffer, 0, bytemuck::cast_slice(&text_characters));
+        text_num_vertices_ = text_characters.len() as u32;
+
+        /*let mut gui_item_block_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
         let mut gui_item_block_num_vertices: Vec<u32> = Vec::new();
         let mut gui_item_block_uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
         let mut gui_item_block_vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
@@ -1212,7 +1313,20 @@ impl State {
             gui_item_block_num_vertices.push(num_vertices_);
             gui_item_block_uniform_bind_groups.push(uniform_bind_group);
             gui_item_block_vertex_uniform_buffers.push(vertex_uniform_buffer);
+        }*/
+
+        let (
+            gui_item_block_uniform_bind_group, 
+            gui_item_block_vertex_uniform_buffer, 
+            gui_item_block_vertex_buffer, 
+            mut gui_item_block_num_vertices_
+        ) = Self::create_object_gui_item_block(&game_data, &init, light_data, &uniform_bind_group_layout);
+        let mut gui_item_blocks: Vec<Vertex> = Vec::new();
+        for i in 0..game_data.gui_item_block_objects.len() {
+            gui_item_blocks.extend(&game_data.gui_item_block_objects[i]);
         }
+        init.queue.write_buffer(&gui_item_block_vertex_buffer, 0, bytemuck::cast_slice(&gui_item_blocks));
+        gui_item_block_num_vertices_ = gui_item_blocks.len() as u32;
 
         let previous_frame_time = std::time::Instant::now();
 
@@ -1235,25 +1349,25 @@ impl State {
             gui_item_block_pipeline,
             world_vertex_buffer,
             world_vertex_buffer_transparent,
-            gui_vertex_buffers,
-            text_vertex_buffers,
-            gui_item_block_vertex_buffers,
+            gui_vertex_buffer,
+            text_vertex_buffer,
+            gui_item_block_vertex_buffer,
             world_uniform_bind_group,
             world_uniform_bind_group_transparent,
-            gui_uniform_bind_groups,
-            text_uniform_bind_groups,
-            gui_item_block_uniform_bind_groups,
+            gui_uniform_bind_group,
+            text_uniform_bind_group,
+            gui_item_block_uniform_bind_group,
             world_vertex_uniform_buffer,
             world_vertex_uniform_buffer_transparent,
-            gui_vertex_uniform_buffers,
-            text_vertex_uniform_buffers,
-            gui_item_block_vertex_uniform_buffers,
+            gui_vertex_uniform_buffer,
+            text_vertex_uniform_buffer,
+            gui_item_block_vertex_uniform_buffer,
             project_mat,
             world_num_vertices,
             world_num_vertices_transparent,
-            gui_num_vertices,
-            text_num_vertices,
-            gui_item_block_num_vertices,
+            gui_num_vertices_,
+            text_num_vertices_,
+            gui_item_block_num_vertices_,
             game_data,
             previous_frame_time,
             frame,
@@ -1557,7 +1671,22 @@ impl State {
             [rotation_x, rotation_y, rotation_z], 
             [1.0, 1.0, 1.0]);
 
-        for i in 0..self.game_data.gui_objects.len() {
+        let position_x = gui_offset_normal.x.x + gui_offset_normal.y.x + forward.x + self.game_data.camera_position.x;
+        let position_y = gui_offset_normal.x.y + gui_offset_normal.y.y + forward.y + self.game_data.camera_position.y;
+        let position_z = gui_offset_normal.x.z + gui_offset_normal.y.z + forward.z + self.game_data.camera_position.z;
+        let model_mat = transforms::create_transforms(
+            [position_x, position_y, position_z], 
+            [rotation_x, rotation_y, rotation_z], 
+            [1.0, 1.0, 1.0]);
+        let normal_mat = (model_mat.invert().unwrap()).transpose();
+        let model_ref:&[f32; 16] = model_mat.as_ref();
+        let normal_ref:&[f32; 16] = normal_mat.as_ref();
+
+        self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
+        self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
+        self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
+
+        /*for i in 0..self.game_data.gui_objects.len() {
             let position_x = gui_offset_normal.x.x * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.x * self.game_data.gui_positions[i].1 + forward.x + self.game_data.camera_position.x;
             let position_y = gui_offset_normal.x.y * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.y * self.game_data.gui_positions[i].1 + forward.y + self.game_data.camera_position.y;
             let position_z = gui_offset_normal.x.z * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.z * self.game_data.gui_positions[i].1 + forward.z + self.game_data.camera_position.z;
@@ -1572,8 +1701,8 @@ impl State {
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
-        }
-        for i in 0..self.game_data.gui_item_block_objects.len() {
+        }*/
+        /*for i in 0..self.game_data.gui_item_block_objects.len() {
             let position_x = gui_offset_normal.x.x * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.x * self.game_data.gui_item_block_positions[i].1 + forward.x + self.game_data.camera_position.x;
             let position_y = gui_offset_normal.x.y * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.y * self.game_data.gui_item_block_positions[i].1 + forward.y + self.game_data.camera_position.y;
             let position_z = gui_offset_normal.x.z * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.z * self.game_data.gui_item_block_positions[i].1 + forward.z + self.game_data.camera_position.z;
@@ -1618,11 +1747,11 @@ impl State {
                 self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 128, bytemuck::cast_slice(normal_ref));
                 j += 1;
             }
-        }
+        }*/
 
-        //let current_time_updated = std::time::Instant::now();
-        //let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-        //println!("update time: {}ms fps: {}", update_time * 1000.0, 1.0 / update_time);
+        let current_time_updated = std::time::Instant::now();
+        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+        println!("update time: {}ms fps: {}", update_time * 1000.0, 1.0 / update_time);
         //println!("fps: {}", 1.0 / update_time);
     }
 
@@ -1702,21 +1831,30 @@ impl State {
             render_pass.draw(0..self.world_num_vertices_transparent, 0..1);
 
             render_pass.set_pipeline(&self.gui_pipeline);
-            for i in 0..self.game_data.gui_objects.len() {
+            render_pass.set_vertex_buffer(0, self.gui_vertex_buffer.slice(..));           
+            render_pass.set_bind_group(0, &self.gui_uniform_bind_group, &[]);
+            render_pass.draw(0..self.gui_num_vertices_, 0..1);
+            /*for i in 0..self.game_data.gui_objects.len() {
                 if !self.game_data.gui_active[i] { continue; }
                 render_pass.set_vertex_buffer(0, self.gui_vertex_buffers[i].slice(..));           
                 render_pass.set_bind_group(0, &self.gui_uniform_bind_groups[i], &[]);
                 render_pass.draw(0..self.gui_num_vertices[i], 0..1);
-            }
+            }*/
             render_pass.set_pipeline(&self.gui_item_block_pipeline);
-            for i in 0..self.game_data.gui_item_block_objects.len() {
+            render_pass.set_vertex_buffer(0, self.gui_item_block_vertex_buffer.slice(..));           
+            render_pass.set_bind_group(0, &self.gui_item_block_uniform_bind_group, &[]);
+            render_pass.draw(0..self.gui_item_block_num_vertices_, 0..1);
+            /*for i in 0..self.game_data.gui_item_block_objects.len() {
                 if !self.game_data.gui_item_block_active[i] { continue; }
                 render_pass.set_vertex_buffer(0, self.gui_item_block_vertex_buffers[i].slice(..));           
                 render_pass.set_bind_group(0, &self.gui_item_block_uniform_bind_groups[i], &[]);
                 render_pass.draw(0..self.gui_item_block_num_vertices[i], 0..1);
-            }
+            }*/
             render_pass.set_pipeline(&self.text_pipeline);
-            let mut j = 0;
+            render_pass.set_vertex_buffer(0, self.text_vertex_buffer.slice(..));           
+            render_pass.set_bind_group(0, &self.text_uniform_bind_group, &[]);
+            render_pass.draw(0..self.text_num_vertices_, 0..1);
+            /*let mut j = 0;
             for i in 0..self.game_data.text.len() {
                 if !self.game_data.text_active[i] { continue; }
                 for _ in self.game_data.text[i].chars() {
@@ -1725,7 +1863,7 @@ impl State {
                     render_pass.draw(0..self.text_num_vertices[j], 0..1);
                     j += 1;
                 }
-            }
+            }*/
         }
 
         self.init.queue.submit(iter::once(encoder.finish()));
