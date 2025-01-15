@@ -25,6 +25,9 @@ use crate::interact;
 #[path="../src/transforms.rs"]
 mod transforms;
 
+#[path="../src/physics.rs"]
+mod physics;
+
 #[derive(RustEmbed)]
 #[folder = "assets/"]
 struct Assets;
@@ -168,6 +171,7 @@ pub struct GameData {
     pub text: Vec<String>,
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
+    pub camera_acceleration: Point3<f32>,
 }
 impl GameData {
     pub fn new() -> Self {
@@ -191,6 +195,7 @@ impl GameData {
             text: Vec::new(),
             camera_position: (-0.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
+            camera_acceleration: (0.0, 0.0, 0.0).into(),
         }
     }
 
@@ -1390,6 +1395,8 @@ impl State {
                 self.game_data.camera_position[2] -= frame_time * right[2];
             }
         }
+
+        physics::update(&mut self.game_data, &mut self.world_data);
 
         let chunk_position_x = (self.game_data.camera_position.x / 32.0).floor();
         let chunk_position_y = (self.game_data.camera_position.y / 32.0).floor();
