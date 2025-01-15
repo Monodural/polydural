@@ -172,6 +172,7 @@ pub struct GameData {
     pub camera_position: Point3<f32>,
     pub camera_rotation: Point3<f32>,
     pub camera_acceleration: Point3<f32>,
+    pub camera_acceleration_walking: Point3<f32>,
 }
 impl GameData {
     pub fn new() -> Self {
@@ -196,6 +197,7 @@ impl GameData {
             camera_position: (-0.0, 64.0, 0.0).into(),
             camera_rotation: (0.0, 0.0, 0.0).into(),
             camera_acceleration: (0.0, 0.0, 0.0).into(),
+            camera_acceleration_walking: (0.0, 0.0, 0.0).into(),
         }
     }
 
@@ -1367,32 +1369,38 @@ impl State {
             -self.game_data.camera_rotation[1].cos(),
         ).normalize();
 
+        self.game_data.camera_acceleration_walking = (0.0, 0.0, 0.0).into();
         if let Some(is_pressed) = keys_down.get("w") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] += frame_time * forward[0];
-                self.game_data.camera_position[1] += frame_time * forward[1];
-                self.game_data.camera_position[2] += frame_time * forward[2];
+                self.game_data.camera_acceleration_walking[0] += frame_time * forward[0];
+                //self.game_data.camera_acceleration_walking[1] += frame_time * forward[1];
+                self.game_data.camera_acceleration_walking[2] += frame_time * forward[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("s") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] -= frame_time * forward[0];
-                self.game_data.camera_position[1] -= frame_time * forward[1];
-                self.game_data.camera_position[2] -= frame_time * forward[2];
+                self.game_data.camera_acceleration_walking[0] -= frame_time * forward[0];
+                //self.game_data.camera_acceleration_walking[1] -= frame_time * forward[1];
+                self.game_data.camera_acceleration_walking[2] -= frame_time * forward[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("a") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] += frame_time * right[0];
-                self.game_data.camera_position[1] += frame_time * right[1];
-                self.game_data.camera_position[2] += frame_time * right[2];
+                self.game_data.camera_acceleration_walking[0] += frame_time * right[0];
+                //self.game_data.camera_acceleration_walking[1] += frame_time * right[1];
+                self.game_data.camera_acceleration_walking[2] += frame_time * right[2];
             }
         }
         if let Some(is_pressed) = keys_down.get("d") {
             if is_pressed == &true {
-                self.game_data.camera_position[0] -= frame_time * right[0];
-                self.game_data.camera_position[1] -= frame_time * right[1];
-                self.game_data.camera_position[2] -= frame_time * right[2];
+                self.game_data.camera_acceleration_walking[0] -= frame_time * right[0];
+                //self.game_data.camera_acceleration_walking[1] -= frame_time * right[1];
+                self.game_data.camera_acceleration_walking[2] -= frame_time * right[2];
+            }
+        }
+        if let Some(is_pressed) = keys_down.get("space") {
+            if is_pressed == &true {
+                self.game_data.camera_acceleration_walking[1] += frame_time * 1.0;
             }
         }
 

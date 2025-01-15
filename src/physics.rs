@@ -9,19 +9,28 @@ pub fn update(game_data: &mut GameData, mut world_data: &mut Arc<Mutex<WorldData
         game_data.camera_position.y as f32 / 2.0 - 2.0, 
         game_data.camera_position.z as f32 / 2.0
     );
-    println!("block type: {}", block_type);
-
     let grounded = block_type > 0;
+
+    // update the walked direction
+    game_data.camera_position.x += game_data.camera_acceleration_walking.x;
+    game_data.camera_position.z += game_data.camera_acceleration_walking.z;
 
     if !grounded {
         game_data.camera_position.y -= game_data.camera_acceleration.y;
         game_data.camera_acceleration.y += 0.01;
     } else {
+        // check if movement is up, else you'll go in the ground
+        if game_data.camera_acceleration_walking.y > 0.0 {
+            game_data.camera_position.y += game_data.camera_acceleration_walking.y;
+        }
+
         game_data.camera_acceleration.y = 0.0;
 
+        // the distance into the block is the float distance from the full block
         let distance_in_block = ((game_data.camera_position.y as f32 / 2.0 - 2.0).floor() - 0.5) - (game_data.camera_position.y as f32 / 2.0 - 2.0) + 1.0;
-        game_data.camera_position.y += distance_in_block;
-        println!("distance in block: {}", distance_in_block)
+        if distance_in_block > 0.0 {
+            game_data.camera_position.y += distance_in_block;
+        }
     }
 }
 
