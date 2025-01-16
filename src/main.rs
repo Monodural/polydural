@@ -11,6 +11,7 @@ mod world;
 mod chunk;
 mod interact;
 mod containers;
+mod gui;
 
 fn vertex(p:[f64; 3], n: [i8; 3], c: [f32; 3], u: [f32; 2]) -> common::Vertex {
     return common::Vertex {
@@ -146,8 +147,12 @@ fn main(){
                     let chunk_position_x_with_offset = chunk_coordinates.0;
                     let chunk_position_y_with_offset = chunk_coordinates.1;
                     let chunk_position_z_with_offset = chunk_coordinates.2;
+                    let world_data_cloned;
+                    {
+                        world_data_cloned = world_data_backend.lock().unwrap().clone();
+                    }
                     let chunk_data = chunk::generate_chunk(
-                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, game_data_backend.clone(), &randomness_functions_backend, &mut rng, &mut world_data_backend.lock().unwrap()
+                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, game_data_backend.clone(), &randomness_functions_backend, &mut rng, world_data_cloned
                     );
                     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
                         chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent

@@ -2,7 +2,7 @@ use crate::{common::{self, RandomnessFunctions}, world};
 use noise::NoiseFn;
 use rand::Rng;
 
-pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, _game_data: common::GameData, randomness_functions: &RandomnessFunctions, rng: &mut rand::prelude::ThreadRng, world_data: &mut world::WorldData) -> Vec<i8> {
+pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, _game_data: common::GameData, randomness_functions: &RandomnessFunctions, rng: &mut rand::prelude::ThreadRng, world_data: world::WorldData) -> Vec<i8> {
     let mut chunk: Vec<i8> = Vec::new();
 
     for _ in 0..16*16*16 {

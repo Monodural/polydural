@@ -1340,6 +1340,19 @@ impl State {
         let model_matrices_transparent = Vec::new();
         let normal_matrices_transparent = Vec::new();
 
+        let model_mat = transforms::create_transforms([
+            0 as f32, 0 as f32, 0 as f32], 
+            [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+        );
+        let normal_mat = (model_mat.invert().unwrap()).transpose();
+
+        let model_ref:&[f32; 16] = model_mat.as_ref();
+        let normal_ref:&[f32; 16] = normal_mat.as_ref();
+        init.queue.write_buffer(&world_vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
+        init.queue.write_buffer(&world_vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
+        init.queue.write_buffer(&world_vertex_uniform_buffer_transparent, 0, bytemuck::cast_slice(model_ref));
+        init.queue.write_buffer(&world_vertex_uniform_buffer_transparent, 128, bytemuck::cast_slice(normal_ref));
+
         Self {
             init,
             pipeline,
@@ -1562,6 +1575,10 @@ impl State {
                 chunk.extend(&self.vertex_data[*i]);
                 chunk_transparent.extend(&self.vertex_data_transparent[*i]);
             }
+            self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
+            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
+            self.world_num_vertices = chunk.len() as u32;
+            self.world_num_vertices_transparent = chunk_transparent.len() as u32;
             /*
             the start of object sorting
 
@@ -1582,10 +1599,6 @@ impl State {
                     .partial_cmp(&squared_distance(&centroid_a, &[self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z, 1.0]))
                     .unwrap()
             });*/
-            self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
-            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
-            self.world_num_vertices = chunk.len() as u32;
-            self.world_num_vertices_transparent = chunk_transparent.len() as u32;
         }
 
         let world_data_check;
@@ -1632,19 +1645,6 @@ impl State {
                 world_data_set.created_chunk_data.remove(0);
                 world_data_set.created_chunk_data_transparent.remove(0);
                 world_data_set.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
-
-                let model_mat = transforms::create_transforms([
-                    0 as f32, 0 as f32, 0 as f32], 
-                    [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
-                );
-                let normal_mat = (model_mat.invert().unwrap()).transpose();
-
-                let model_ref:&[f32; 16] = model_mat.as_ref();
-                let normal_ref:&[f32; 16] = normal_mat.as_ref();
-                self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
-                self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
-                self.init.queue.write_buffer(&self.world_vertex_uniform_buffer_transparent, 0, bytemuck::cast_slice(model_ref));
-                self.init.queue.write_buffer(&self.world_vertex_uniform_buffer_transparent, 128, bytemuck::cast_slice(normal_ref));
             }
         }
 
@@ -1682,9 +1682,13 @@ impl State {
         let model_ref:&[f32; 16] = model_mat.as_ref();
         let normal_ref:&[f32; 16] = normal_mat.as_ref();
 
-        self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
-        self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
-        self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
+        let mut combined_data = [0u8; 192];
+        combined_data[..64].copy_from_slice(bytemuck::cast_slice(model_ref));
+        combined_data[64..128].copy_from_slice(bytemuck::cast_slice(view_projection_ref));
+        combined_data[128..192].copy_from_slice(bytemuck::cast_slice(normal_ref));
+
+        self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 0, &combined_data);
+
 
         /*for i in 0..self.game_data.gui_objects.len() {
             let position_x = gui_offset_normal.x.x * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.x * self.game_data.gui_positions[i].1 + forward.x + self.game_data.camera_position.x;
