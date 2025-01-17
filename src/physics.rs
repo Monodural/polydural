@@ -9,7 +9,7 @@ pub fn update(game_data: &mut GameData, mut world_data: &mut Arc<Mutex<WorldData
         game_data.camera_position.y as f32 / 2.0 - 2.0, 
         game_data.camera_position.z as f32 / 2.0
     );
-    let grounded = block_type != 0;
+    let grounded = block_type;
     game_data.grounded = grounded;
 
     if game_data.camera_acceleration_walking.x != 0.0 || game_data.camera_acceleration_walking.z != 0.0 {
@@ -18,7 +18,7 @@ pub fn update(game_data: &mut GameData, mut world_data: &mut Arc<Mutex<WorldData
             game_data.camera_position.y as f32 / 2.0 - 1.5, 
             (game_data.camera_position.z + game_data.camera_acceleration_walking.z * 1.5) as f32 / 2.0
         );
-        let can_walk = block_type < 1;
+        let can_walk = !block_type;
 
         // update the walked direction
         if can_walk {
@@ -46,12 +46,13 @@ pub fn update(game_data: &mut GameData, mut world_data: &mut Arc<Mutex<WorldData
     }
 }
 
-fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, mut world_data: &mut Arc<Mutex<WorldData>>, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> i8 {
+fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, mut world_data: &mut Arc<Mutex<WorldData>>, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> bool {
+    let world_data_read;
+    {
+        world_data_read = world_data.lock().unwrap().clone();
+    }
+    
     if x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15 {
-        let world_data_read;
-        {
-            world_data_read = world_data.lock().unwrap().clone();
-        }
         if x < 0 && y >= 0 && z >= 0 && y < 16 && z < 16 {
             let chunk_position_x: i64 = chunk_position_x - 1;
             let chunk_position_y: i64 = chunk_position_y;
@@ -118,11 +119,16 @@ fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameDa
                 return get_block(chunk, x, y, 0, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
-        return -1;
+        return true;
     }
-    return chunk[(x * 16 * 16 + y * 16 + z) as usize];
+    let block_id = chunk[(x * 16 * 16 + y * 16 + z) as usize] as usize;
+    if block_id <= 0 {
+        return false;
+    }
+    let can_collide = world_data_read.blocks[block_id - 1].6;
+    return can_collide;
 }
-fn get_block_global(game_data: &common::GameData, mut world_data: &mut Arc<Mutex<WorldData>>, x: f32, y: f32, z: f32) -> i8 {
+fn get_block_global(game_data: &common::GameData, mut world_data: &mut Arc<Mutex<WorldData>>, x: f32, y: f32, z: f32) -> bool {
     let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
     let chunk_position_y: i64 = ((y + 0.5) / 16.0).floor() as i64;
     let chunk_position_z: i64 = ((z + 0.5) / 16.0).floor() as i64;
@@ -142,6 +148,6 @@ fn get_block_global(game_data: &common::GameData, mut world_data: &mut Arc<Mutex
     if let Some(chunk) = world_data_read.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
         return get_block(chunk, local_position_x, local_position_y, local_position_z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
     } else {
-        return -1;
+        return true;
     }
 }

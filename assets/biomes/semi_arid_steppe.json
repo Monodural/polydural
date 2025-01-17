@@ -1,19 +1,19 @@
 {
-    "biome_name": "plain_grasslands",
+    "biome_name": "semi_arid_steppe",
 
-    "temperature": 17,
-    "moisture": 30,
+    "temperature": 20,
+    "moisture": 20,
     "height": 6,
 
     "block_levels": [
-        [["grass_1", "grass_2"], 0],
+        [["sand_1", "dirt", "dirt", "dirt", "grass_1"], 0],
         [["dirt"], 1],
         [["stone"], 5]
     ],
     "sea_level": -1,
 
     "trees": [
-        ["oak_tree_1", 0.001],
+        ["oak_tree_1", 0.0001],
         ["grass_patch_1", 0.1]
     ],
     "folliage": [

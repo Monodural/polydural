@@ -57,7 +57,8 @@ struct ModelData {
     textures: Textures,
     shape: String,
     sides: bool,
-    transparent: bool
+    transparent: bool,
+    collide: bool
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -1765,9 +1766,9 @@ impl State {
             }
         }*/
 
-        let current_time_updated = std::time::Instant::now();
-        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-        println!("update time: {}ms fps: {}", update_time * 1000.0, 1.0 / update_time);
+        //let current_time_updated = std::time::Instant::now();
+        //let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+        //println!("update time: {}ms fps: {}", update_time * 1000.0, 1.0 / update_time);
         //println!("fps: {}", 1.0 / update_time);
     }
 
@@ -2071,7 +2072,8 @@ fn handle_model_data(world_data: &mut world::WorldData, json_content: &str) {
         model_data.creator,
         model_data.shape,
         model_data.sides,
-        model_data.transparent
+        model_data.transparent,
+        model_data.collide,
     );
 }
 pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>) {
@@ -2273,6 +2275,7 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, invent
                                     slot_selected = slot_selected - y.floor() as i8;
                                     if slot_selected < 0 { slot_selected = 8; }
                                     if slot_selected > 8 { slot_selected = 0; }
+                                    keys_down.insert("number", true);
                                 }
                                 MouseScrollDelta::PixelDelta(_pos) => {}
                             }

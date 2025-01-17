@@ -14,7 +14,7 @@ pub struct WorldData {
     pub created_chunk_queue: HashSet<(i64, i64, i64)>,
     pub shapes: Vec<(String, Vec<common::Element>)>,
     pub shape_index: HashMap<String, usize>,
-    pub blocks: Vec<(String, Vec<i8>, String, String, bool, bool)>,
+    pub blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
     pub block_index: HashMap<String, usize>,
     pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
     pub chunk_buffer_index: HashMap<(i64, i64, i64), i64>,
@@ -63,9 +63,9 @@ impl WorldData {
             self.shape_index.insert(shape_name, self.shapes.len());
         }
     }
-    pub fn add_block(&mut self, block_name: String, sides: Vec<i8>, owner: String, shape: String, render_sides: bool, transparent: bool) {
+    pub fn add_block(&mut self, block_name: String, sides: Vec<i8>, owner: String, shape: String, render_sides: bool, transparent: bool, collide: bool) {
         if !self.block_index.contains_key(&block_name) {
-            self.blocks.push((block_name.clone(), sides, owner, shape, render_sides, transparent));
+            self.blocks.push((block_name.clone(), sides, owner, shape, render_sides, transparent, collide));
             self.block_index.insert(block_name, self.blocks.len());
         }
     }

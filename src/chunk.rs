@@ -71,9 +71,9 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                                 }
                                 chunk[(block_position_x * 16 * 16 + block_position_y * 16 + block_position_z) as usize] = world_data.block_index[&block.block] as i8;
                             }
-                        } else if folliage_number < 0.005 {
+                        }/* else if folliage_number < 0.005 {
                             chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["stone"] as i8;
-                        }
+                        }*/
                     }
                 }
             }

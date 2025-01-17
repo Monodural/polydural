@@ -1,11 +1,11 @@
 {
-    "block_name": "oak_glass",
+    "block_name": "grass_3",
     "creator": "polydural",
     "textures": {
-        "all": 15
+        "all": 24
     },
-    "shape": "default",
+    "shape": "grass",
     "sides": true,
     "transparent": true,
-    "collide": true
+    "collide": false
 }

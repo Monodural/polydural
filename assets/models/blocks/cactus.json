@@ -8,5 +8,6 @@
     },
     "shape": "pillar",
     "sides": true,
-    "transparent": false
+    "transparent": false,
+    "collide": true
 }

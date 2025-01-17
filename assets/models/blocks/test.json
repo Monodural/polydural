@@ -11,5 +11,6 @@
     },
     "shape": "default",
     "sides": false,
-    "transparent": false
+    "transparent": false,
+    "collide": false
 }
