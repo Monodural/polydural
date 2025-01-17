@@ -17,7 +17,7 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                 let position_z = (z + 16 * chunk_position_z) as f32;
 
                 let temperature = randomness_functions.noise.get([position_x as f64 / 1000.0, position_z as f64 / 1000.0]) as f32 * 70.0 - 20.0;
-                let moisture = randomness_functions.noise.get([position_x as f64 / 1000.0, position_z as f64 / 1000.0]) as f32 * 100.0;
+                let moisture = randomness_functions.noise.get([position_x as f64 / 10000.0, position_z as f64 / 10000.0]) as f32 * 100.0;
 
                 let mut closest = (10000.0, &"".to_string());
                 let biomes = &world_data.biomes;

@@ -48,7 +48,8 @@ struct LightUniforms {
 @fragment
 fn fs_main(@location(0) v_position: vec4<f32>, @location(1) v_normal: vec4<f32>, @location(2) v_color: vec4<f32>, @location(3) v_uv: vec4<f32>) ->  @location(0) vec4<f32> {
     let N:vec3<f32> = normalize(v_normal.xyz);
-    let L:vec3<f32> = normalize(frag_uniforms.light_position.xyz - v_position.xyz);
+    //let L:vec3<f32> = normalize(frag_uniforms.light_position.xyz - v_position.xyz);
+    let L:vec3<f32> = normalize(vec3(0.5, 1.0, 0.5));
     let V:vec3<f32> = normalize(frag_uniforms.eye_position.xyz - v_position.xyz);
     let H:vec3<f32> = normalize(L + V);
     let diffuse:f32 = light_uniforms.diffuse_intensity * max(dot(N, L), 0.0);
