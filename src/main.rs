@@ -31,6 +31,10 @@ fn create_vertices(vertices: Vec<[f64; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[
 }
 
 fn main(){
+    let mut modding_allowed = true;
+    if cfg!(target_os = "android") || cfg!(target_os = "ios") {
+        modding_allowed = false;
+    }
     let mut game_data = common::GameData::new();
     let world_data = Arc::new(Mutex::new(world::WorldData::new()));
     let randomness_functions = common::RandomnessFunctions::new();
@@ -43,16 +47,16 @@ fn main(){
         common::load_texture_atlasses(&world_data_thread);
         println!("loaded texture atlasses");
         println!("loading biome files");
-        common::load_biome_files(&world_data_thread);
+        common::load_biome_files(&world_data_thread, modding_allowed);
         println!("loaded biome files");
         println!("loading structure files");
-        common::load_structure_files(&world_data_thread);
+        common::load_structure_files(&world_data_thread, modding_allowed);
         println!("loaded structure files");
         println!("loading shape files");
-        common::load_shape_files(&world_data_thread);
+        common::load_shape_files(&world_data_thread, modding_allowed);
         println!("loaded shape files");
         println!("loading model files");
-        common::load_block_model_files(world_data_thread);
+        common::load_block_model_files(world_data_thread, modding_allowed);
         println!("loaded model files");
     }
 

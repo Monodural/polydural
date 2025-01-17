@@ -17,6 +17,7 @@ use std::fs;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
 use std::io::Cursor;
+use std::path::{Path, PathBuf};
 //use std::path::Path;
 
 use crate::{containers::Inventory, world::{self, WorldData}};
@@ -1934,21 +1935,25 @@ fn handle_shape_data(world_data: &mut world::WorldData, json_content: &str) {
         shape_data.elements
     );
 }
-pub fn load_shape_files(world_data_thread: &Arc<Mutex<world::WorldData>>) {
+pub fn load_shape_files(world_data_thread: &Arc<Mutex<world::WorldData>>, modding_allowed: bool) {
     let mut world_data = world_data_thread.lock().unwrap();
-    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
-    let exe_dir = exe_path.parent().expect("Failed to get executable directory");
-    let models_dir = exe_dir.join("assets/models/shapes");
     let mut json_files = Vec::new();
-    if models_dir.exists() && models_dir.is_dir() {
-        println!("Found the modded directory for shapes");
-        for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().map_or(false, |ext| ext == "json") {
-                    if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
-                        println!("Found the modded shape file: {}", file_name);
-                        json_files.push(file_name.to_string());
+    let mut exe_dir: &Path = Path::new("");
+    if modding_allowed {
+        let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+        let exe_dir = exe_path.parent().expect("Failed to get executable directory");
+        let models_dir = exe_dir.join("assets/models/shapes");
+
+        if models_dir.exists() && models_dir.is_dir() {
+            println!("Found the modded directory for shapes");
+            for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |ext| ext == "json") {
+                        if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
+                            println!("Found the modded shape file: {}", file_name);
+                            json_files.push(file_name.to_string());
+                        }
                     }
                 }
             }
@@ -1975,21 +1980,24 @@ pub fn load_shape_files(world_data_thread: &Arc<Mutex<world::WorldData>>) {
         }
     }
 }
-pub fn load_biome_files(world_data_thread: &Arc<Mutex<world::WorldData>>) {
+pub fn load_biome_files(world_data_thread: &Arc<Mutex<world::WorldData>>, modding_allowed: bool) {
     let mut world_data = world_data_thread.lock().unwrap();
-    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
-    let exe_dir = exe_path.parent().expect("Failed to get executable directory");
-    let models_dir = exe_dir.join("assets/biomes");
     let mut json_files = Vec::new();
-    if models_dir.exists() && models_dir.is_dir() {
-        println!("Found the modded directory for biomes");
-        for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().map_or(false, |ext| ext == "json") {
-                    if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
-                        println!("Found the modded biome file: {}", file_name);
-                        json_files.push(file_name.to_string());
+    let mut exe_dir: PathBuf = PathBuf::new();
+    if modding_allowed {
+        let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+        exe_dir = exe_path.parent().expect("Failed to get executable directory").to_path_buf();
+        let models_dir = exe_dir.join("assets/biomes");
+        if models_dir.exists() && models_dir.is_dir() {
+            println!("Found the modded directory for biomes");
+            for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |ext| ext == "json") {
+                        if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
+                            println!("Found the modded biome file: {}", file_name);
+                            json_files.push(file_name.to_string());
+                        }
                     }
                 }
             }
@@ -2016,21 +2024,25 @@ pub fn load_biome_files(world_data_thread: &Arc<Mutex<world::WorldData>>) {
         }
     }
 }
-pub fn load_structure_files(world_data_thread: &Arc<Mutex<world::WorldData>>) {
+pub fn load_structure_files(world_data_thread: &Arc<Mutex<world::WorldData>>, modding_allowed: bool) {
     let mut world_data = world_data_thread.lock().unwrap();
-    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
-    let exe_dir = exe_path.parent().expect("Failed to get executable directory");
-    let models_dir = exe_dir.join("assets/structures");
     let mut json_files = Vec::new();
-    if models_dir.exists() && models_dir.is_dir() {
-        println!("Found the modded directory for structures");
-        for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().map_or(false, |ext| ext == "json") {
-                    if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
-                        println!("Found the modded structure file: {}", file_name);
-                        json_files.push(file_name.to_string());
+    let mut exe_dir: &Path = Path::new("");
+    if modding_allowed {
+        let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+        let exe_dir = exe_path.parent().expect("Failed to get executable directory");
+        let models_dir = exe_dir.join("assets/structures");
+
+        if models_dir.exists() && models_dir.is_dir() {
+            println!("Found the modded directory for structures");
+            for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |ext| ext == "json") {
+                        if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
+                            println!("Found the modded structure file: {}", file_name);
+                            json_files.push(file_name.to_string());
+                        }
                     }
                 }
             }
@@ -2076,21 +2088,24 @@ fn handle_model_data(world_data: &mut world::WorldData, json_content: &str) {
         model_data.collide,
     );
 }
-pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>) {
-    let mut world_data = world_data_thread.lock().unwrap();
-    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
-    let exe_dir = exe_path.parent().expect("Failed to get executable directory");
-    let models_dir = exe_dir.join("assets/models/blocks");
+pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>, modding_allowed: bool) {
     let mut json_files = Vec::new();
-    if models_dir.exists() && models_dir.is_dir() {
-        println!("Found the modded directory for models");
-        for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().map_or(false, |ext| ext == "json") {
-                    if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
-                        println!("Found the modded model file: {}", file_name);
-                        json_files.push(file_name.to_string());
+    let mut world_data = world_data_thread.lock().unwrap();
+    let mut exe_dir: &Path = Path::new("");
+    if modding_allowed {
+        let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+        let exe_dir = exe_path.parent().expect("Failed to get executable directory");
+        let models_dir = exe_dir.join("assets/models/blocks");
+        if models_dir.exists() && models_dir.is_dir() {
+            println!("Found the modded directory for models");
+            for entry in fs::read_dir(&models_dir).expect("Failed to read models directory") {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |ext| ext == "json") {
+                        if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
+                            println!("Found the modded model file: {}", file_name);
+                            json_files.push(file_name.to_string());
+                        }
                     }
                 }
             }
