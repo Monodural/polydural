@@ -28,6 +28,9 @@ mod transforms;
 #[path="../src/physics.rs"]
 mod physics;
 
+#[path="../src/gui.rs"]
+mod gui;
+
 #[derive(RustEmbed)]
 #[folder = "assets/"]
 struct Assets;
@@ -175,6 +178,7 @@ pub struct GameData {
     pub camera_acceleration_walking: Point3<f32>,
     pub grounded: bool,
     pub jumping: bool,
+    pub gui_updated: bool
 }
 impl GameData {
     pub fn new() -> Self {
@@ -201,7 +205,8 @@ impl GameData {
             camera_acceleration: (0.0, 0.0, 0.0).into(),
             camera_acceleration_walking: (0.0, 0.0, 0.0).into(),
             grounded: false,
-            jumping: false
+            jumping: false,
+            gui_updated: false
         }
     }
 
@@ -1661,19 +1666,26 @@ impl State {
         self.init.queue.write_buffer(&self.world_vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
         self.init.queue.write_buffer(&self.world_vertex_uniform_buffer_transparent, 64, bytemuck::cast_slice(view_projection_ref));
 
-        self.game_data.gui_positions[2] = (0.11 * (slot_selected as f32 - 4.0), -0.6, 0.0);
+        //self.game_data.gui_positions[2] = (0.11 * (slot_selected as f32 - 4.0), -0.6, 0.0);
+        if let Some(is_pressed) = keys_down.get("number") {
+            if is_pressed == &true {
+                gui::update_frame(&mut self.game_data, (-0.11 * (slot_selected as f64 - 4.0), -0.6, 0.0), (0.04, 0.04, 0.04), vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]], 2);
+                let mut gui_element: Vec<Vertex> = Vec::new();
+                for i in 0..self.game_data.gui_objects.len() {
+                    gui_element.extend(&self.game_data.gui_objects[i]);
+                }
+                self.init.queue.write_buffer(&self.gui_vertex_buffer, 0, bytemuck::cast_slice(&gui_element));
+                self.gui_num_vertices_ = gui_element.len() as u32;
+            }
+        }
 
         let rotation_x = -self.game_data.camera_rotation.x;
         let rotation_y = -self.game_data.camera_rotation.y + std::f32::consts::FRAC_PI_2;
         let rotation_z = -self.game_data.camera_rotation.z;
-        let gui_offset_normal: Matrix4<f32> = transforms::create_transforms(
-            [self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z], 
-            [rotation_x, rotation_y, rotation_z], 
-            [1.0, 1.0, 1.0]);
 
-        let position_x = gui_offset_normal.x.x + gui_offset_normal.y.x + forward.x + self.game_data.camera_position.x;
-        let position_y = gui_offset_normal.x.y + gui_offset_normal.y.y + forward.y + self.game_data.camera_position.y;
-        let position_z = gui_offset_normal.x.z + gui_offset_normal.y.z + forward.z + self.game_data.camera_position.z;
+        let position_x = forward.x + self.game_data.camera_position.x;
+        let position_y = forward.y + self.game_data.camera_position.y;
+        let position_z = forward.z + self.game_data.camera_position.z;
         let model_mat = transforms::create_transforms(
             [position_x, position_y, position_z], 
             [rotation_x, rotation_y, rotation_z], 
@@ -2138,6 +2150,7 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, invent
     keys_down.insert("s", false);
     keys_down.insert("d", false);
     keys_down.insert("space", false);
+    keys_down.insert("number", false);
     let mut slot_selected: i8 = 0;
     let mut mouse_movement: Vec<f64> = vec![0.0, 0.0];
     let mut mouse_locked = true;
@@ -2170,15 +2183,15 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, invent
                                         &VirtualKeyCode::Space => { keys_down.insert("space", true); }
                                         &VirtualKeyCode::Right => { keys_down.insert("right", true); }
                                         &VirtualKeyCode::Left => { keys_down.insert("left", true); }
-                                        &VirtualKeyCode::Key1 => { slot_selected = 0; }
-                                        &VirtualKeyCode::Key2 => { slot_selected = 1; }
-                                        &VirtualKeyCode::Key3 => { slot_selected = 2; }
-                                        &VirtualKeyCode::Key4 => { slot_selected = 3; }
-                                        &VirtualKeyCode::Key5 => { slot_selected = 4; }
-                                        &VirtualKeyCode::Key6 => { slot_selected = 5; }
-                                        &VirtualKeyCode::Key7 => { slot_selected = 6; }
-                                        &VirtualKeyCode::Key8 => { slot_selected = 7; }
-                                        &VirtualKeyCode::Key9 => { slot_selected = 8; }
+                                        &VirtualKeyCode::Key1 => { slot_selected = 0; keys_down.insert("number", true); }
+                                        &VirtualKeyCode::Key2 => { slot_selected = 1; keys_down.insert("number", true); }
+                                        &VirtualKeyCode::Key3 => { slot_selected = 2; keys_down.insert("number", true); }
+                                        &VirtualKeyCode::Key4 => { slot_selected = 3; keys_down.insert("number", true); }
+                                        &VirtualKeyCode::Key5 => { slot_selected = 4; keys_down.insert("number", true); }
+                                        &VirtualKeyCode::Key6 => { slot_selected = 5; keys_down.insert("number", true); }
+                                        &VirtualKeyCode::Key7 => { slot_selected = 6; keys_down.insert("number", true); }
+                                        &VirtualKeyCode::Key8 => { slot_selected = 7; keys_down.insert("number", true); }
+                                        &VirtualKeyCode::Key9 => { slot_selected = 8; keys_down.insert("number", true); }
                                         //&VirtualKeyCode::Key0 => { slot_selected = 9; }
                                         &VirtualKeyCode::Escape | &VirtualKeyCode::LWin | &VirtualKeyCode::RWin => {
                                             mouse_locked = false;
