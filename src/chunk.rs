@@ -73,9 +73,28 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                                 }
                                 chunk[(block_position_x * 16 * 16 + block_position_y * 16 + block_position_z) as usize] = world_data.block_index[&block.block] as i8;
                             }
-                        }/* else if folliage_number < 0.005 {
-                            chunk[(x * 16 * 16 + y * 16 + z) as usize] = world_data.block_index["stone"] as i8;
-                        }*/
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for x in 0..16 {
+        for z in 0..16 {
+            let mut light_level = 1.0;
+
+            for y in 0..16 {
+                let actual_y = 15 - y;
+
+                light[(x * 16 * 16 + actual_y * 16 + z) as usize] = light_level;
+
+                if chunk[(x * 16 * 16 + actual_y * 16 + z) as usize] != 0 {
+                    let is_transparent = &world_data.blocks[(chunk[(x * 16 * 16 + actual_y * 16 + z) as usize] - 1) as usize].5;
+                    if *is_transparent && light_level >= 1.0 / 6.0 {
+                        light_level -= 1.0 / 6.0;
+                    } else {
+                        light_level = 0.0;
                     }
                 }
             }
@@ -104,11 +123,6 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
     let mut colors_transparent: Vec<[f32; 3]> = Vec::new();
     let mut uvs_transparent: Vec<[f32; 2]> = Vec::new();
 
-    /*let mut vertices_transparent: Vec<[f64; 3]> = Vec::new();
-    let mut normals_transparent: Vec<[i8; 3]> = Vec::new();
-    let mut colors_transparent: Vec<[f32; 3]> = Vec::new();
-    let mut uvs_transparent: Vec<[f32; 2]> = Vec::new();*/
-
     let atlas_width = 8.0;
     let atlas_height = 8.0;
 
@@ -119,6 +133,8 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
             for z in 0..16 {
                 let block_id = get_block(&chunk, x, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z);
                 if block_id == 0 { continue; }
+
+                let light_level = light_data[(x * 16 * 16 + y * 16 + z) as usize];
 
                 let shape_index = world_data.shape_index[&world_data.blocks[(block_id - 1) as usize].3];
                 let elements = &world_data.shapes[shape_index - 1].1;
@@ -227,20 +243,20 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals.push([1, 0, 0]);
 
                             if !directions[7] {
-                                colors.push([1.0, 1.0, 1.0]);
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors.push([1.0, 1.0, 1.0]);
-                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             if !directions[7] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                         }
                         if !directions[1] {
                             vertices.push([(-1.0 + (vertices_from[0] / 8.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 + (vertices_from[1] / 8.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 + (vertices_from[2] / 8.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
@@ -267,20 +283,20 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals.push([-1, 0, 0]);
 
                             if !directions[9] {
-                                colors.push([1.0, 1.0, 1.0]);
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors.push([1.0, 1.0, 1.0]);
-                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             if !directions[9] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                         }
                         if !directions[2] {
                             vertices.push([(-1.0 + (vertices_from[0] / 8.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 - (2.0 - vertices_to[1] / 8.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 - (2.0 - vertices_to[2] / 8.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
@@ -307,31 +323,31 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals.push([0, 1, 0]);
 
                             if !directions[8] && ! directions[10] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[6] && ! directions[10] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[8] && ! directions[12] {
-                                colors.push([1.0, 1.0, 1.0]);
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[6] && ! directions[10] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[6] && ! directions[12] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                         }
                         if !directions[3] {
@@ -359,31 +375,31 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals.push([0, -1, 0]);
 
                             if !directions[9] && !directions[13] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[7] && !directions[13] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[9] && !directions[11] {
-                                colors.push([1.0, 1.0, 1.0]);
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[7] && !directions[13] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[7] && !directions[11] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                         }
                         if !directions[4] {
@@ -411,20 +427,20 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals.push([0, 0, 1]);
 
                             if !directions[11] {
-                                colors.push([1.0, 1.0, 1.0]);
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors.push([1.0, 1.0, 1.0]);
-                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             if !directions[11] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                         }
                         if !directions[5] {
                             vertices.push([( 1.0 - (2.0 - vertices_to[0] / 8.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 + (vertices_from[1] / 8.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 + (vertices_from[2] / 8.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
@@ -451,20 +467,20 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals.push([0, 0, -1]);
 
                             if !directions[13] {
-                                colors.push([1.0, 1.0, 1.0]);
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors.push([1.0, 1.0, 1.0]);
-                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             if !directions[13] {
-                                colors.push([1.0, 1.0, 1.0]);
+                                colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors.push([0.5, 0.5, 0.5]);
+                                colors.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors.push([1.0, 1.0, 1.0]);
+                            colors.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                         }
                     }
                 } else {
@@ -570,20 +586,20 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals_transparent.push([1, 0, 0]);
 
                             if !directions[7] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors_transparent.push([1.0, 1.0, 1.0]);
-                            colors_transparent.push([1.0, 1.0, 1.0]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             if !directions[7] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors_transparent.push([1.0, 1.0, 1.0]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                         }
                         if !directions[1] {
                             vertices_transparent.push([(-1.0 + (vertices_from[0] / 8.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 + (vertices_from[1] / 8.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 + (vertices_from[2] / 8.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
@@ -610,20 +626,20 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals_transparent.push([-1, 0, 0]);
 
                             if !directions[9] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors_transparent.push([1.0, 1.0, 1.0]);
-                            colors_transparent.push([1.0, 1.0, 1.0]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             if !directions[9] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors_transparent.push([1.0, 1.0, 1.0]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                         }
                         if !directions[2] {
                             vertices_transparent.push([(-1.0 + (vertices_from[0] / 8.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0, (1.0 - (2.0 - vertices_to[1] / 8.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0, (1.0 - (2.0 - vertices_to[2] / 8.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
@@ -650,31 +666,31 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals_transparent.push([0, 1, 0]);
 
                             if !directions[8] && ! directions[10] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[6] && ! directions[10] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[8] && ! directions[12] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[6] && ! directions[10] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[6] && ! directions[12] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                         }
                         if !directions[3] {
@@ -702,31 +718,31 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals_transparent.push([0, -1, 0]);
 
                             if !directions[9] && !directions[13] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[7] && !directions[13] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[9] && !directions[11] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[7] && !directions[13] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                             if !directions[7] && !directions[11] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
                         }
                         if !directions[4] {
@@ -754,20 +770,20 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals_transparent.push([0, 0, 1]);
 
                             if !directions[11] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors_transparent.push([1.0, 1.0, 1.0]);
-                            colors_transparent.push([1.0, 1.0, 1.0]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             if !directions[11] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors_transparent.push([1.0, 1.0, 1.0]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                         }
                         if !directions[5] {
                             vertices_transparent.push([( 1.0 - (2.0 - vertices_to[0] / 8.0)) + block_position_x * 2.0 + chunk_position_x as f64 * 32.0,(-1.0 + (vertices_from[1] / 8.0)) + block_position_y * 2.0 + chunk_position_y as f64 * 32.0,(-1.0 + (vertices_from[2] / 8.0)) + block_position_z * 2.0 + chunk_position_z as f64 * 32.0]);
@@ -794,20 +810,20 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                             normals_transparent.push([0, 0, -1]);
 
                             if !directions[13] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors_transparent.push([1.0, 1.0, 1.0]);
-                            colors_transparent.push([1.0, 1.0, 1.0]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             if !directions[13] {
-                                colors_transparent.push([1.0, 1.0, 1.0]);
+                                colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                             } else  {
-                                colors_transparent.push([0.5, 0.5, 0.5]);
+                                colors_transparent.push([0.5 * light_level, 0.5 * light_level, 0.5 * light_level]);
                             }
-                            colors_transparent.push([1.0, 1.0, 1.0]);
+                            colors_transparent.push([1.0 * light_level, 1.0 * light_level, 1.0 * light_level]);
                         }
                     }
                 }
