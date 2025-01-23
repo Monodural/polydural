@@ -16,7 +16,7 @@ pub struct WorldData {
     pub shape_index: HashMap<String, usize>,
     pub blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
     pub block_index: HashMap<String, usize>,
-    pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
+    pub chunks: HashMap<(i64, i64, i64), (Vec<i8>, Vec<f32>)>,
     pub chunk_buffer_index: HashMap<(i64, i64, i64), i64>,
     pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
     pub updated_chunk_data: Vec<(usize, Vec<common::Vertex>)>,
@@ -53,8 +53,8 @@ impl WorldData {
         }
     }
 
-    pub fn set_chunk(&mut self, x: i64, y: i64, z: i64, chunk_data: Vec<i8>) {
-        self.chunks.insert((x, y, z), chunk_data);
+    pub fn set_chunk(&mut self, x: i64, y: i64, z: i64, chunk_data: Vec<i8>, light_data: Vec<f32>) {
+        self.chunks.insert((x, y, z), (chunk_data, light_data));
     }
 
     pub fn add_shape(&mut self, shape_name: String, elements: Vec<common::Element>) {

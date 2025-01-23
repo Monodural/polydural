@@ -34,7 +34,7 @@ pub fn break_block(game_data: &mut common::GameData, world_data: &mut world::Wor
             if local_position_y < 0 { local_position_y = 16 + local_position_y; }
             if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
-            if let Some(chunk) = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+            if let Some(chunk) = world_data.clone().chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                 let x: i8 = local_position_x;
                 let y: i8 = local_position_y;
                 let z: i8 = local_position_z;
@@ -57,13 +57,13 @@ pub fn break_block(game_data: &mut common::GameData, world_data: &mut world::Wor
                     }
                 }
 
-                let chunk_data = chunk::set_block(chunk.clone(), local_position_x, local_position_y, local_position_z, world_data.block_index["air"] as i8);
-                world_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
+                let chunk_data = chunk::set_block(chunk.0.clone(), local_position_x, local_position_y, local_position_z, world_data.block_index["air"] as i8);
                 let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs, 
                     chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
-                    ) = chunk::render_chunk(&chunk_data, &game_data, world_data, 
+                    ) = chunk::render_chunk(&chunk_data, &chunk.1, &game_data, world_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z
                 );
+                world_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone(), chunk.1.clone());
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
                 let vertex_data_chunk_transparent = common::create_vertices(chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent);
         
@@ -114,7 +114,7 @@ pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::Wor
             if local_position_y < 0 { local_position_y = 16 + local_position_y; }
             if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
-            if let Some(chunk) = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+            if let Some(chunk) = world_data.clone().chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
                 let x: i8 = local_position_x;
                 let y: i8 = local_position_y;
                 let z: i8 = local_position_z;
@@ -138,11 +138,11 @@ pub fn place_block(game_data: &mut common::GameData, world_data: &mut world::Wor
                 }
 
                 let selected_item = &inventory.hotbar_slots[slot_selected as usize].0;
-                let chunk_data = chunk::set_block(chunk.clone(), x, y, z, world_data.block_index[selected_item] as i8);
-                world_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone());
+                let chunk_data = chunk::set_block(chunk.0.clone(), x, y, z, world_data.block_index[selected_item] as i8);
+                world_data.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone(), chunk.1.clone());
                 let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
                     chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
-                    ) = chunk::render_chunk(&chunk_data, &game_data, world_data, 
+                    ) = chunk::render_chunk(&chunk_data, &chunk.1, &game_data, world_data, 
                     chunk_position_x, chunk_position_y, chunk_position_z
                 );
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);

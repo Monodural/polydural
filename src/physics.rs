@@ -61,7 +61,7 @@ fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameDa
             let maybe_chunk = world_data_read.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, 15, y, z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(&chunk.0, 15, y, z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if y < 0 && x >= 0 && z >= 0 && x < 16 && z < 16 {
@@ -72,7 +72,7 @@ fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameDa
             let maybe_chunk = world_data_read.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, 15, z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(&chunk.0, x, 15, z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if z < 0 && x >= 0 && y >= 0 && x < 16 && y < 16 {
@@ -83,7 +83,7 @@ fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameDa
             let maybe_chunk = world_data_read.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, y, 15, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(&chunk.0, x, y, 15, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if x > 15 && y >= 0 && z >= 0 && y < 16 && z < 16 {
@@ -94,7 +94,7 @@ fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameDa
             let maybe_chunk = world_data_read.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, 0, y, z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(&chunk.0, 0, y, z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if y > 15 && x >= 0 && z >= 0 && x < 16 && z < 16 {
@@ -105,7 +105,7 @@ fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameDa
             let maybe_chunk = world_data_read.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, 0, z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(&chunk.0, x, 0, z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if z > 15 && x >= 0 && y >= 0 && x < 16 && y < 16 {
@@ -116,7 +116,7 @@ fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameDa
             let maybe_chunk = world_data_read.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, y, 0, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(&chunk.0, x, y, 0, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         return true;
@@ -146,7 +146,7 @@ fn get_block_global(game_data: &common::GameData, mut world_data: &mut Arc<Mutex
     }
 
     if let Some(chunk) = world_data_read.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
-        return get_block(chunk, local_position_x, local_position_y, local_position_z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+        return get_block(&chunk.0, local_position_x, local_position_y, local_position_z, game_data, &mut world_data, chunk_position_x, chunk_position_y, chunk_position_z);
     } else {
         return true;
     }

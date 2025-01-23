@@ -134,7 +134,7 @@ fn main(){
                     let chunk_data = world_data_read.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
                     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
                         chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
-                        ) = chunk::render_chunk(&chunk_data, &game_data_backend, &mut world_data_read, 
+                        ) = chunk::render_chunk(&chunk_data.0, &chunk_data.1, &game_data_backend, &mut world_data_read, 
                         chunk_position.0, chunk_position.1, chunk_position.2
                     );
                     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
@@ -158,12 +158,12 @@ fn main(){
                     {
                         world_data_cloned = world_data_backend.lock().unwrap().clone();
                     }
-                    let chunk_data = chunk::generate_chunk(
+                    let (chunk_data, light_map) = chunk::generate_chunk(
                         chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, game_data_backend.clone(), &randomness_functions_backend, &mut rng, world_data_cloned
                     );
                     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
                         chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
-                        ) = chunk::render_chunk(&chunk_data, &game_data_backend, &mut world_data_backend.lock().unwrap(), 
+                        ) = chunk::render_chunk(&chunk_data, &light_map, &game_data_backend, &mut world_data_backend.lock().unwrap(), 
                         chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset
                     );
                     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
@@ -177,7 +177,7 @@ fn main(){
                     {
                         let mut world_data_write = world_data_backend.lock().unwrap();
                         let normal_mat = (model_mat.invert().unwrap()).transpose();
-                        world_data_write.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data);
+                        world_data_write.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data, light_map);
                         world_data_write.chunk_queue.remove(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
                         world_data_write.created_chunk_data.push((vertex_data_chunk, chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, model_mat, normal_mat));
                         world_data_write.created_chunk_data_transparent.push((vertex_data_chunk_transparent, chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, model_mat, normal_mat));
