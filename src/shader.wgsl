@@ -56,7 +56,18 @@ fn fs_main(@location(0) v_position: vec4<f32>, @location(1) v_normal: vec4<f32>,
     let specular: f32 = light_uniforms.specular_intensity * pow(max(dot(N, H),0.0), light_uniforms.specular_shininess);
     let ambient:f32 = light_uniforms.ambient_intensity;
     let texture_color: vec4<f32> = textureSample(texture, texture_sampler, v_uv.xy);
+
+    let fog_color: vec3<f32> = vec3(0.2, 0.247, 0.314);
+    let fog_start: f32 = 150.0;
+    let fog_end: f32 = 200.0;
+    let distance: f32 = length(v_position.xyz - frag_uniforms.eye_position.xyz);
+    let fog_factor: f32 = clamp((fog_end - distance) / (fog_end - fog_start), 0.0, 1.0);
+
     let rgb_effect: vec3<f32> = light_uniforms.color.rgb * texture_color.rgb * v_color.rgb * (ambient + diffuse);
     let alpha:f32 = light_uniforms.color.a * texture_color.a * v_color.a;
-    return vec4(rgb_effect, alpha);
+    let final_color: vec4<f32> = vec4(rgb_effect, alpha);
+
+    let blended_color: vec3<f32> = mix(fog_color, final_color.rgb, fog_factor);
+
+    return vec4(blended_color, final_color.a);
 }

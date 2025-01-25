@@ -18,6 +18,7 @@ use std::io::Read;
 use std::sync::{Arc, Mutex};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
+use hound;
 //use std::path::Path;
 
 use crate::{containers::Inventory, world::{self, WorldData}};
@@ -316,6 +317,8 @@ struct State {
     gui_item_block_pipeline: wgpu::RenderPipeline,
     world_vertex_buffer: wgpu::Buffer,
     world_vertex_buffer_transparent: wgpu::Buffer,
+    world_fragment_buffer: wgpu::Buffer,
+    world_fragment_buffer_transparent: wgpu::Buffer,
     gui_vertex_buffer: wgpu::Buffer,
     text_vertex_buffer: wgpu::Buffer,
     gui_item_block_vertex_buffer: wgpu::Buffer,
@@ -740,7 +743,7 @@ impl State {
     }
     fn create_world_buffer(
         init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout, world_data_thread: &Arc<Mutex<world::WorldData>>) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        uniform_bind_group_layout: &wgpu::BindGroupLayout, world_data_thread: &Arc<Mutex<world::WorldData>>) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32, wgpu::Buffer) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -862,7 +865,7 @@ impl State {
         });
         let num_vertices = 0;
 
-        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
+        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices, fragment_uniform_buffer)
     }
     
     async fn new(window: &Window, game_data: GameData, light_data: Light, world_data: Arc<Mutex<WorldData>>) -> Self {        
@@ -871,6 +874,10 @@ impl State {
         let shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+        });
+        let shader_transparent = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shader_transparent.wgsl").into()),
         });
         let gui_shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -982,12 +989,12 @@ impl State {
             label: Some("Render Pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &shader,
+                module: &shader_transparent,
                 entry_point: "vs_main",
                 buffers: &[Vertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
-                module: &shader,
+                module: &shader_transparent,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
                     format: init.config.format,
@@ -1155,9 +1162,9 @@ impl State {
             multiview: None
         });
 
-        let (world_uniform_bind_group, world_vertex_uniform_buffer, world_vertex_buffer, world_num_vertices) = 
+        let (world_uniform_bind_group, world_vertex_uniform_buffer, world_vertex_buffer, world_num_vertices, world_fragment_buffer) = 
             Self::create_world_buffer(&init, light_data, &uniform_bind_group_layout, &world_data);
-        let (world_uniform_bind_group_transparent, world_vertex_uniform_buffer_transparent, world_vertex_buffer_transparent, world_num_vertices_transparent) = 
+        let (world_uniform_bind_group_transparent, world_vertex_uniform_buffer_transparent, world_vertex_buffer_transparent, world_num_vertices_transparent, world_fragment_buffer_transparent) = 
             Self::create_world_buffer(&init, light_data, &uniform_bind_group_layout, &world_data);
 
         /*let mut gui_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
@@ -1369,6 +1376,8 @@ impl State {
             gui_item_block_pipeline,
             world_vertex_buffer,
             world_vertex_buffer_transparent,
+            world_fragment_buffer,
+            world_fragment_buffer_transparent,
             gui_vertex_buffer,
             text_vertex_buffer,
             gui_item_block_vertex_buffer,
@@ -1423,8 +1432,8 @@ impl State {
             let vertex_data_chunk_transparent: Vec<Vertex>;
             let buffer_index: i32;
             {
-                let mut world_data = self.world_data.lock().unwrap();
-                (vertex_data_chunk, buffer_index, vertex_data_chunk_transparent) = interact::break_block(&mut self.game_data, &mut world_data);
+                //let mut world_data = self.world_data.lock().unwrap().clone();
+                (vertex_data_chunk, buffer_index, vertex_data_chunk_transparent) = interact::break_block(&mut self.game_data, &self.world_data);
             }
             if buffer_index != -1 {
                 self.vertex_data[buffer_index as usize] = vertex_data_chunk;
@@ -1450,8 +1459,8 @@ impl State {
             let vertex_data_chunk_transparent: Vec<Vertex>;
             let buffer_index: i32;
             {
-                let mut world_data = self.world_data.lock().unwrap();
-                (vertex_data_chunk, buffer_index, vertex_data_chunk_transparent) = interact::place_block(&mut self.game_data, &mut world_data, slot_selected, inventory);
+                //let mut world_data = self.world_data.lock().unwrap().clone();
+                (vertex_data_chunk, buffer_index, vertex_data_chunk_transparent) = interact::place_block(&mut self.game_data, &self.world_data, slot_selected, inventory);
             }
             if buffer_index != -1 {
                 self.vertex_data[buffer_index as usize] = vertex_data_chunk;
@@ -1492,6 +1501,7 @@ impl State {
             }
         }
 
+        //println!("{}", frame_time);
         self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * (frame_time * 0.006);
         self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * (frame_time * 0.006);
         self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.1, std::f32::consts::FRAC_PI_2 / 1.1);
@@ -1543,7 +1553,7 @@ impl State {
             }
         }
 
-        physics::update(&mut self.game_data, &mut self.world_data, frame_time);
+        physics::update(&mut self.game_data, &self.world_data, frame_time);
 
         let chunk_position_x = (self.game_data.camera_position.x / 32.0).floor();
         let chunk_position_y = (self.game_data.camera_position.y / 32.0).floor();
@@ -1566,15 +1576,22 @@ impl State {
                             let chunk_index = *chunk_index as usize;
                             self.game_data.active[chunk_index] = true;
                             world_data.active_chunks.push(chunk_index);
+
+                            /*if world_data.created_chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
+                                world_data.created_chunk_queue.remove(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+                            }*/
                         } else {
                             if !world_data.chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) && 
                                 !world_data.created_chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
+                                //println!("chunk queue new: {}", world_data.chunk_queue.len());
                                 world_data.chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
                             }
                         }
                     }
                 }
             }
+
+            //println!("{}", world_data.chunks.len());
 
             let mut chunk: Vec<Vertex> = Vec::new();
             let mut chunk_transparent: Vec<Vertex> = Vec::new();
@@ -1586,26 +1603,10 @@ impl State {
             self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
             self.world_num_vertices = chunk.len() as u32;
             self.world_num_vertices_transparent = chunk_transparent.len() as u32;
-            /*
-            the start of object sorting
 
-            chunk_transparent.sort_by(|a, b| {
-                let centroid_a = [
-                    (a.position[0]) / 3.0,
-                    (a.position[1]) / 3.0,
-                    (a.position[2]) / 3.0,
-                    1.0, // Assume w is 1.0
-                ];
-                let centroid_b = [
-                    (b.position[0]) / 3.0,
-                    (b.position[1]) / 3.0,
-                    (b.position[2]) / 3.0,
-                    1.0,
-                ];
-                squared_distance(&centroid_b, &[self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z, 1.0])
-                    .partial_cmp(&squared_distance(&centroid_a, &[self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z, 1.0]))
-                    .unwrap()
-            });*/
+            let eye_position:&[f32; 3] = &Point3::new(self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z).into();
+            self.init.queue.write_buffer(&self.world_fragment_buffer, 16, bytemuck::cast_slice(eye_position));
+            self.init.queue.write_buffer(&self.world_fragment_buffer_transparent, 16, bytemuck::cast_slice(eye_position));
         }
 
         let world_data_check;
@@ -1767,10 +1768,10 @@ impl State {
             }
         }*/
 
-        //let current_time_updated = std::time::Instant::now();
-        //let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+        let current_time_updated = std::time::Instant::now();
+        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
         //println!("update time: {}ms fps: {}", update_time * 1000.0, 1.0 / update_time);
-        //println!("fps: {}", 1.0 / update_time);
+        println!("fps: {}", 1.0 / update_time);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -2088,7 +2089,7 @@ fn handle_model_data(world_data: &mut world::WorldData, json_content: &str) {
         model_data.collide,
     );
 }
-pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>, modding_allowed: bool) {
+pub fn load_block_model_files(world_data_thread: &Arc<Mutex<world::WorldData>>, modding_allowed: bool) {
     let mut json_files = Vec::new();
     let mut world_data = world_data_thread.lock().unwrap();
     let mut exe_dir: &Path = Path::new("");
@@ -2130,6 +2131,70 @@ pub fn load_block_model_files(world_data_thread: Arc<Mutex<world::WorldData>>, m
         } else if let Some(asset) = Assets::get(&file) {
             let json_content = std::str::from_utf8(asset.data.as_ref()).expect("Invalid UTF-8");
             handle_model_data(&mut world_data, json_content);
+        }
+    }
+}
+
+fn handle_audio_data(world_data: &mut world::WorldData, file_content: &[u8]) {
+    let cursor = std::io::Cursor::new(file_content);
+    let mut reader = hound::WavReader::new(cursor).expect("Failed to read WAV data");
+
+    match reader.spec().sample_format {
+        hound::SampleFormat::Int => {
+            let samples: Vec<i16> = reader
+                .samples::<i16>()
+                .map(|s| s.expect("Failed to read sample"))
+                .collect();
+            world_data.audio_files.push(samples);
+        }
+        hound::SampleFormat::Float => {
+            let samples: Vec<i16> = reader
+                .samples::<f32>()
+                .map(|s| (s.expect("Failed to read sample") * i16::MAX as f32) as i16)
+                .collect();
+            world_data.audio_files.push(samples);
+        }
+    }
+}
+pub fn load_audio_files(world_data_thread: &Arc<Mutex<world::WorldData>>, modding_allowed: bool) {
+    let mut audio_files = Vec::new();
+    let mut world_data = world_data_thread.lock().unwrap();
+    let mut exe_dir: &Path = Path::new("");
+    if modding_allowed {
+        let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+        let exe_dir = exe_path.parent().expect("Failed to get executable directory");
+        let sounds_dir = exe_dir.join("assets/sounds");
+        if sounds_dir.exists() && sounds_dir.is_dir() {
+            println!("Found the modded directory for audio");
+            for entry in fs::read_dir(&sounds_dir).expect("Failed to read models directory") {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |ext| ext == "wav") {
+                        if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
+                            println!("Found the modded audio file: {}", file_name);
+                            audio_files.push(file_name.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    audio_files.extend(
+        Assets::iter()
+            .filter(|file| file.starts_with("sounds/") && file.ends_with(".wav"))
+            .map(|file| file.to_string())
+    );
+    audio_files.sort();
+    audio_files.dedup();
+    for file in audio_files {
+        println!("Found audio file: {}", file);
+        let file_path = exe_dir.join(&file);
+        if file_path.exists() {
+            let file_content = fs::read(file_path).expect("Failed to read audio file");
+            handle_audio_data(&mut world_data, &file_content);
+        } else if let Some(asset) = Assets::get(&file) {
+            let file_content = asset.data.as_ref();
+            handle_audio_data(&mut world_data, &file_content);
         }
     }
 }

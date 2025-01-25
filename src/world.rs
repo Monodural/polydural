@@ -16,7 +16,8 @@ pub struct WorldData {
     pub shape_index: HashMap<String, usize>,
     pub blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
     pub block_index: HashMap<String, usize>,
-    pub chunks: HashMap<(i64, i64, i64), (Vec<i8>, Vec<f32>)>,
+    pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
+    pub chunks_lighting: HashMap<(i64, i64, i64), Vec<i8>>,
     pub chunk_buffer_index: HashMap<(i64, i64, i64), i64>,
     pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
     pub updated_chunk_data: Vec<(usize, Vec<common::Vertex>)>,
@@ -25,7 +26,8 @@ pub struct WorldData {
     pub created_chunk_data_transparent: Vec<(Vec<common::Vertex>, i64, i64, i64, Matrix4<f32>, Matrix4<f32>)>,
     pub textures: Vec<(image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, wgpu::Extent3d, u32, u32)>,
     pub biomes: HashMap<String, (i8, i8, i8, Vec<(Vec<String>, i64)>, i64, Vec<(String, f32)>, Vec<(String, f32)>, Vec<(String, f32)>)>,
-    pub structures: HashMap<String, Vec<common::Block>>
+    pub structures: HashMap<String, Vec<common::Block>>,
+    pub audio_files: Vec<Vec<i16>>
 }
 impl WorldData {
     pub fn new() -> Self {
@@ -41,6 +43,7 @@ impl WorldData {
             blocks: Vec::new(),
             block_index: HashMap::new(),
             chunks: HashMap::new(),
+            chunks_lighting: HashMap::new(),
             chunk_buffer_index: HashMap::new(),
             chunk_buffer_coordinates: Vec::new(),
             updated_chunk_data: Vec::new(),
@@ -49,12 +52,14 @@ impl WorldData {
             created_chunk_data_transparent: Vec::new(),
             textures: Vec::new(),
             biomes: HashMap::new(),
-            structures: HashMap::new()
+            structures: HashMap::new(),
+            audio_files: Vec::new()
         }
     }
 
-    pub fn set_chunk(&mut self, x: i64, y: i64, z: i64, chunk_data: Vec<i8>, light_data: Vec<f32>) {
-        self.chunks.insert((x, y, z), (chunk_data, light_data));
+    pub fn set_chunk(&mut self, x: i64, y: i64, z: i64, chunk_data: Vec<i8>, light_data: Vec<i8>) {
+        self.chunks.insert((x, y, z), chunk_data);
+        self.chunks_lighting.insert((x, y, z), light_data);
     }
 
     pub fn add_shape(&mut self, shape_name: String, elements: Vec<common::Element>) {

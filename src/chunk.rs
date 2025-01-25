@@ -2,13 +2,13 @@ use crate::{common::{self, RandomnessFunctions}, world};
 use noise::NoiseFn;
 use rand::Rng;
 
-pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, _game_data: common::GameData, randomness_functions: &RandomnessFunctions, rng: &mut rand::prelude::ThreadRng, world_data: world::WorldData) -> (Vec<i8>, Vec<f32>) {
+pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, _game_data: common::GameData, randomness_functions: &RandomnessFunctions, rng: &mut rand::prelude::ThreadRng, world_data: world::WorldData) -> (Vec<i8>, Vec<i8>) {
     let mut chunk: Vec<i8> = Vec::new();
-    let mut light: Vec<f32> = Vec::new();
+    let mut light: Vec<i8> = Vec::new();
 
     for _ in 0..16*16*16 {
         chunk.push(0);
-        light.push(1.0);
+        light.push(127);
     }
 
     for x in 0..16 {
@@ -82,7 +82,7 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
 
     for x in 0..16 {
         for z in 0..16 {
-            let mut light_level = 1.0;
+            let mut light_level = 127;
 
             for y in 0..16 {
                 let actual_y = 15 - y;
@@ -91,10 +91,13 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
 
                 if chunk[(x * 16 * 16 + actual_y * 16 + z) as usize] != 0 {
                     let is_transparent = &world_data.blocks[(chunk[(x * 16 * 16 + actual_y * 16 + z) as usize] - 1) as usize].5;
-                    if *is_transparent && light_level >= 1.0 / 6.0 {
-                        light_level -= 1.0 / 6.0;
+                    if *is_transparent && light_level >= 127 / 6 {
+                        light_level -= 127 / 6;
                     } else {
-                        light_level = 0.0;
+                        light_level -= 127 / 4;
+                        if light_level < 0 {
+                            light_level = 0;
+                        }
                     }
                 }
             }
@@ -112,7 +115,7 @@ pub fn set_block(chunk: Vec<i8>, x: i8, y: i8, z: i8, block_type: i8) -> Vec<i8>
     return new_chunk;
 }
 
-pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::GameData, world_data: &mut world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> (Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
+pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<i8>, game_data: &common::GameData, world_data: &world::WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> (Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>) {
     let mut vertices: Vec<[f64; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
@@ -134,7 +137,7 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<f32>, game_data: &common::
                 let block_id = get_block(&chunk, x, y, z, &game_data, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z);
                 if block_id == 0 { continue; }
 
-                let light_level = light_data[(x * 16 * 16 + y * 16 + z) as usize];
+                let light_level = light_data[(x * 16 * 16 + y * 16 + z) as usize] as f32 / 127.0;
 
                 let shape_index = world_data.shape_index[&world_data.blocks[(block_id - 1) as usize].3];
                 let elements = &world_data.shapes[shape_index - 1].1;
@@ -844,7 +847,7 @@ pub fn get_block_transparent(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data:
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block_transparent(&chunk.0, 15, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block_transparent(chunk, 15, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if y < 0 && x >= 0 && z >= 0 && x < 16 && z < 16 {
@@ -855,7 +858,7 @@ pub fn get_block_transparent(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data:
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block_transparent(&chunk.0, x, 15, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block_transparent(chunk, x, 15, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if z < 0 && x >= 0 && y >= 0 && x < 16 && y < 16 {
@@ -866,7 +869,7 @@ pub fn get_block_transparent(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data:
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block_transparent(&chunk.0, x, y, 15, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block_transparent(chunk, x, y, 15, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if x > 15 && y >= 0 && z >= 0 && y < 16 && z < 16 {
@@ -877,7 +880,7 @@ pub fn get_block_transparent(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data:
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block_transparent(&chunk.0, 0, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block_transparent(chunk, 0, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if y > 15 && x >= 0 && z >= 0 && x < 16 && z < 16 {
@@ -888,7 +891,7 @@ pub fn get_block_transparent(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data:
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block_transparent(&chunk.0, x, 0, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block_transparent(chunk, x, 0, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if z > 15 && x >= 0 && y >= 0 && x < 16 && y < 16 {
@@ -899,7 +902,7 @@ pub fn get_block_transparent(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data:
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block_transparent(&chunk.0, x, y, 0, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block_transparent(chunk, x, y, 0, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         return false;
@@ -921,7 +924,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(&chunk.0, 15, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, 15, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if y < 0 && x >= 0 && z >= 0 && x < 16 && z < 16 {
@@ -932,7 +935,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(&chunk.0, x, 15, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, 15, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if z < 0 && x >= 0 && y >= 0 && x < 16 && y < 16 {
@@ -943,7 +946,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(&chunk.0, x, y, 15, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, y, 15, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if x > 15 && y >= 0 && z >= 0 && y < 16 && z < 16 {
@@ -954,7 +957,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(&chunk.0, 0, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, 0, y, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if y > 15 && x >= 0 && z >= 0 && x < 16 && z < 16 {
@@ -965,7 +968,7 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(&chunk.0, x, 0, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, 0, z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         if z > 15 && x >= 0 && y >= 0 && x < 16 && y < 16 {
@@ -976,14 +979,14 @@ pub fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::Ga
             let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(&chunk.0, x, y, 0, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, y, 0, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         return -1;
     }
     return chunk[(x * 16 * 16 + y * 16 + z) as usize];
 }
-pub fn get_block_global(game_data: &common::GameData, world_data: world::WorldData, x: f32, y: f32, z: f32) -> i8 {
+pub fn get_block_global(game_data: &common::GameData, world_data: &world::WorldData, x: f32, y: f32, z: f32) -> i8 {
     let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
     let chunk_position_y: i64 = ((y + 0.5) / 16.0).floor() as i64;
     let chunk_position_z: i64 = ((z + 0.5) / 16.0).floor() as i64;
@@ -996,7 +999,7 @@ pub fn get_block_global(game_data: &common::GameData, world_data: world::WorldDa
     if local_position_z < 0 { local_position_z = 16 + local_position_z; }
 
     if let Some(chunk) = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
-        return get_block(&chunk.0, local_position_x, local_position_y, local_position_z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+        return get_block(chunk, local_position_x, local_position_y, local_position_z, game_data, &world_data, chunk_position_x, chunk_position_y, chunk_position_z);
     } else {
         return -1;
     }

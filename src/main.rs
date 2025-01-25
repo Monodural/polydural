@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -12,6 +12,7 @@ mod chunk;
 mod interact;
 mod containers;
 mod gui;
+mod sounds;
 
 fn vertex(p:[f64; 3], n: [i8; 3], c: [f32; 3], u: [f32; 2]) -> common::Vertex {
     return common::Vertex {
@@ -56,8 +57,15 @@ fn main(){
         common::load_shape_files(&world_data_thread, modding_allowed);
         println!("loaded shape files");
         println!("loading model files");
-        common::load_block_model_files(world_data_thread, modding_allowed);
+        common::load_block_model_files(&world_data_thread, modding_allowed);
         println!("loaded model files");
+        println!("loading audio files");
+        common::load_audio_files(&world_data_thread, modding_allowed);
+        println!("loaded audio files");
+
+        let world_data_audio = world_data_thread.lock().unwrap().clone();
+        //tokio::spawn(sounds::play_audio(world_data_audio.audio_files[3].clone()));
+        //tokio::spawn(sounds::play_audio(world_data_audio.audio_files[0].clone()));
     }
 
     // add a test string
@@ -132,9 +140,10 @@ fn main(){
                 if world_data_read.chunk_queue.len() == 0 && world_data_read.chunk_update_queue.len() > 0 {
                     let chunk_position = world_data_read.chunk_buffer_coordinates[world_data_read.chunk_update_queue[0]];
                     let chunk_data = world_data_read.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
+                    let chunk_data_light = world_data_read.chunks_lighting[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
                     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
                         chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
-                        ) = chunk::render_chunk(&chunk_data.0, &chunk_data.1, &game_data_backend, &mut world_data_read, 
+                        ) = chunk::render_chunk(&chunk_data, &chunk_data_light, &game_data_backend, &world_data_read.clone(), 
                         chunk_position.0, chunk_position.1, chunk_position.2
                     );
                     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
@@ -163,7 +172,7 @@ fn main(){
                     );
                     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
                         chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
-                        ) = chunk::render_chunk(&chunk_data, &light_map, &game_data_backend, &mut world_data_backend.lock().unwrap(), 
+                        ) = chunk::render_chunk(&chunk_data, &light_map, &game_data_backend, &world_data_backend.lock().unwrap().clone(), 
                         chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset
                     );
                     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
