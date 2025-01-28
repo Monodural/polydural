@@ -1,5 +1,6 @@
 //#![windows_subsystem = "windows"]
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -37,7 +38,10 @@ fn main(){
         modding_allowed = false;
     }
     let mut game_data = common::GameData::new();
-    let world_data = Arc::new(Mutex::new(world::WorldData::new()));
+    let chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(Mutex::new(HashMap::new()));
+    let chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(Mutex::new(HashMap::new()));
+
+    let world_data = Arc::new(Mutex::new(world::WorldData::new(Arc::clone(&chunk_data_terrain), Arc::clone(&chunk_data_lighting))));
     let randomness_functions = common::RandomnessFunctions::new();
     let inventory = containers::Inventory::new();
 
@@ -63,7 +67,7 @@ fn main(){
         common::load_audio_files(&world_data_thread, modding_allowed);
         println!("loaded audio files");
 
-        let world_data_audio = world_data_thread.lock().unwrap().clone();
+        let _world_data_audio = world_data_thread.lock().unwrap().clone();
         //tokio::spawn(sounds::play_audio(world_data_audio.audio_files[3].clone()));
         //tokio::spawn(sounds::play_audio(world_data_audio.audio_files[0].clone()));
     }
@@ -122,6 +126,8 @@ fn main(){
     game_data.add_gui_object(vertex_data.clone(), (0.0, -0.6, 0.0), (0.04, 0.04, 0.04), true);*/
 
     let world_data_backend = Arc::clone(&world_data);
+    let chunk_data_terrain_backend = Arc::clone(&chunk_data_terrain);
+    let chunk_data_lighting_backend = Arc::clone(&chunk_data_lighting);
     let game_data_backend = game_data.clone();
     let randomness_functions_backend = randomness_functions.clone();
 
@@ -131,19 +137,18 @@ fn main(){
         loop {
             let start_time = Instant::now();
             {   
-                let mut world_data_read: world::WorldData;
-                {
-                    let world_data = world_data_backend.lock().unwrap();
-                    world_data_read = world_data.clone();
-                }
+                let world_data_read = world_data_backend.lock().unwrap().clone();
+                let chunk_data_terrain = chunk_data_terrain_backend.lock().unwrap().clone();
 
                 if world_data_read.chunk_queue.len() == 0 && world_data_read.chunk_update_queue.len() > 0 {
+                    let chunk_data_lighting = chunk_data_lighting_backend.lock().unwrap().clone();
+
                     let chunk_position = world_data_read.chunk_buffer_coordinates[world_data_read.chunk_update_queue[0]];
-                    let chunk_data = world_data_read.chunks[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
-                    let chunk_data_light = world_data_read.chunks_lighting[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
+                    let chunk_data = chunk_data_terrain[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
+                    let chunk_data_light = chunk_data_lighting[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
                     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
                         chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
-                        ) = chunk::render_chunk(&chunk_data, &chunk_data_light, &game_data_backend, &world_data_read.clone(), 
+                        ) = chunk::render_chunk(&chunk_data, &chunk_data_light, &game_data_backend, &chunk_data_terrain, &world_data_read, 
                         chunk_position.0, chunk_position.1, chunk_position.2
                     );
                     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
@@ -163,16 +168,13 @@ fn main(){
                     let chunk_position_x_with_offset = chunk_coordinates.0;
                     let chunk_position_y_with_offset = chunk_coordinates.1;
                     let chunk_position_z_with_offset = chunk_coordinates.2;
-                    let world_data_cloned;
-                    {
-                        world_data_cloned = world_data_backend.lock().unwrap().clone();
-                    }
+                    let world_data_cloned = world_data_backend.lock().unwrap().clone();
                     let (chunk_data, light_map) = chunk::generate_chunk(
-                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, game_data_backend.clone(), &randomness_functions_backend, &mut rng, world_data_cloned
+                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, game_data_backend.clone(), &randomness_functions_backend, &mut rng, &world_data_cloned
                     );
                     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
                         chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent
-                        ) = chunk::render_chunk(&chunk_data, &light_map, &game_data_backend, &world_data_backend.lock().unwrap().clone(), 
+                        ) = chunk::render_chunk(&chunk_data, &light_map, &game_data_backend, &chunk_data_terrain, &world_data_cloned, 
                         chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset
                     );
                     let vertex_data_chunk = create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
@@ -184,8 +186,8 @@ fn main(){
                         [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
                     );
                     {
-                        let mut world_data_write = world_data_backend.lock().unwrap();
                         let normal_mat = (model_mat.invert().unwrap()).transpose();
+                        let mut world_data_write = world_data_backend.lock().unwrap();
                         world_data_write.set_chunk(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, chunk_data, light_map);
                         world_data_write.chunk_queue.remove(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
                         world_data_write.created_chunk_data.push((vertex_data_chunk, chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, model_mat, normal_mat));
@@ -202,5 +204,5 @@ fn main(){
     });
 
     let light_data = common::light([1.0, 1.0, 1.0], [1.0, 1.0, 0.0], 0.1, 0.8, 0.3, 30.0);
-    common::run(game_data, world_data, inventory, light_data, "Polydural");
+    common::run(game_data, world_data, inventory, light_data, "Polydural", chunk_data_terrain, chunk_data_lighting);
 }

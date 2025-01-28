@@ -1,6 +1,5 @@
 use rodio::{OutputStream, Sink};
 use rodio::buffer::SamplesBuffer;
-use tokio::task;
 
 pub async fn play_audio(samples: Vec<i16>) {
     let (_stream, stream_handle) = OutputStream::try_default().expect("Failed to get default output stream");

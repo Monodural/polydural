@@ -1,12 +1,9 @@
-use std::sync::{Arc, Mutex};
-use crate::world::WorldData;
+use std::collections::HashMap;
 use crate::common;
 use super::GameData;
 
-pub fn update(game_data: &mut GameData, world_data: &Arc<Mutex<WorldData>>, frame_time: f32) {
-    let world_data_read = world_data.lock().unwrap().clone();
-
-    let block_type = get_block_global(game_data, &world_data_read, 
+pub fn update(game_data: &mut GameData, chunks: &HashMap<(i64, i64, i64), Vec<i8>>, blocks: &Vec<(String, Vec<i8>, String, String, bool, bool, bool)>, frame_time: f32) {
+let block_type = get_block_global(game_data, &chunks, &blocks, 
         game_data.camera_position.x as f32 / 2.0, 
         game_data.camera_position.y as f32 / 2.0 - 2.0, 
         game_data.camera_position.z as f32 / 2.0
@@ -15,7 +12,7 @@ pub fn update(game_data: &mut GameData, world_data: &Arc<Mutex<WorldData>>, fram
     game_data.grounded = grounded;
 
     if game_data.camera_acceleration_walking.x != 0.0 || game_data.camera_acceleration_walking.z != 0.0 {
-        let block_type = get_block_global(game_data, &world_data_read, 
+        let block_type = get_block_global(game_data, &chunks, &blocks, 
             (game_data.camera_position.x + game_data.camera_acceleration_walking.x * 1.5) as f32 / 2.0, 
             game_data.camera_position.y as f32 / 2.0 - 1.5, 
             (game_data.camera_position.z + game_data.camera_acceleration_walking.z * 1.5) as f32 / 2.0
@@ -48,100 +45,100 @@ pub fn update(game_data: &mut GameData, world_data: &Arc<Mutex<WorldData>>, fram
     }
 }
 
-fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, world_data: &WorldData, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> bool {
+fn get_block(chunk: &Vec<i8>, x: i64, y: i64, z: i64, game_data: &common::GameData, chunks: &HashMap<(i64, i64, i64), Vec<i8>>, blocks: &Vec<(String, Vec<i8>, String, String, bool, bool, bool)>, chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64) -> bool {
     //let world_data_read = world_data.lock().unwrap();
     
-    if x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15 {
-        if x < 0 && y >= 0 && z >= 0 && y < 16 && z < 16 {
+    if x < 0 || y < 0 || z < 0 || x > 31 || y > 31 || z > 31 {
+        if x < 0 && y >= 0 && z >= 0 && y < 32 && z < 32 {
             let chunk_position_x: i64 = chunk_position_x - 1;
             let chunk_position_y: i64 = chunk_position_y;
             let chunk_position_z: i64 = chunk_position_z;
 
-            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+            let maybe_chunk = chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, 15, y, z, game_data, world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, 31, y, z, game_data, chunks, blocks, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
-        if y < 0 && x >= 0 && z >= 0 && x < 16 && z < 16 {
+        if y < 0 && x >= 0 && z >= 0 && x < 32 && z < 32 {
             let chunk_position_x: i64 = chunk_position_x;
             let chunk_position_y: i64 = chunk_position_y - 1;
             let chunk_position_z: i64 = chunk_position_z;
 
-            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+            let maybe_chunk = chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, 15, z, game_data, world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, 31, z, game_data, chunks, blocks, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
-        if z < 0 && x >= 0 && y >= 0 && x < 16 && y < 16 {
+        if z < 0 && x >= 0 && y >= 0 && x < 32 && y < 32 {
             let chunk_position_x: i64 = chunk_position_x;
             let chunk_position_y: i64 = chunk_position_y;
             let chunk_position_z: i64 = chunk_position_z - 1;
 
-            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+            let maybe_chunk = chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, y, 15, game_data, world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, y, 31, game_data, chunks, blocks, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
-        if x > 15 && y >= 0 && z >= 0 && y < 16 && z < 16 {
+        if x > 31 && y >= 0 && z >= 0 && y < 32 && z < 32 {
             let chunk_position_x: i64 = chunk_position_x + 1;
             let chunk_position_y: i64 = chunk_position_y;
             let chunk_position_z: i64 = chunk_position_z;
 
-            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+            let maybe_chunk = chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, 0, y, z, game_data, world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, 0, y, z, game_data, chunks, blocks, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
-        if y > 15 && x >= 0 && z >= 0 && x < 16 && z < 16 {
+        if y > 31 && x >= 0 && z >= 0 && x < 32 && z < 32 {
             let chunk_position_x: i64 = chunk_position_x;
             let chunk_position_y: i64 = chunk_position_y + 1;
             let chunk_position_z: i64 = chunk_position_z;
 
-            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+            let maybe_chunk = chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, 0, z, game_data, world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, 0, z, game_data, chunks, blocks, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
-        if z > 15 && x >= 0 && y >= 0 && x < 16 && y < 16 {
+        if z > 31 && x >= 0 && y >= 0 && x < 32 && y < 32 {
             let chunk_position_x: i64 = chunk_position_x;
             let chunk_position_y: i64 = chunk_position_y;
             let chunk_position_z: i64 = chunk_position_z + 1;
 
-            let maybe_chunk = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
+            let maybe_chunk = chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z));
 
             if let Some(chunk) = maybe_chunk {
-                return get_block(chunk, x, y, 0, game_data, world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+                return get_block(chunk, x, y, 0, game_data, chunks, blocks, chunk_position_x, chunk_position_y, chunk_position_z);
             }
         }
         return true;
     }
-    let block_id = chunk[(x * 16 * 16 + y * 16 + z) as usize] as usize;
+    let block_id = chunk[(x * 32 * 32 + y * 32 + z) as usize] as usize;
     if block_id <= 0 {
         return false;
     }
 
-    let can_collide = world_data.blocks[block_id - 1].6;
+    let can_collide = blocks[block_id - 1].6;
     return can_collide;
 }
-fn get_block_global(game_data: &common::GameData, world_data: &WorldData, x: f32, y: f32, z: f32) -> bool {
-    let chunk_position_x: i64 = ((x + 0.5) / 16.0).floor() as i64;
-    let chunk_position_y: i64 = ((y + 0.5) / 16.0).floor() as i64;
-    let chunk_position_z: i64 = ((z + 0.5) / 16.0).floor() as i64;
+fn get_block_global(game_data: &common::GameData, chunks: &HashMap<(i64, i64, i64), Vec<i8>>, blocks: &Vec<(String, Vec<i8>, String, String, bool, bool, bool)>, x: f32, y: f32, z: f32) -> bool {
+    let chunk_position_x: i64 = ((x + 0.5) / 32.0).floor() as i64;
+    let chunk_position_y: i64 = ((y + 0.5) / 32.0).floor() as i64;
+    let chunk_position_z: i64 = ((z + 0.5) / 32.0).floor() as i64;
 
-    let mut local_position_x = ((x + 0.5) % 16.0).floor() as i64;
-    let mut local_position_y = ((y + 0.5) % 16.0).floor() as i64;
-    let mut local_position_z = ((z + 0.5) % 16.0).floor() as i64;
-    if local_position_x < 0 { local_position_x = 16 + local_position_x; }
-    if local_position_y < 0 { local_position_y = 16 + local_position_y; }
-    if local_position_z < 0 { local_position_z = 16 + local_position_z; }
+    let mut local_position_x = ((x + 0.5) % 32.0).floor() as i64;
+    let mut local_position_y = ((y + 0.5) % 32.0).floor() as i64;
+    let mut local_position_z = ((z + 0.5) % 32.0).floor() as i64;
+    if local_position_x < 0 { local_position_x = 32 + local_position_x; }
+    if local_position_y < 0 { local_position_y = 32 + local_position_y; }
+    if local_position_z < 0 { local_position_z = 32 + local_position_z; }
 
-    if let Some(chunk) = world_data.chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
-        return get_block(chunk, local_position_x, local_position_y, local_position_z, game_data, world_data, chunk_position_x, chunk_position_y, chunk_position_z);
+    if let Some(chunk) = chunks.get(&(chunk_position_x, chunk_position_y, chunk_position_z)) {
+        return get_block(chunk, local_position_x, local_position_y, local_position_z, game_data, chunks, blocks, chunk_position_x, chunk_position_y, chunk_position_z);
     }
     return true;
 }
