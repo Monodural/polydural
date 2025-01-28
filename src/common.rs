@@ -1458,7 +1458,7 @@ impl State {
 
                 self.init.queue.write_buffer(&self.world_vertex_buffer, self.vertex_offset[buffer_index as usize] * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[buffer_index as usize]));
                 self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.vertex_offset_transparent[buffer_index as usize] * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[buffer_index as usize]));
-                
+
                 /*{
                     let mut world_data = self.world_data.lock().unwrap();
                     world_data.updated_chunks.push(buffer_index as usize);
@@ -1590,7 +1590,7 @@ impl State {
         let chunk_position_y = (self.game_data.camera_position.y / 64.0).floor();
         let chunk_position_z = (self.game_data.camera_position.z / 64.0).floor();
         
-        if self.frame % 60 == 0 {
+        if self.frame % 30 == 0 {
             {
                 let mut world_data = self.world_data.lock().unwrap();
                 for active in world_data.active_chunks.clone() {
@@ -1630,8 +1630,11 @@ impl State {
                 }
             }
 
-            //println!("{}", world_data.chunks.len());
-
+            let eye_position:&[f32; 3] = &Point3::new(self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z).into();
+            self.init.queue.write_buffer(&self.world_fragment_buffer, 16, bytemuck::cast_slice(eye_position));
+            self.init.queue.write_buffer(&self.world_fragment_buffer_transparent, 16, bytemuck::cast_slice(eye_position));
+        }
+        if self.frame % 300 == 0 {
             let mut chunk: Vec<Vertex> = Vec::new();
             let mut chunk_transparent: Vec<Vertex> = Vec::new();
             let world_data_read = self.world_data.lock().unwrap().clone();
@@ -1645,10 +1648,6 @@ impl State {
             self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
             self.world_num_vertices = chunk.len() as u32;
             self.world_num_vertices_transparent = chunk_transparent.len() as u32;
-
-            let eye_position:&[f32; 3] = &Point3::new(self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z).into();
-            self.init.queue.write_buffer(&self.world_fragment_buffer, 16, bytemuck::cast_slice(eye_position));
-            self.init.queue.write_buffer(&self.world_fragment_buffer_transparent, 16, bytemuck::cast_slice(eye_position));
         }
 
         let world_data_check;
@@ -1662,6 +1661,13 @@ impl State {
             let chunk_data_transparent = &updated_chunk_transparent[0];
             self.vertex_data[chunk_data.0] = chunk_data.1.clone();
             self.vertex_data_transparent[chunk_data_transparent.0] = chunk_data_transparent.1.clone();
+
+            self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[chunk_data.0]));
+            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[chunk_data_transparent.0]));
+
+            self.world_num_vertices += self.vertex_data[chunk_data.0].len() as u32;
+            self.world_num_vertices_transparent += self.vertex_data_transparent[chunk_data_transparent.0].len() as u32;
+
             {
                 let mut world_data_setting = self.world_data.lock().unwrap();
                 world_data_setting.updated_chunks.push(chunk_data.0);
@@ -1681,6 +1687,13 @@ impl State {
             let chunk_data_transparent = &updated_chunk_transparent[0];
             self.vertex_data.push(chunk_data.0.clone());
             self.vertex_data_transparent.push(chunk_data_transparent.0.clone());
+
+            self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[self.vertex_data.len() - 1]));
+            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[self.vertex_data_transparent.len() - 1]));
+
+            self.world_num_vertices += self.vertex_data[self.vertex_data.len() - 1].len() as u32;
+            self.world_num_vertices_transparent += self.vertex_data_transparent[self.vertex_data_transparent.len() - 1].len() as u32;
+
             self.model_matrices.push(chunk_data.4);
             self.model_matrices_transparent.push(chunk_data_transparent.4);
             self.normal_matrices.push(chunk_data.5);
