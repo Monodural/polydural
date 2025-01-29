@@ -2,13 +2,13 @@ use std:: {iter, mem, vec };
 use cgmath::*;
 use rand::Rng;
 //use futures::sink::Buffer;
-use wgpu::{util::DeviceExt, BindGroup};
+use wgpu::BindGroup;
 use winit::{
     event::*,
     window::{Icon, Window},
     event_loop::{ControlFlow, EventLoop},
 };
-use bytemuck:: {Pod, Zeroable, cast_slice};
+use bytemuck:: {Pod, Zeroable};
 use std::collections::HashMap;
 use image::GenericImageView;
 use rust_embed::RustEmbed;
@@ -24,15 +24,13 @@ use hound;
 
 use crate::{containers::Inventory, world::{self, WorldData}};
 use crate::interact;
+use crate::gui::update_frame;
 
 #[path="../src/transforms.rs"]
 mod transforms;
 
 #[path="../src/physics.rs"]
 mod physics;
-
-#[path="../src/gui.rs"]
-mod gui;
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
@@ -185,8 +183,7 @@ pub struct GameData {
     pub camera_acceleration: Point3<f32>,
     pub camera_acceleration_walking: Point3<f32>,
     pub grounded: bool,
-    pub jumping: bool,
-    pub gui_updated: bool
+    pub jumping: bool
 }
 impl GameData {
     pub fn new() -> Self {
@@ -213,8 +210,7 @@ impl GameData {
             camera_acceleration: (0.0, 0.0, 0.0).into(),
             camera_acceleration_walking: (0.0, 0.0, 0.0).into(),
             grounded: false,
-            jumping: false,
-            gui_updated: false
+            jumping: false
         }
     }
 
@@ -309,10 +305,6 @@ impl Vertex {
     }
 }
 
-fn squared_distance(a: &[f32; 4], b: &[f32; 4]) -> f32 {
-    (a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)
-}
-
 struct State {
     init: transforms::InitWgpu,
     pipeline: wgpu::RenderPipeline,
@@ -358,8 +350,7 @@ struct State {
     chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
     chunks: HashMap<(i64, i64, i64), Vec<i8>>,
     blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
-    render_ui: bool,
-    rng: rand::prelude::ThreadRng
+    render_ui: bool
 }
 
 impl State {
@@ -624,7 +615,7 @@ impl State {
         return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
     }
     fn create_object_gui_item_block(
-        game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
+        init: &transforms::InitWgpu, light_data: Light, 
         uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
@@ -1345,7 +1336,7 @@ impl State {
             gui_item_block_vertex_uniform_buffer, 
             gui_item_block_vertex_buffer, 
             mut gui_item_block_num_vertices_
-        ) = Self::create_object_gui_item_block(&game_data, &init, light_data, &uniform_bind_group_layout);
+        ) = Self::create_object_gui_item_block(&init, light_data, &uniform_bind_group_layout);
         let mut gui_item_blocks: Vec<Vertex> = Vec::new();
         for i in 0..game_data.gui_item_block_objects.len() {
             gui_item_blocks.extend(&game_data.gui_item_block_objects[i]);
@@ -1387,7 +1378,6 @@ impl State {
         let chunks = HashMap::new();
 
         let render_ui = true;
-        let rng = rand::thread_rng();
 
         Self {
             init,
@@ -1434,8 +1424,7 @@ impl State {
             chunk_data_lighting,
             chunks,
             blocks,
-            render_ui,
-            rng
+            render_ui
         }
     }
 
@@ -1739,7 +1728,7 @@ impl State {
         if render_ui {
             if let Some(is_pressed) = keys_down.get("number") {
                 if is_pressed == &true {
-                    gui::update_frame(&mut self.game_data, (-0.11 * (slot_selected as f64 - 4.0), -0.6, 0.0), (0.04, 0.04, 0.04), vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]], 2);
+                    update_frame(&mut self.game_data, (-0.11 * (slot_selected as f64 - 4.0), -0.6, 0.0), (0.04, 0.04, 0.04), vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]], 2);
                     let mut gui_element: Vec<Vertex> = Vec::new();
                     for i in 0..self.game_data.gui_objects.len() {
                         gui_element.extend(&self.game_data.gui_objects[i]);
