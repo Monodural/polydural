@@ -67,9 +67,9 @@ fn main(){
         common::load_audio_files(&world_data_thread, modding_allowed);
         println!("loaded audio files");
 
-        let _world_data_audio = world_data_thread.lock().unwrap().clone();
-        //tokio::spawn(sounds::play_audio(world_data_audio.audio_files[3].clone()));
-        //tokio::spawn(sounds::play_audio(world_data_audio.audio_files[0].clone()));
+        /*let world_data_audio = world_data_thread.lock().unwrap().clone();
+        sounds::play_audio(world_data_audio.audio_files[3].clone());
+        sounds::play_audio(world_data_audio.audio_files[0].clone());*/
     }
 
     // add a test string
@@ -131,13 +131,25 @@ fn main(){
     let game_data_backend = game_data.clone();
     let randomness_functions_backend = randomness_functions.clone();
 
+    let world_data_audio = world_data_backend.lock().unwrap().clone();
+    let audio_tx = sounds::start_audio_thread(world_data_audio.audio_files);
+
     thread::spawn(move || {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
         let update_interval = Duration::from_millis(1);
         loop {
             let start_time = Instant::now();
-            {   
+            {
                 let world_data_read = world_data_backend.lock().unwrap().clone();
+
+                for item in world_data_read.sound_queue.clone().into_iter() {
+                    audio_tx.send(item).expect("Failed to send sound index");
+                }
+                {
+                    let mut world_audio_read = world_data_backend.lock().unwrap();
+                    world_audio_read.sound_queue.clear();
+                }
+
                 let chunk_data_terrain = chunk_data_terrain_backend.lock().unwrap().clone();
 
                 if world_data_read.chunk_queue.len() == 0 && world_data_read.chunk_update_queue.len() > 0 {

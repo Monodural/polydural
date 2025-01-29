@@ -5,7 +5,7 @@ use super::GameData;
 pub fn update(game_data: &mut GameData, chunks: &HashMap<(i64, i64, i64), Vec<i8>>, blocks: &Vec<(String, Vec<i8>, String, String, bool, bool, bool)>, frame_time: f32) {
 let block_type = get_block_global(game_data, &chunks, &blocks, 
         game_data.camera_position.x as f32 / 2.0, 
-        game_data.camera_position.y as f32 / 2.0 - 2.0, 
+        game_data.camera_position.y as f32 / 2.0 - 1.75, 
         game_data.camera_position.z as f32 / 2.0
     );
     let grounded = block_type;
@@ -14,7 +14,7 @@ let block_type = get_block_global(game_data, &chunks, &blocks,
     if game_data.camera_acceleration_walking.x != 0.0 || game_data.camera_acceleration_walking.z != 0.0 {
         let block_type = get_block_global(game_data, &chunks, &blocks, 
             (game_data.camera_position.x + game_data.camera_acceleration_walking.x * 1.5) as f32 / 2.0, 
-            game_data.camera_position.y as f32 / 2.0 - 1.5, 
+            game_data.camera_position.y as f32 / 2.0 - 1.35, 
             (game_data.camera_position.z + game_data.camera_acceleration_walking.z * 1.5) as f32 / 2.0
         );
         let can_walk = !block_type;
@@ -38,7 +38,7 @@ let block_type = get_block_global(game_data, &chunks, &blocks,
         game_data.jumping = false;
 
         // the distance into the block is the float distance from the full block
-        let distance_in_block = ((game_data.camera_position.y as f32 / 2.0 - 2.0).floor() - 0.5) - (game_data.camera_position.y as f32 / 2.0 - 2.0) + 1.0;
+        let distance_in_block = ((game_data.camera_position.y as f32 / 2.0 - 1.75).floor() - 0.5) - (game_data.camera_position.y as f32 / 2.0 - 1.75) + 1.0;
         if distance_in_block > 0.0 {
             game_data.camera_position.y += distance_in_block;
         }

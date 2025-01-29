@@ -358,7 +358,8 @@ struct State {
     chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
     chunks: HashMap<(i64, i64, i64), Vec<i8>>,
     blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
-    render_ui: bool
+    render_ui: bool,
+    rng: rand::prelude::ThreadRng
 }
 
 impl State {
@@ -1386,6 +1387,7 @@ impl State {
         let chunks = HashMap::new();
 
         let render_ui = true;
+        let rng = rand::thread_rng();
 
         Self {
             init,
@@ -1432,7 +1434,8 @@ impl State {
             chunk_data_lighting,
             chunks,
             blocks,
-            render_ui
+            render_ui,
+            rng
         }
     }
 
@@ -1468,21 +1471,10 @@ impl State {
                 self.init.queue.write_buffer(&self.world_vertex_buffer, self.vertex_offset[buffer_index as usize] * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[buffer_index as usize]));
                 self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.vertex_offset_transparent[buffer_index as usize] * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[buffer_index as usize]));
 
-                /*{
+                {   
                     let mut world_data = self.world_data.lock().unwrap();
-                    world_data.updated_chunks.push(buffer_index as usize);
-                    world_data.updated_chunks_transparent.push(buffer_index as usize);
-                    let mut chunk: Vec<Vertex> = Vec::new();
-                    let mut chunk_transparent: Vec<Vertex> = Vec::new();
-                    for i in &world_data.active_chunks {
-                        chunk.extend(&self.vertex_data[*i]);
-                        chunk_transparent.extend(&self.vertex_data_transparent[*i]);
-                    }
-                    self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
-                    self.world_num_vertices = chunk.len() as u32;
-                    self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
-                    self.world_num_vertices_transparent = chunk_transparent.len() as u32;
-                }*/
+                    world_data.sound_queue.push((1, 0.1));
+                }
             }
         } else if button == 1 {
             let vertex_data_chunk: Vec<Vertex>;
@@ -1499,22 +1491,10 @@ impl State {
                 self.init.queue.write_buffer(&self.world_vertex_buffer, self.vertex_offset[buffer_index as usize] * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[buffer_index as usize]));
                 self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.vertex_offset_transparent[buffer_index as usize] * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[buffer_index as usize]));
 
-                /*{
+                {
                     let mut world_data = self.world_data.lock().unwrap();
-                    world_data.updated_chunks.push(buffer_index as usize);
-                    world_data.updated_chunks_transparent.push(buffer_index as usize);
-
-                    let mut chunk: Vec<Vertex> = Vec::new();
-                    let mut chunk_transparent: Vec<Vertex> = Vec::new();
-                    for i in &world_data.active_chunks {
-                        chunk.extend(&self.vertex_data[*i]);
-                        chunk_transparent.extend(&self.vertex_data_transparent[*i]);
-                    }
-                    self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
-                    self.world_num_vertices = chunk.len() as u32;
-                    self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
-                    self.world_num_vertices_transparent = chunk_transparent.len() as u32;
-                }*/
+                    world_data.sound_queue.push((2, 0.1));
+                }
             }
         }
     }
@@ -1856,9 +1836,9 @@ impl State {
             }
         }*/
 
-        let current_time_updated = std::time::Instant::now();
-        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-        println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
+        //let current_time_updated = std::time::Instant::now();
+        //let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+        //println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
         //println!("fps: {}", 1.0 / update_time);
     }
 

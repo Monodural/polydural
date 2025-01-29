@@ -18,8 +18,6 @@ pub struct WorldData {
     pub shape_index: HashMap<String, usize>,
     pub blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
     pub block_index: HashMap<String, usize>,
-    //pub chunks: HashMap<(i64, i64, i64), Vec<i8>>,
-    //pub chunks_lighting: HashMap<(i64, i64, i64), Vec<i8>>,
     pub chunk_buffer_index: HashMap<(i64, i64, i64), i64>,
     pub chunk_buffer_coordinates: Vec<(i64, i64, i64)>,
     pub updated_chunk_data: Vec<(usize, Vec<common::Vertex>)>,
@@ -30,6 +28,7 @@ pub struct WorldData {
     pub biomes: HashMap<String, (i8, i8, i8, Vec<(Vec<String>, i64)>, i64, Vec<(String, f32)>, Vec<(String, f32)>, Vec<(String, f32)>)>,
     pub structures: HashMap<String, Vec<common::Block>>,
     pub audio_files: Vec<Vec<i16>>,
+    pub sound_queue: Vec<(usize, f32)>,
     chunk_data_terrain_thread: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
     chunk_data_lighting_thread: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
 }
@@ -46,8 +45,6 @@ impl WorldData {
             shape_index: HashMap::new(),
             blocks: Vec::new(),
             block_index: HashMap::new(),
-            //chunks: HashMap::new(),
-            //chunks_lighting: HashMap::new(),
             chunk_buffer_index: HashMap::new(),
             chunk_buffer_coordinates: Vec::new(),
             updated_chunk_data: Vec::new(),
@@ -58,6 +55,7 @@ impl WorldData {
             biomes: HashMap::new(),
             structures: HashMap::new(),
             audio_files: Vec::new(),
+            sound_queue: vec![(1, 0.5)],
             chunk_data_terrain_thread: chunk_data_terrain,
             chunk_data_lighting_thread: chunk_data_lighting
         }
