@@ -1651,59 +1651,32 @@ impl State {
         }
         if self.frame % 300 == 0 {
             let mut chunk: Vec<Vertex> = Vec::new();
-            let world_data_read = self.world_data.lock().unwrap().clone();
 
-            let current_time_world_reset = std::time::Instant::now();
-            for i in &world_data_read.active_chunks {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap().active_chunks.clone();
+            }
+
+            for i in &active_chunk_data {
                 self.vertex_offset[*i] = chunk.len() as u64;
                 chunk.extend(&self.vertex_data[*i]);
             }
-            let current_time_updated_world_reset = std::time::Instant::now();
-            let update_time_world_reset = current_time_updated_world_reset.duration_since(current_time_world_reset).as_secs_f32();
-            println!("update time solid: {}ms fps: {}", update_time_world_reset * 1000.0, 1.0 / update_time_world_reset);
-
-            /*let mut faces: Vec<[Vertex; 3]> = chunk_transparent
-                .chunks_exact(3)
-                .map(|chunk| [chunk[0].clone(), chunk[1].clone(), chunk[2].clone()])
-                .collect();
-
-            faces.sort_by(|a, b| {
-                let center_a = [
-                    (a[0].position[0] + a[1].position[0] + a[2].position[0]) / 3.0,
-                    (a[0].position[1] + a[1].position[1] + a[2].position[1]) / 3.0,
-                    (a[0].position[2] + a[1].position[2] + a[2].position[2]) / 3.0,
-                    0.0
-                ];
-                let center_b = [
-                    (b[0].position[0] + b[1].position[0] + b[2].position[0]) / 3.0,
-                    (b[0].position[1] + b[1].position[1] + b[2].position[1]) / 3.0,
-                    (b[0].position[2] + b[1].position[2] + b[2].position[2]) / 3.0,
-                    0.0
-                ];
-
-                let distance_a = squared_distance(&center_a, &[self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z, 0.0]);
-                let distance_b = squared_distance(&center_b, &[self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z, 0.0]);
-
-                distance_b.partial_cmp(&distance_a).unwrap_or(std::cmp::Ordering::Equal)
-            });
-
-            chunk_transparent = faces.into_iter().flat_map(|face| face.to_vec()).collect();*/
 
             self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
             self.world_num_vertices = chunk.len() as u32;
         }
         if self.frame % 300 == 150 {
             let mut chunk_transparent: Vec<Vertex> = Vec::new();
-            let world_data_read = self.world_data.lock().unwrap().clone();
 
-            let current_time_world_reset = std::time::Instant::now();
-            for i in &world_data_read.active_chunks {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap().active_chunks.clone();
+            }
+
+            for i in &active_chunk_data {
                 self.vertex_offset_transparent[*i] = chunk_transparent.len() as u64;
                 chunk_transparent.extend(&self.vertex_data_transparent[*i]);
             }
-            let current_time_updated_world_reset = std::time::Instant::now();
-            let update_time_world_reset = current_time_updated_world_reset.duration_since(current_time_world_reset).as_secs_f32();
-            println!("update time transparent: {}ms fps: {}", update_time_world_reset * 1000.0, 1.0 / update_time_world_reset);
 
             self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
             self.world_num_vertices_transparent = chunk_transparent.len() as u32;
