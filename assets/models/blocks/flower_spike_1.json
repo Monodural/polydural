@@ -1,0 +1,11 @@
+{
+    "block_name": "flower_spike_1",
+    "creator": "polydural",
+    "textures": {
+        "all": 32
+    },
+    "shape": "grass",
+    "sides": true,
+    "transparent": true,
+    "collide": false
+}

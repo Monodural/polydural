@@ -1,5 +1,6 @@
 use std:: {iter, mem, vec };
 use cgmath::*;
+use rand::Rng;
 //use futures::sink::Buffer;
 use wgpu::{util::DeviceExt, BindGroup};
 use winit::{
@@ -149,9 +150,13 @@ pub struct RandomnessFunctions {
 }
 impl RandomnessFunctions {
     pub fn new() -> Self {
+        let mut rng = rand::thread_rng();
+        let seed: u32 = rng.gen_range(0..1000000);
+        println!("seed: {}", seed);
+
         RandomnessFunctions {
             //rng: rand::thread_rng(),
-            noise: Perlin::new(78685746)
+            noise: Perlin::new(seed)
         }
     }
 }
@@ -352,7 +357,8 @@ struct State {
     chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
     chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
     chunks: HashMap<(i64, i64, i64), Vec<i8>>,
-    blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>
+    blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
+    render_ui: bool
 }
 
 impl State {
@@ -1379,6 +1385,8 @@ impl State {
 
         let chunks = HashMap::new();
 
+        let render_ui = true;
+
         Self {
             init,
             pipeline,
@@ -1423,7 +1431,8 @@ impl State {
             chunk_data_terrain,
             chunk_data_lighting,
             chunks,
-            blocks
+            blocks,
+            render_ui
         }
     }
 
@@ -1510,11 +1519,12 @@ impl State {
         }
     }
 
-    fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>, mouse_movement: &Vec<f64>, slot_selected: i8) {
+    fn update(&mut self, dt: std::time::Duration, keys_down: &HashMap<&str, bool>, mouse_movement: &Vec<f64>, slot_selected: i8, render_ui: bool) {
         self.frame += 1;
         let current_time = std::time::Instant::now();
         let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
         self.previous_frame_time = current_time;
+        self.render_ui = render_ui;
 
         if let Some(is_pressed) = keys_down.get("right") {
             if is_pressed == &true {
@@ -1599,30 +1609,35 @@ impl State {
                 world_data.active_chunks.clear();
                 self.chunks.clear();
 
-                for x in -4..4 {
-                    for y in -2..2 {
-                        for z in -4..4 {
-                            if ((x as f32).powi(2) + (y as f32).powi(2) + (z as f32).powi(2)).sqrt() > 4.0 {
-                                continue;
-                            }
+                for radius in 0..4 {
+                    for x in -radius..radius+1 {
+                        for y in -2..2 {
+                            for z in -radius..radius+1 {
+                                if z != radius && z != -radius && x != radius && x != -radius {
+                                    continue;
+                                }
+                                if ((x as f32).powi(2) + (y as f32).powi(2) + (z as f32).powi(2)).sqrt() > 4.0 {
+                                    continue;
+                                }
 
-                            let chunk_position_x_with_offset = chunk_position_x as i64 + x;
-                            let chunk_position_y_with_offset = chunk_position_y as i64 + y;
-                            let chunk_position_z_with_offset = chunk_position_z as i64 + z;
-                            if let Some(chunk_index) = world_data.chunk_buffer_index.get(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
-                                let chunk_index = *chunk_index as usize;
-                                self.game_data.active[chunk_index] = true;
-                                world_data.active_chunks.push(chunk_index);
+                                let chunk_position_x_with_offset = chunk_position_x as i64 + x;
+                                let chunk_position_y_with_offset = chunk_position_y as i64 + y;
+                                let chunk_position_z_with_offset = chunk_position_z as i64 + z;
+                                if let Some(chunk_index) = world_data.chunk_buffer_index.get(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
+                                    let chunk_index = *chunk_index as usize;
+                                    self.game_data.active[chunk_index] = true;
+                                    world_data.active_chunks.push(chunk_index);
 
-                                self.chunks.insert(
-                                    (chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset), 
-                                    self.chunk_data_terrain.lock().unwrap()[&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)].clone()
-                                );
-                            } else {
-                                if !world_data.chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) && 
-                                    !world_data.created_chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
-                                    //println!("chunk queue new: {}", world_data.chunk_queue.len());
-                                    world_data.chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+                                    self.chunks.insert(
+                                        (chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset), 
+                                        self.chunk_data_terrain.lock().unwrap()[&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)].clone()
+                                    );
+                                } else {
+                                    if !world_data.chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) && 
+                                        !world_data.created_chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) {
+                                        //println!("chunk queue new: {}", world_data.chunk_queue.len());
+                                        world_data.chunk_queue.insert((chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset));
+                                    }
                                 }
                             }
                         }
@@ -1636,14 +1651,16 @@ impl State {
         }
         if self.frame % 300 == 0 {
             let mut chunk: Vec<Vertex> = Vec::new();
-            let mut chunk_transparent: Vec<Vertex> = Vec::new();
             let world_data_read = self.world_data.lock().unwrap().clone();
+
+            let current_time_world_reset = std::time::Instant::now();
             for i in &world_data_read.active_chunks {
                 self.vertex_offset[*i] = chunk.len() as u64;
-                self.vertex_offset_transparent[*i] = chunk_transparent.len() as u64;
                 chunk.extend(&self.vertex_data[*i]);
-                chunk_transparent.extend(&self.vertex_data_transparent[*i]);
             }
+            let current_time_updated_world_reset = std::time::Instant::now();
+            let update_time_world_reset = current_time_updated_world_reset.duration_since(current_time_world_reset).as_secs_f32();
+            println!("update time solid: {}ms fps: {}", update_time_world_reset * 1000.0, 1.0 / update_time_world_reset);
 
             /*let mut faces: Vec<[Vertex; 3]> = chunk_transparent
                 .chunks_exact(3)
@@ -1673,8 +1690,22 @@ impl State {
             chunk_transparent = faces.into_iter().flat_map(|face| face.to_vec()).collect();*/
 
             self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
-            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
             self.world_num_vertices = chunk.len() as u32;
+        }
+        if self.frame % 300 == 150 {
+            let mut chunk_transparent: Vec<Vertex> = Vec::new();
+            let world_data_read = self.world_data.lock().unwrap().clone();
+
+            let current_time_world_reset = std::time::Instant::now();
+            for i in &world_data_read.active_chunks {
+                self.vertex_offset_transparent[*i] = chunk_transparent.len() as u64;
+                chunk_transparent.extend(&self.vertex_data_transparent[*i]);
+            }
+            let current_time_updated_world_reset = std::time::Instant::now();
+            let update_time_world_reset = current_time_updated_world_reset.duration_since(current_time_world_reset).as_secs_f32();
+            println!("update time transparent: {}ms fps: {}", update_time_world_reset * 1000.0, 1.0 / update_time_world_reset);
+
+            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
             self.world_num_vertices_transparent = chunk_transparent.len() as u32;
         }
 
@@ -1752,40 +1783,41 @@ impl State {
         
         self.init.queue.write_buffer(&self.vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
 
-        //self.game_data.gui_positions[2] = (0.11 * (slot_selected as f32 - 4.0), -0.6, 0.0);
-        if let Some(is_pressed) = keys_down.get("number") {
-            if is_pressed == &true {
-                gui::update_frame(&mut self.game_data, (-0.11 * (slot_selected as f64 - 4.0), -0.6, 0.0), (0.04, 0.04, 0.04), vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]], 2);
-                let mut gui_element: Vec<Vertex> = Vec::new();
-                for i in 0..self.game_data.gui_objects.len() {
-                    gui_element.extend(&self.game_data.gui_objects[i]);
+        if render_ui {
+            if let Some(is_pressed) = keys_down.get("number") {
+                if is_pressed == &true {
+                    gui::update_frame(&mut self.game_data, (-0.11 * (slot_selected as f64 - 4.0), -0.6, 0.0), (0.04, 0.04, 0.04), vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]], 2);
+                    let mut gui_element: Vec<Vertex> = Vec::new();
+                    for i in 0..self.game_data.gui_objects.len() {
+                        gui_element.extend(&self.game_data.gui_objects[i]);
+                    }
+                    self.init.queue.write_buffer(&self.gui_vertex_buffer, 0, bytemuck::cast_slice(&gui_element));
+                    self.gui_num_vertices_ = gui_element.len() as u32;
                 }
-                self.init.queue.write_buffer(&self.gui_vertex_buffer, 0, bytemuck::cast_slice(&gui_element));
-                self.gui_num_vertices_ = gui_element.len() as u32;
             }
+
+            let rotation_x = -self.game_data.camera_rotation.x;
+            let rotation_y = -self.game_data.camera_rotation.y + std::f32::consts::FRAC_PI_2;
+            let rotation_z = -self.game_data.camera_rotation.z;
+
+            let position_x = forward.x + self.game_data.camera_position.x;
+            let position_y = forward.y + self.game_data.camera_position.y;
+            let position_z = forward.z + self.game_data.camera_position.z;
+            let model_mat = transforms::create_transforms(
+                [position_x, position_y, position_z], 
+                [rotation_x, rotation_y, rotation_z], 
+                [1.0, 1.0, 1.0]);
+            let normal_mat = (model_mat.invert().unwrap()).transpose();
+            let model_ref:&[f32; 16] = model_mat.as_ref();
+            let normal_ref:&[f32; 16] = normal_mat.as_ref();
+
+            let mut combined_data = [0u8; 192];
+            combined_data[..64].copy_from_slice(bytemuck::cast_slice(model_ref));
+            combined_data[64..128].copy_from_slice(bytemuck::cast_slice(view_projection_ref));
+            combined_data[128..192].copy_from_slice(bytemuck::cast_slice(normal_ref));
+
+            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 0, &combined_data);
         }
-
-        let rotation_x = -self.game_data.camera_rotation.x;
-        let rotation_y = -self.game_data.camera_rotation.y + std::f32::consts::FRAC_PI_2;
-        let rotation_z = -self.game_data.camera_rotation.z;
-
-        let position_x = forward.x + self.game_data.camera_position.x;
-        let position_y = forward.y + self.game_data.camera_position.y;
-        let position_z = forward.z + self.game_data.camera_position.z;
-        let model_mat = transforms::create_transforms(
-            [position_x, position_y, position_z], 
-            [rotation_x, rotation_y, rotation_z], 
-            [1.0, 1.0, 1.0]);
-        let normal_mat = (model_mat.invert().unwrap()).transpose();
-        let model_ref:&[f32; 16] = model_mat.as_ref();
-        let normal_ref:&[f32; 16] = normal_mat.as_ref();
-
-        let mut combined_data = [0u8; 192];
-        combined_data[..64].copy_from_slice(bytemuck::cast_slice(model_ref));
-        combined_data[64..128].copy_from_slice(bytemuck::cast_slice(view_projection_ref));
-        combined_data[128..192].copy_from_slice(bytemuck::cast_slice(normal_ref));
-
-        self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 0, &combined_data);
 
 
         /*for i in 0..self.game_data.gui_objects.len() {
@@ -1851,9 +1883,9 @@ impl State {
             }
         }*/
 
-        //let current_time_updated = std::time::Instant::now();
-        //let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-        //println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
+        let current_time_updated = std::time::Instant::now();
+        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+        println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
         //println!("fps: {}", 1.0 / update_time);
     }
 
@@ -1932,40 +1964,42 @@ impl State {
             render_pass.set_bind_group(0, &self.world_uniform_bind_group_transparent, &[]);
             render_pass.draw(0..self.world_num_vertices_transparent, 0..1);
 
-            render_pass.set_pipeline(&self.gui_pipeline);
-            render_pass.set_vertex_buffer(0, self.gui_vertex_buffer.slice(..));           
-            render_pass.set_bind_group(0, &self.gui_uniform_bind_group, &[]);
-            render_pass.draw(0..self.gui_num_vertices_, 0..1);
-            /*for i in 0..self.game_data.gui_objects.len() {
-                if !self.game_data.gui_active[i] { continue; }
-                render_pass.set_vertex_buffer(0, self.gui_vertex_buffers[i].slice(..));           
-                render_pass.set_bind_group(0, &self.gui_uniform_bind_groups[i], &[]);
-                render_pass.draw(0..self.gui_num_vertices[i], 0..1);
-            }*/
-            render_pass.set_pipeline(&self.gui_item_block_pipeline);
-            render_pass.set_vertex_buffer(0, self.gui_item_block_vertex_buffer.slice(..));           
-            render_pass.set_bind_group(0, &self.gui_item_block_uniform_bind_group, &[]);
-            render_pass.draw(0..self.gui_item_block_num_vertices_, 0..1);
-            /*for i in 0..self.game_data.gui_item_block_objects.len() {
-                if !self.game_data.gui_item_block_active[i] { continue; }
-                render_pass.set_vertex_buffer(0, self.gui_item_block_vertex_buffers[i].slice(..));           
-                render_pass.set_bind_group(0, &self.gui_item_block_uniform_bind_groups[i], &[]);
-                render_pass.draw(0..self.gui_item_block_num_vertices[i], 0..1);
-            }*/
-            render_pass.set_pipeline(&self.text_pipeline);
-            render_pass.set_vertex_buffer(0, self.text_vertex_buffer.slice(..));           
-            render_pass.set_bind_group(0, &self.text_uniform_bind_group, &[]);
-            render_pass.draw(0..self.text_num_vertices_, 0..1);
-            /*let mut j = 0;
-            for i in 0..self.game_data.text.len() {
-                if !self.game_data.text_active[i] { continue; }
-                for _ in self.game_data.text[i].chars() {
-                    render_pass.set_vertex_buffer(0, self.text_vertex_buffers[j].slice(..));           
-                    render_pass.set_bind_group(0, &self.text_uniform_bind_groups[j], &[]);
-                    render_pass.draw(0..self.text_num_vertices[j], 0..1);
-                    j += 1;
-                }
-            }*/
+            if self.render_ui {
+                render_pass.set_pipeline(&self.gui_pipeline);
+                render_pass.set_vertex_buffer(0, self.gui_vertex_buffer.slice(..));           
+                render_pass.set_bind_group(0, &self.gui_uniform_bind_group, &[]);
+                render_pass.draw(0..self.gui_num_vertices_, 0..1);
+                /*for i in 0..self.game_data.gui_objects.len() {
+                    if !self.game_data.gui_active[i] { continue; }
+                    render_pass.set_vertex_buffer(0, self.gui_vertex_buffers[i].slice(..));           
+                    render_pass.set_bind_group(0, &self.gui_uniform_bind_groups[i], &[]);
+                    render_pass.draw(0..self.gui_num_vertices[i], 0..1);
+                }*/
+                render_pass.set_pipeline(&self.gui_item_block_pipeline);
+                render_pass.set_vertex_buffer(0, self.gui_item_block_vertex_buffer.slice(..));           
+                render_pass.set_bind_group(0, &self.gui_item_block_uniform_bind_group, &[]);
+                render_pass.draw(0..self.gui_item_block_num_vertices_, 0..1);
+                /*for i in 0..self.game_data.gui_item_block_objects.len() {
+                    if !self.game_data.gui_item_block_active[i] { continue; }
+                    render_pass.set_vertex_buffer(0, self.gui_item_block_vertex_buffers[i].slice(..));           
+                    render_pass.set_bind_group(0, &self.gui_item_block_uniform_bind_groups[i], &[]);
+                    render_pass.draw(0..self.gui_item_block_num_vertices[i], 0..1);
+                }*/
+                render_pass.set_pipeline(&self.text_pipeline);
+                render_pass.set_vertex_buffer(0, self.text_vertex_buffer.slice(..));           
+                render_pass.set_bind_group(0, &self.text_uniform_bind_group, &[]);
+                render_pass.draw(0..self.text_num_vertices_, 0..1);
+                /*let mut j = 0;
+                for i in 0..self.game_data.text.len() {
+                    if !self.game_data.text_active[i] { continue; }
+                    for _ in self.game_data.text[i].chars() {
+                        render_pass.set_vertex_buffer(0, self.text_vertex_buffers[j].slice(..));           
+                        render_pass.set_bind_group(0, &self.text_uniform_bind_groups[j], &[]);
+                        render_pass.draw(0..self.text_num_vertices[j], 0..1);
+                        j += 1;
+                    }
+                }*/
+            }
         }
 
         self.init.queue.submit(iter::once(encoder.finish()));
@@ -2319,6 +2353,7 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, invent
     let mut slot_selected: i8 = 0;
     let mut mouse_movement: Vec<f64> = vec![0.0, 0.0];
     let mut mouse_locked = true;
+    let mut render_ui = true;
 
     event_loop.run(move |event, _, control_flow| {
         mouse_movement[0] -= mouse_movement[0] * 0.1;
@@ -2345,6 +2380,7 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, invent
                                         &VirtualKeyCode::A => { keys_down.insert("a", true); }
                                         &VirtualKeyCode::S => { keys_down.insert("s", true); }
                                         &VirtualKeyCode::D => { keys_down.insert("d", true); }
+                                        &VirtualKeyCode::U => { render_ui = !render_ui; }
                                         &VirtualKeyCode::Space => { keys_down.insert("space", true); }
                                         &VirtualKeyCode::Right => { keys_down.insert("right", true); }
                                         &VirtualKeyCode::Left => { keys_down.insert("left", true); }
@@ -2457,7 +2493,7 @@ pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, invent
             Event::RedrawRequested(_) => {
                 let now = std::time::Instant::now();
                 let dt = now - render_start_time;
-                game_state.update(dt, &keys_down, &mouse_movement, slot_selected);
+                game_state.update(dt, &keys_down, &mouse_movement, slot_selected, render_ui);
 
                 match game_state.render() {
                     Ok(_) => {}

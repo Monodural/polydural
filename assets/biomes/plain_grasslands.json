@@ -14,7 +14,9 @@
 
     "trees": [
         ["oak_tree_1", 0.001],
-        ["grass_patch_1", 0.1]
+        ["grass_patch_1", 0.1],
+        ["grass_patch_2", 0.1],
+        ["grass_patch_3", 0.1]
     ],
     "folliage": [
     ],

@@ -13,27 +13,34 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
         light.push(127);
     }
 
+    let chunk_position_x = 32 * chunk_position_x;
+    let chunk_position_y = 32 * chunk_position_y;
+    let chunk_position_z = 32 * chunk_position_z;
+
+    //println!("temp: {:.3} moisture: {}", randomness_functions.noise.get([chunk_position_x as f64 / 1000.0, chunk_position_z as f64 / 1000.0]) as f32 * 50.0 + 30.0, randomness_functions.noise.get([chunk_position_x as f64 / 10000.0, chunk_position_z as f64 / 10000.0]) as f32 * 50.0 + 50.0);
+
     for x in 0..32 {
-        for y in 0..32 {
-            for z in 0..32 {
-                let position_x = (x + 32 * chunk_position_x) as f32;
-                let position_y = (y + 32 * chunk_position_y) as f32;
-                let position_z = (z + 32 * chunk_position_z) as f32;
+        let position_x = (x + chunk_position_x) as f32;
+        for z in 0..32 {
+            let position_z = (z + chunk_position_z) as f32;
 
-                let temperature = randomness_functions.noise.get([position_x as f64 / 1000.0, position_z as f64 / 1000.0]) as f32 * 70.0 - 20.0;
-                let moisture = randomness_functions.noise.get([position_x as f64 / 10000.0, position_z as f64 / 10000.0]) as f32 * 100.0;
+            let temperature = randomness_functions.noise.get([position_x as f64 / 1000.0, position_z as f64 / 1000.0]) as f32 * 50.0 + 30.0;
+            let moisture = randomness_functions.noise.get([position_x as f64 / 10000.0, position_z as f64 / 10000.0]) as f32 * 50.0 + 50.0;
 
-                let mut closest = (10000.0, &"".to_string());
-                let biomes = &world_data.biomes;
+            let mut closest = (10000.0, &"".to_string());
+            let biomes = &world_data.biomes;
 
-                for biome_ in biomes.keys() {
-                    let biome = &biomes[biome_];
-                    let distance_from_params = ((biome.0 as f32 - temperature).powf(2.0) + (biome.1 as f32 - moisture).powf(2.0)).sqrt();
-                    if distance_from_params < closest.0 {
-                        closest.0 = distance_from_params;
-                        closest.1 = biome_;
-                    }
+            for biome_ in biomes.keys() {
+                let biome = &biomes[biome_];
+                let distance_from_params = ((biome.0 as f32 - temperature).powf(2.0) + (biome.1 as f32 - moisture).powf(2.0)).sqrt();
+                if distance_from_params < closest.0 {
+                    closest.0 = distance_from_params;
+                    closest.1 = biome_;
                 }
+            }
+
+            for y in 0..32 {
+                let position_y = (y + chunk_position_y) as f32;
 
                 let block_layers = &world_data.biomes[closest.1].3;
                 let trees = &world_data.biomes[closest.1].5;
@@ -46,8 +53,9 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                     (16.0 + randomness_functions.noise.get([position_x as f64 / 12.5, position_z as f64 / 12.5]) as f32 * 4.0)
                 ) / 5.0).floor();
 
-                if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() > 10.0 && 
-                    randomness_functions.noise.get([position_x as f64 / 12.5, position_y as f64 / 12.5, position_z as f64 / 12.5]) < 0.8 {
+                let cave_noise = randomness_functions.noise.get([position_x as f64 / 25.0, position_y as f64 / 25.0, position_z as f64 / 25.0]);
+
+                if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() > 10.0 && cave_noise < 0.7 {
                     let mut found_layer = false;
                     for layer_ in 0..block_layers.len() {
                         let layer = &block_layers[block_layers.len() - layer_ - 1];
