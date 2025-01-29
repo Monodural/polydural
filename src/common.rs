@@ -304,9 +304,9 @@ impl Vertex {
     }
 }
 
-/*fn squared_distance(a: &[f32; 4], b: &[f32; 4]) -> f32 {
+fn squared_distance(a: &[f32; 4], b: &[f32; 4]) -> f32 {
     (a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)
-}*/
+}
 
 struct State {
     init: transforms::InitWgpu,
@@ -1644,6 +1644,34 @@ impl State {
                 chunk.extend(&self.vertex_data[*i]);
                 chunk_transparent.extend(&self.vertex_data_transparent[*i]);
             }
+
+            /*let mut faces: Vec<[Vertex; 3]> = chunk_transparent
+                .chunks_exact(3)
+                .map(|chunk| [chunk[0].clone(), chunk[1].clone(), chunk[2].clone()])
+                .collect();
+
+            faces.sort_by(|a, b| {
+                let center_a = [
+                    (a[0].position[0] + a[1].position[0] + a[2].position[0]) / 3.0,
+                    (a[0].position[1] + a[1].position[1] + a[2].position[1]) / 3.0,
+                    (a[0].position[2] + a[1].position[2] + a[2].position[2]) / 3.0,
+                    0.0
+                ];
+                let center_b = [
+                    (b[0].position[0] + b[1].position[0] + b[2].position[0]) / 3.0,
+                    (b[0].position[1] + b[1].position[1] + b[2].position[1]) / 3.0,
+                    (b[0].position[2] + b[1].position[2] + b[2].position[2]) / 3.0,
+                    0.0
+                ];
+
+                let distance_a = squared_distance(&center_a, &[self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z, 0.0]);
+                let distance_b = squared_distance(&center_b, &[self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z, 0.0]);
+
+                distance_b.partial_cmp(&distance_a).unwrap_or(std::cmp::Ordering::Equal)
+            });
+
+            chunk_transparent = faces.into_iter().flat_map(|face| face.to_vec()).collect();*/
+
             self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
             self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
             self.world_num_vertices = chunk.len() as u32;
@@ -1823,9 +1851,9 @@ impl State {
             }
         }*/
 
-        let current_time_updated = std::time::Instant::now();
-        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-        println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
+        //let current_time_updated = std::time::Instant::now();
+        //let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+        //println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
         //println!("fps: {}", 1.0 / update_time);
     }
 

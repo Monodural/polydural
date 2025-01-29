@@ -133,7 +133,7 @@ fn main(){
 
     thread::spawn(move || {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
-        let update_interval = Duration::from_millis(5);
+        let update_interval = Duration::from_millis(1);
         loop {
             let start_time = Instant::now();
             {   
