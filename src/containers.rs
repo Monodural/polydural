@@ -11,12 +11,12 @@ impl Inventory {
             hotbar_slots: vec![
                 ("dirt".to_string(), 9), 
                 ("grass_1".to_string(), 9), 
-                ("grass_2".to_string(), 9), 
+                ("cactus".to_string(), 9), 
                 ("oak_leaves".to_string(), 9), 
                 ("oak_log".to_string(), 9), 
                 ("stone".to_string(), 9), 
                 ("sand_1".to_string(), 9), 
-                ("sand_2".to_string(), 9), 
+                ("stone_cobbled".to_string(), 9), 
                 ("oak_glass".to_string(), 9)
             ]
         }

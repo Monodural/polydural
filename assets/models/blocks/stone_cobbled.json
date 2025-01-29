@@ -1,0 +1,11 @@
+{
+    "block_name": "stone_cobbled",
+    "creator": "polydural",
+    "textures": {
+        "all": 2
+    },
+    "shape": "default",
+    "sides": false,
+    "transparent": false,
+    "collide": true
+}
