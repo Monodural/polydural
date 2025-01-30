@@ -9,14 +9,14 @@ impl Inventory {
     pub fn new() -> Self {
         Inventory {
             hotbar_slots: vec![
-                ("dirt".to_string(), 9), 
-                ("grass_1".to_string(), 9), 
-                ("cactus".to_string(), 9), 
-                ("oak_leaves".to_string(), 9), 
-                ("oak_log".to_string(), 9), 
-                ("stone".to_string(), 9), 
-                ("sand_1".to_string(), 9), 
-                ("stone_cobbled".to_string(), 9), 
+                ("dirt".to_string(), 1), 
+                ("grass_1".to_string(), 2), 
+                ("cactus".to_string(), 3), 
+                ("oak_leaves".to_string(), 4), 
+                ("oak_log".to_string(), 5), 
+                ("stone".to_string(), 6), 
+                ("sand_1".to_string(), 7), 
+                ("stone_cobbled".to_string(), 8), 
                 ("oak_glass".to_string(), 9)
             ]
         }

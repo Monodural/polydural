@@ -1306,8 +1306,17 @@ impl State {
                     'z' => { uvs = vec![[0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.296 + 0.252]]; }
                     _ => {}
                 }
+                println!("pos: {} {}", game_data.text_positions[i].0, game_data.text_positions[i].1);
+                println!("siz: {} {}", game_data.text_scale[i].0, game_data.text_scale[i].1);
                 let vertex_data = create_vertices(
-                    vec![[-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]], 
+                    vec![
+                                    [-1.0 * game_data.text_scale[i].0 as f64, 1.0 * game_data.text_positions[i].1 as f64, 1.0], 
+                                    [1.0 * game_data.text_scale[i].0 as f64, 1.0 * game_data.text_positions[i].1 as f64, 1.0], 
+                                    [1.0 * game_data.text_scale[i].0 as f64, -1.0 * game_data.text_positions[i].1 as f64, 1.0], 
+                                    [-1.0 * game_data.text_scale[i].0 as f64, 1.0 * game_data.text_positions[i].1 as f64, 1.0], 
+                                    [1.0 * game_data.text_scale[i].0 as f64, -1.0 * game_data.text_positions[i].1 as f64, 1.0], 
+                                    [-1.0 * game_data.text_scale[i].0 as f64, -1.0 * game_data.text_positions[i].1 as f64, 1.0]
+                                ], 
                     vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
                     vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
                     uvs
@@ -1759,6 +1768,7 @@ impl State {
             combined_data[128..192].copy_from_slice(bytemuck::cast_slice(normal_ref));
 
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 0, &combined_data);
+            self.init.queue.write_buffer(&self.text_vertex_uniform_buffer, 0, &combined_data);
         }
 
 
