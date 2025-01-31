@@ -355,8 +355,8 @@ struct State {
 
 impl State {
     fn create_object_gui(
-        game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        init: &transforms::InitWgpu, light_data: Light, 
+        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -473,20 +473,12 @@ impl State {
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        let num_vertices = 0;
 
-        /*let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: cast_slice(&game_data.gui_objects[i]),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        let num_vertices = game_data.gui_objects[i].len() as u32;*/
-
-        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
+        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer)
     }
     fn create_object_text(
         _game_data: &GameData, init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -603,20 +595,12 @@ impl State {
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        let num_vertices = 0;
 
-        /*let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: cast_slice(&vertex_data),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        let num_vertices = vertex_data.len() as u32;*/
-
-        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
+        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer)
     }
     fn create_object_gui_item_block(
         init: &transforms::InitWgpu, light_data: Light, 
-        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer, u32) {
+        uniform_bind_group_layout: &wgpu::BindGroupLayout) -> (BindGroup, wgpu::Buffer, wgpu::Buffer) {
         // create vertex uniform buffer
         // model_mat and view_projection_mat will be stored in vertex_uniform_buffer inside the update function
         let vertex_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
@@ -733,16 +717,8 @@ impl State {
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        let num_vertices = 0;
 
-        /*let vertex_buffer = init.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: cast_slice(&game_data.gui_item_block_objects[i]),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        let num_vertices = game_data.gui_item_block_objects[i].len() as u32;*/
-
-        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices)
+        return (uniform_bind_group, vertex_uniform_buffer, vertex_buffer)
     }
     fn create_world_buffer(
         init: &transforms::InitWgpu, light_data: Light, 
@@ -1169,102 +1145,26 @@ impl State {
         let (world_uniform_bind_group_transparent, world_vertex_buffer_transparent, world_num_vertices_transparent, world_fragment_buffer_transparent) = 
             Self::create_world_buffer(&init, light_data, &uniform_bind_group_layout, &world_data, &vertex_uniform_buffer);
 
-        /*let mut gui_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
-        let mut gui_num_vertices: Vec<u32> = Vec::new();
-        let mut gui_uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
-        let mut gui_vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
-
-        for i in 0..game_data.gui_objects.len() {
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = 
-                Self::create_object_gui(&game_data, &init, light_data, &uniform_bind_group_layout, i);
-            gui_vertex_buffers.push(vertex_buffer);
-            gui_num_vertices.push(num_vertices_);
-            gui_uniform_bind_groups.push(uniform_bind_group);
-            gui_vertex_uniform_buffers.push(vertex_uniform_buffer);
-        }*/
-
         let (
             gui_uniform_bind_group, 
             gui_vertex_uniform_buffer, 
-            gui_vertex_buffer, 
-            mut gui_num_vertices_
-        ) = Self::create_object_gui(&game_data, &init, light_data, &uniform_bind_group_layout);
+            gui_vertex_buffer
+        ) = Self::create_object_gui(&init, light_data, &uniform_bind_group_layout);
         let mut gui_element: Vec<Vertex> = Vec::new();
         for i in 0..game_data.gui_objects.len() {
             gui_element.extend(&game_data.gui_objects[i]);
         }
         init.queue.write_buffer(&gui_vertex_buffer, 0, bytemuck::cast_slice(&gui_element));
-        gui_num_vertices_ = gui_element.len() as u32;
-
-        /*let mut text_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
-        let mut text_num_vertices: Vec<u32> = Vec::new();
-        let mut text_uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
-        let mut text_vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
-
-        for i in 0..game_data.text.len() {
-            for character in game_data.text[i].chars() {
-                let mut uvs = vec![[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]];
-                match character {
-                    '1' => { uvs = vec![[0.039 + 0.000, 0.242], [0.015 + 0.000, 0.242], [0.015 + 0.000, 0.296], [0.039 + 0.000, 0.242], [0.015 + 0.000, 0.296], [0.039 + 0.000, 0.296]]; }
-                    '2' => { uvs = vec![[0.046 + 0.031, 0.242], [0.015 + 0.031, 0.242], [0.015 + 0.031, 0.296], [0.046 + 0.031, 0.242], [0.015 + 0.031, 0.296], [0.046 + 0.031, 0.296]]; }
-                    '3' => { uvs = vec![[0.046 + 0.070, 0.242], [0.015 + 0.070, 0.242], [0.015 + 0.070, 0.296], [0.046 + 0.070, 0.242], [0.015 + 0.070, 0.296], [0.046 + 0.070, 0.296]]; }
-                    '4' => { uvs = vec![[0.046 + 0.109, 0.242], [0.015 + 0.109, 0.242], [0.015 + 0.109, 0.296], [0.046 + 0.109, 0.242], [0.015 + 0.109, 0.296], [0.046 + 0.109, 0.296]]; }
-                    '5' => { uvs = vec![[0.046 + 0.148, 0.242], [0.015 + 0.148, 0.242], [0.015 + 0.148, 0.296], [0.046 + 0.148, 0.242], [0.015 + 0.148, 0.296], [0.046 + 0.148, 0.296]]; }
-                    '6' => { uvs = vec![[0.046 + 0.188, 0.242], [0.015 + 0.188, 0.242], [0.015 + 0.188, 0.296], [0.046 + 0.188, 0.242], [0.015 + 0.188, 0.296], [0.046 + 0.188, 0.296]]; }
-                    '7' => { uvs = vec![[0.046 + 0.227, 0.242], [0.015 + 0.227, 0.242], [0.015 + 0.227, 0.296], [0.046 + 0.227, 0.242], [0.015 + 0.227, 0.296], [0.046 + 0.227, 0.296]]; }
-                    '8' => { uvs = vec![[0.046 + 0.266, 0.242], [0.015 + 0.266, 0.242], [0.015 + 0.266, 0.296], [0.046 + 0.266, 0.242], [0.015 + 0.266, 0.296], [0.046 + 0.266, 0.296]]; }
-                    '9' => { uvs = vec![[0.046 + 0.305, 0.242], [0.015 + 0.305, 0.242], [0.015 + 0.305, 0.296], [0.046 + 0.305, 0.242], [0.015 + 0.305, 0.296], [0.046 + 0.305, 0.296]]; }
-                    '0' => { uvs = vec![[0.046 + 0.344, 0.242], [0.015 + 0.344, 0.242], [0.015 + 0.344, 0.296], [0.046 + 0.344, 0.242], [0.015 + 0.344, 0.296], [0.046 + 0.344, 0.296]]; }
-                    'a' => { uvs = vec![[0.039 + 0.000, 0.242 + 0.063], [0.008 + 0.000, 0.242 + 0.063], [0.008 + 0.000, 0.296 + 0.063], [0.039 + 0.000, 0.242 + 0.063], [0.008 + 0.000, 0.296 + 0.063], [0.039 + 0.000, 0.296 + 0.063]]; }
-                    'b' => { uvs = vec![[0.039 + 0.039, 0.242 + 0.063], [0.008 + 0.039, 0.242 + 0.063], [0.008 + 0.039, 0.296 + 0.063], [0.039 + 0.039, 0.242 + 0.063], [0.008 + 0.039, 0.296 + 0.063], [0.039 + 0.039, 0.296 + 0.063]]; }
-                    'c' => { uvs = vec![[0.039 + 0.078, 0.242 + 0.063], [0.008 + 0.078, 0.242 + 0.063], [0.008 + 0.078, 0.296 + 0.063], [0.039 + 0.078, 0.242 + 0.063], [0.008 + 0.078, 0.296 + 0.063], [0.039 + 0.078, 0.296 + 0.063]]; }
-                    'd' => { uvs = vec![[0.039 + 0.117, 0.242 + 0.063], [0.008 + 0.117, 0.242 + 0.063], [0.008 + 0.117, 0.296 + 0.063], [0.039 + 0.117, 0.242 + 0.063], [0.008 + 0.117, 0.296 + 0.063], [0.039 + 0.117, 0.296 + 0.063]]; }
-                    'e' => { uvs = vec![[0.039 + 0.156, 0.242 + 0.063], [0.008 + 0.156, 0.242 + 0.063], [0.008 + 0.156, 0.296 + 0.063], [0.039 + 0.156, 0.242 + 0.063], [0.008 + 0.156, 0.296 + 0.063], [0.039 + 0.156, 0.296 + 0.063]]; }
-                    'f' => { uvs = vec![[0.039 + 0.195, 0.242 + 0.063], [0.008 + 0.195, 0.242 + 0.063], [0.008 + 0.195, 0.296 + 0.063], [0.039 + 0.195, 0.242 + 0.063], [0.008 + 0.195, 0.296 + 0.063], [0.039 + 0.195, 0.296 + 0.063]]; }
-                    'g' => { uvs = vec![[0.039 + 0.234, 0.242 + 0.063], [0.008 + 0.234, 0.242 + 0.063], [0.008 + 0.234, 0.296 + 0.063], [0.039 + 0.234, 0.242 + 0.063], [0.008 + 0.234, 0.296 + 0.063], [0.039 + 0.234, 0.296 + 0.063]]; }
-                    'h' => { uvs = vec![[0.039 + 0.273, 0.242 + 0.063], [0.008 + 0.273, 0.242 + 0.063], [0.008 + 0.273, 0.296 + 0.063], [0.039 + 0.273, 0.242 + 0.063], [0.008 + 0.273, 0.296 + 0.063], [0.039 + 0.273, 0.296 + 0.063]]; }
-                    'i' => { uvs = vec![[0.039 + 0.312, 0.242 + 0.063], [0.015 + 0.312, 0.242 + 0.063], [0.015 + 0.312, 0.296 + 0.063], [0.039 + 0.312, 0.242 + 0.063], [0.015 + 0.312, 0.296 + 0.063], [0.039 + 0.312, 0.296 + 0.063]]; }
-                    'j' => { uvs = vec![[0.039 + 0.351, 0.242 + 0.063], [0.008 + 0.351, 0.242 + 0.063], [0.008 + 0.351, 0.296 + 0.063], [0.039 + 0.351, 0.242 + 0.063], [0.008 + 0.351, 0.296 + 0.063], [0.039 + 0.351, 0.296 + 0.063]]; }
-                    'k' => { uvs = vec![[0.039 + 0.000, 0.242 + 0.126], [0.008 + 0.000, 0.242 + 0.126], [0.008 + 0.000, 0.296 + 0.126], [0.039 + 0.000, 0.242 + 0.126], [0.008 + 0.000, 0.296 + 0.126], [0.039 + 0.000, 0.296 + 0.126]]; }
-                    'l' => { uvs = vec![[0.039 + 0.039, 0.242 + 0.126], [0.008 + 0.039, 0.242 + 0.126], [0.008 + 0.039, 0.296 + 0.126], [0.039 + 0.039, 0.242 + 0.126], [0.008 + 0.039, 0.296 + 0.126], [0.039 + 0.039, 0.296 + 0.126]]; }
-                    'm' => { uvs = vec![[0.046 + 0.078, 0.242 + 0.126], [0.008 + 0.078, 0.242 + 0.126], [0.008 + 0.078, 0.296 + 0.126], [0.046 + 0.078, 0.242 + 0.126], [0.008 + 0.078, 0.296 + 0.126], [0.046 + 0.078, 0.296 + 0.126]]; }
-                    'n' => { uvs = vec![[0.039 + 0.156, 0.242 + 0.126], [0.008 + 0.156, 0.242 + 0.126], [0.008 + 0.156, 0.296 + 0.126], [0.039 + 0.156, 0.242 + 0.126], [0.008 + 0.156, 0.296 + 0.126], [0.039 + 0.156, 0.296 + 0.126]]; }
-                    'o' => { uvs = vec![[0.039 + 0.195, 0.242 + 0.126], [0.008 + 0.195, 0.242 + 0.126], [0.008 + 0.195, 0.296 + 0.126], [0.039 + 0.195, 0.242 + 0.126], [0.008 + 0.195, 0.296 + 0.126], [0.039 + 0.195, 0.296 + 0.126]]; }
-                    'p' => { uvs = vec![[0.039 + 0.234, 0.242 + 0.126], [0.008 + 0.234, 0.242 + 0.126], [0.008 + 0.234, 0.296 + 0.126], [0.039 + 0.234, 0.242 + 0.126], [0.008 + 0.234, 0.296 + 0.126], [0.039 + 0.234, 0.296 + 0.126]]; }
-                    'q' => { uvs = vec![[0.039 + 0.273, 0.242 + 0.126], [0.008 + 0.273, 0.242 + 0.126], [0.008 + 0.273, 0.296 + 0.126], [0.039 + 0.273, 0.242 + 0.126], [0.008 + 0.273, 0.296 + 0.126], [0.039 + 0.273, 0.296 + 0.126]]; }
-                    'r' => { uvs = vec![[0.039 + 0.312, 0.242 + 0.126], [0.008 + 0.312, 0.242 + 0.126], [0.008 + 0.312, 0.296 + 0.126], [0.039 + 0.312, 0.242 + 0.126], [0.008 + 0.312, 0.296 + 0.126], [0.039 + 0.312, 0.296 + 0.126]]; }
-                    's' => { uvs = vec![[0.039 + 0.351, 0.242 + 0.126], [0.008 + 0.351, 0.242 + 0.126], [0.008 + 0.351, 0.296 + 0.126], [0.039 + 0.351, 0.242 + 0.126], [0.008 + 0.351, 0.296 + 0.126], [0.039 + 0.351, 0.296 + 0.126]]; }
-                    't' => { uvs = vec![[0.039 + 0.000, 0.242 + 0.189], [0.015 + 0.000, 0.242 + 0.189], [0.015 + 0.000, 0.296 + 0.189], [0.039 + 0.000, 0.242 + 0.189], [0.015 + 0.000, 0.296 + 0.189], [0.039 + 0.000, 0.296 + 0.189]]; }
-                    'u' => { uvs = vec![[0.039 + 0.078, 0.242 + 0.189], [0.008 + 0.078, 0.242 + 0.189], [0.008 + 0.078, 0.296 + 0.189], [0.039 + 0.078, 0.242 + 0.189], [0.008 + 0.078, 0.296 + 0.189], [0.039 + 0.078, 0.296 + 0.189]]; }
-                    'v' => { uvs = vec![[0.046 + 0.156, 0.242 + 0.189], [0.008 + 0.156, 0.242 + 0.189], [0.008 + 0.156, 0.296 + 0.189], [0.046 + 0.156, 0.242 + 0.189], [0.008 + 0.156, 0.296 + 0.189], [0.046 + 0.156, 0.296 + 0.189]]; }
-                    'w' => { uvs = vec![[0.046 + 0.234, 0.242 + 0.189], [0.008 + 0.234, 0.242 + 0.189], [0.008 + 0.234, 0.296 + 0.189], [0.046 + 0.234, 0.242 + 0.189], [0.008 + 0.234, 0.296 + 0.189], [0.046 + 0.234, 0.296 + 0.189]]; }
-                    'x' => { uvs = vec![[0.046 + 0.312, 0.242 + 0.189], [0.008 + 0.312, 0.242 + 0.189], [0.008 + 0.312, 0.296 + 0.189], [0.046 + 0.312, 0.242 + 0.189], [0.008 + 0.312, 0.296 + 0.189], [0.046 + 0.312, 0.296 + 0.189]]; }
-                    'y' => { uvs = vec![[0.046 + 0.000, 0.242 + 0.252], [0.008 + 0.000, 0.242 + 0.252], [0.008 + 0.000, 0.296 + 0.252], [0.046 + 0.000, 0.242 + 0.252], [0.008 + 0.000, 0.296 + 0.252], [0.046 + 0.000, 0.296 + 0.252]]; }
-                    'z' => { uvs = vec![[0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.296 + 0.252]]; }
-                    _ => {}
-                }
-                let vertex_data = create_vertices(
-                    vec![[-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]], 
-                    vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
-                    vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
-                    uvs
-                );
-                let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_text(&game_data, &init, light_data, &uniform_bind_group_layout, i, vertex_data);
-                text_vertex_buffers.push(vertex_buffer);
-                text_num_vertices.push(num_vertices_);
-                text_uniform_bind_groups.push(uniform_bind_group);
-                text_vertex_uniform_buffers.push(vertex_uniform_buffer);
-            }
-        }*/
+        let gui_num_vertices_ = gui_element.len() as u32;
 
         let (
             text_uniform_bind_group, 
             text_vertex_uniform_buffer, 
-            text_vertex_buffer, 
-            mut text_num_vertices_
+            text_vertex_buffer
         ) = Self::create_object_text(&game_data, &init, light_data, &uniform_bind_group_layout);
         let mut text_characters: Vec<Vertex> = Vec::new();
         for i in 0..game_data.text.len() {
+            let mut character_offset = 1.0;
             for character in game_data.text[i].chars() {
                 let mut uvs = vec![[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]];
                 match character {
@@ -1306,26 +1206,25 @@ impl State {
                     'z' => { uvs = vec![[0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.242 + 0.252], [0.008 + 0.078, 0.296 + 0.252], [0.046 + 0.078, 0.296 + 0.252]]; }
                     _ => {}
                 }
-                println!("pos: {} {}", game_data.text_positions[i].0, game_data.text_positions[i].1);
-                println!("siz: {} {}", game_data.text_scale[i].0, game_data.text_scale[i].1);
                 let vertex_data = create_vertices(
                     vec![
-                                    [-1.0 * game_data.text_scale[i].0 as f64, 1.0 * game_data.text_positions[i].1 as f64, 1.0], 
-                                    [1.0 * game_data.text_scale[i].0 as f64, 1.0 * game_data.text_positions[i].1 as f64, 1.0], 
-                                    [1.0 * game_data.text_scale[i].0 as f64, -1.0 * game_data.text_positions[i].1 as f64, 1.0], 
-                                    [-1.0 * game_data.text_scale[i].0 as f64, 1.0 * game_data.text_positions[i].1 as f64, 1.0], 
-                                    [1.0 * game_data.text_scale[i].0 as f64, -1.0 * game_data.text_positions[i].1 as f64, 1.0], 
-                                    [-1.0 * game_data.text_scale[i].0 as f64, -1.0 * game_data.text_positions[i].1 as f64, 1.0]
+                                    [(-1.0 - character_offset) * game_data.text_scale[i].0 as f64 - game_data.text_positions[i].0 as f64, 1.0 * game_data.text_scale[i].1 as f64 + game_data.text_positions[i].1 as f64, 1.0], 
+                                    [(1.0 - character_offset) * game_data.text_scale[i].0 as f64 - game_data.text_positions[i].0 as f64, 1.0 * game_data.text_scale[i].1 as f64 + game_data.text_positions[i].1 as f64, 1.0], 
+                                    [(1.0 - character_offset) * game_data.text_scale[i].0 as f64 - game_data.text_positions[i].0 as f64, -1.0 * game_data.text_scale[i].1 as f64 + game_data.text_positions[i].1 as f64, 1.0], 
+                                    [(-1.0 - character_offset) * game_data.text_scale[i].0 as f64 - game_data.text_positions[i].0 as f64, 1.0 * game_data.text_scale[i].1 as f64 + game_data.text_positions[i].1 as f64, 1.0], 
+                                    [(1.0 - character_offset) * game_data.text_scale[i].0 as f64 - game_data.text_positions[i].0 as f64, -1.0 * game_data.text_scale[i].1 as f64 + game_data.text_positions[i].1 as f64, 1.0], 
+                                    [(-1.0 - character_offset) * game_data.text_scale[i].0 as f64 - game_data.text_positions[i].0 as f64, -1.0 * game_data.text_scale[i].1 as f64 + game_data.text_positions[i].1 as f64, 1.0]
                                 ], 
                     vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
                     vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
                     uvs
                 );
                 text_characters.extend(vertex_data);
+                character_offset += 2.5;
             }
         }
         init.queue.write_buffer(&text_vertex_buffer, 0, bytemuck::cast_slice(&text_characters));
-        text_num_vertices_ = text_characters.len() as u32;
+        let text_num_vertices_ = text_characters.len() as u32;
 
         /*let mut gui_item_block_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
         let mut gui_item_block_num_vertices: Vec<u32> = Vec::new();
@@ -1343,15 +1242,14 @@ impl State {
         let (
             gui_item_block_uniform_bind_group, 
             gui_item_block_vertex_uniform_buffer, 
-            gui_item_block_vertex_buffer, 
-            mut gui_item_block_num_vertices_
+            gui_item_block_vertex_buffer
         ) = Self::create_object_gui_item_block(&init, light_data, &uniform_bind_group_layout);
         let mut gui_item_blocks: Vec<Vertex> = Vec::new();
         for i in 0..game_data.gui_item_block_objects.len() {
             gui_item_blocks.extend(&game_data.gui_item_block_objects[i]);
         }
         init.queue.write_buffer(&gui_item_block_vertex_buffer, 0, bytemuck::cast_slice(&gui_item_blocks));
-        gui_item_block_num_vertices_ = gui_item_blocks.len() as u32;
+        let gui_item_block_num_vertices_ = gui_item_blocks.len() as u32;
 
         let previous_frame_time = std::time::Instant::now();
 
@@ -1737,7 +1635,7 @@ impl State {
         if render_ui {
             if let Some(is_pressed) = keys_down.get("number") {
                 if is_pressed == &true {
-                    update_frame(&mut self.game_data, (-0.11 * (slot_selected as f64 - 4.0), -0.6, 0.0), (0.04, 0.04, 0.04), vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]], 2);
+                    update_frame(&mut self.game_data, (-0.11 * (slot_selected as f64 - 4.0), -0.6, 0.0), (0.04, 0.04, 0.04), [0.5, 0.5, 0.5], vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]], 2);
                     let mut gui_element: Vec<Vertex> = Vec::new();
                     for i in 0..self.game_data.gui_objects.len() {
                         gui_element.extend(&self.game_data.gui_objects[i]);
@@ -1768,72 +1666,9 @@ impl State {
             combined_data[128..192].copy_from_slice(bytemuck::cast_slice(normal_ref));
 
             self.init.queue.write_buffer(&self.gui_vertex_uniform_buffer, 0, &combined_data);
+            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffer, 0, &combined_data);
             self.init.queue.write_buffer(&self.text_vertex_uniform_buffer, 0, &combined_data);
         }
-
-
-        /*for i in 0..self.game_data.gui_objects.len() {
-            let position_x = gui_offset_normal.x.x * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.x * self.game_data.gui_positions[i].1 + forward.x + self.game_data.camera_position.x;
-            let position_y = gui_offset_normal.x.y * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.y * self.game_data.gui_positions[i].1 + forward.y + self.game_data.camera_position.y;
-            let position_z = gui_offset_normal.x.z * -self.game_data.gui_positions[i].0 + gui_offset_normal.y.z * self.game_data.gui_positions[i].1 + forward.z + self.game_data.camera_position.z;
-            let model_mat = transforms::create_transforms(
-                [position_x, position_y, position_z], 
-                [rotation_x, rotation_y, rotation_z], 
-                [self.game_data.gui_scale[i].0, self.game_data.gui_scale[i].1, self.game_data.gui_scale[i].2]);
-            let normal_mat = (model_mat.invert().unwrap()).transpose();
-            let model_ref:&[f32; 16] = model_mat.as_ref();
-            let normal_ref:&[f32; 16] = normal_mat.as_ref();
-
-            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
-            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
-            self.init.queue.write_buffer(&self.gui_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
-        }*/
-        /*for i in 0..self.game_data.gui_item_block_objects.len() {
-            let position_x = gui_offset_normal.x.x * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.x * self.game_data.gui_item_block_positions[i].1 + forward.x + self.game_data.camera_position.x;
-            let position_y = gui_offset_normal.x.y * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.y * self.game_data.gui_item_block_positions[i].1 + forward.y + self.game_data.camera_position.y;
-            let position_z = gui_offset_normal.x.z * -self.game_data.gui_item_block_positions[i].0 + gui_offset_normal.y.z * self.game_data.gui_item_block_positions[i].1 + forward.z + self.game_data.camera_position.z;
-            let model_mat = transforms::create_transforms(
-                [
-                    position_x, 
-                    position_y, 
-                    position_z
-                ], 
-                [
-                    0.0, 
-                    0.0, 
-                    0.0
-                ], 
-                [self.game_data.gui_item_block_scale[i].0, self.game_data.gui_item_block_scale[i].1, self.game_data.gui_item_block_scale[i].2]);
-            let normal_mat = (model_mat.invert().unwrap()).transpose();
-            let model_ref:&[f32; 16] = model_mat.as_ref();
-            let normal_ref:&[f32; 16] = normal_mat.as_ref();
-
-            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
-            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 64, bytemuck::cast_slice(view_projection_ref));
-            self.init.queue.write_buffer(&self.gui_item_block_vertex_uniform_buffers[i], 128, bytemuck::cast_slice(normal_ref));
-        }
-        let mut j = 0;
-        for i in 0..self.game_data.text.len() {
-            let mut character_offset = 0.0;
-            for _ in self.game_data.text[i].chars() {
-                let position_x = gui_offset_normal.x.x * (-self.game_data.text_positions[i].0 + character_offset) + gui_offset_normal.y.x * self.game_data.text_positions[i].1 + forward.x + self.game_data.camera_position.x;
-                let position_y = gui_offset_normal.x.y * (-self.game_data.text_positions[i].0 + character_offset) + gui_offset_normal.y.y * self.game_data.text_positions[i].1 + forward.y + self.game_data.camera_position.y;
-                let position_z = gui_offset_normal.x.z * (-self.game_data.text_positions[i].0 + character_offset) + gui_offset_normal.y.z * self.game_data.text_positions[i].1 + forward.z + self.game_data.camera_position.z;
-                let model_mat = transforms::create_transforms(
-                    [position_x, position_y, position_z], 
-                    [rotation_x, rotation_y, rotation_z], 
-                    [self.game_data.text_scale[i].0, self.game_data.text_scale[i].1, self.game_data.text_scale[i].2]);
-                character_offset -= self.game_data.text_scale[i].0 * 2.5;
-                let normal_mat = (model_mat.invert().unwrap()).transpose();
-                let model_ref:&[f32; 16] = model_mat.as_ref();
-                let normal_ref:&[f32; 16] = normal_mat.as_ref();
-
-                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 0, bytemuck::cast_slice(model_ref));
-                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 64, bytemuck::cast_slice(view_projection_ref));
-                self.init.queue.write_buffer(&self.text_vertex_uniform_buffers[j], 128, bytemuck::cast_slice(normal_ref));
-                j += 1;
-            }
-        }*/
 
         //let current_time_updated = std::time::Instant::now();
         //let update_time = current_time_updated.duration_since(current_time).as_secs_f32();

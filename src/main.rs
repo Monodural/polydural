@@ -66,33 +66,35 @@ fn main(){
         println!("loading audio files");
         common::load_audio_files(&world_data_thread, modding_allowed);
         println!("loaded audio files");
-
-        /*let world_data_audio = world_data_thread.lock().unwrap().clone();
-        sounds::play_audio(world_data_audio.audio_files[3].clone());
-        sounds::play_audio(world_data_audio.audio_files[0].clone());*/
     }
 
-    // add a test string
-    game_data.add_text_object((-0.46, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
-    game_data.add_text_object((-0.347, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
-    game_data.add_text_object((-0.235, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
-    game_data.add_text_object((-0.122, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
-    game_data.add_text_object((-0.01, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
-    game_data.add_text_object((0.10, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
-    game_data.add_text_object((0.215, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
-    game_data.add_text_object((0.325, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
-    game_data.add_text_object((0.44, -0.62, 0.0), (0.01, 0.02, 0.02), true, " 0".to_string());
+    // add text elements
+    game_data.add_text_object((-0.44 * 2.0 - 0.04, -0.62 * 2.0 + 0.025, 0.0), (0.02, 0.04, 0.04), true, " 0".to_string());
+    game_data.add_text_object((-0.33 * 2.0 - 0.04, -0.62 * 2.0 + 0.025, 0.0), (0.02, 0.04, 0.04), true, " 0".to_string());
+    game_data.add_text_object((-0.22 * 2.0 - 0.04, -0.62 * 2.0 + 0.025, 0.0), (0.02, 0.04, 0.04), true, " 0".to_string());
+    game_data.add_text_object((-0.11 * 2.0 - 0.04, -0.62 * 2.0 + 0.025, 0.0), (0.02, 0.04, 0.04), true, " 0".to_string());
+    game_data.add_text_object((0.0 * 2.0 - 0.04, -0.62 * 2.0 + 0.025, 0.0), (0.02, 0.04, 0.04), true, " 0".to_string());
+    game_data.add_text_object((0.11 * 2.0 - 0.04, -0.62 * 2.0 + 0.025, 0.0), (0.02, 0.04, 0.04), true, " 0".to_string());
+    game_data.add_text_object((0.22 * 2.0 - 0.04, -0.62 * 2.0 + 0.025, 0.0), (0.02, 0.04, 0.04), true, " 0".to_string());
+    game_data.add_text_object((0.33 * 2.0 - 0.04, -0.62 * 2.0 + 0.025, 0.0), (0.02, 0.04, 0.04), true, " 0".to_string());
+    game_data.add_text_object((0.44 * 2.0 - 0.04, -0.62 * 2.0 + 0.025, 0.0), (0.02, 0.04, 0.04), true, " 0".to_string());
 
+    // add items to hotbar
     for slot in 0..inventory.hotbar_slots.len() {
         let slot_data = inventory.hotbar_slots[slot].clone();
         let mut slot_number = format!("{}", slot_data.1);
+        if slot_number == "1" {
+            slot_number = format!("");
+        }
         if slot_number.len() == 1 {
             slot_number = format!(" {}", slot_number);
         }
         game_data.text[slot] = slot_number;
 
         let world_data_thread = Arc::clone(&world_data);
-        let vertex_data_items = containers::Inventory::render_item_block(world_data_thread, slot_data.0);
+        let vertex_data_items = containers::Inventory::render_item_block(
+            world_data_thread, slot_data.0, (0.11 * (slot as f64 - 4.0), -0.6, 0.0), (0.02, 0.02, 0.02)
+        );
         let vertex_data = create_vertices(
             vertex_data_items.0, vertex_data_items.2, vertex_data_items.3, vertex_data_items.1
         );
@@ -100,30 +102,9 @@ fn main(){
     }
 
     // add gui elements
-    gui::create_frame(&mut game_data, (0.0, 0.0, 0.0), (0.02, 0.02, 0.02), vec![[0.0, 0.0], [0.046, 0.0], [0.046, 0.046], [0.0, 0.0], [0.046, 0.046], [0.0, 0.046]]);
-    gui::create_frame(&mut game_data, (0.0, -0.6, 0.0), (0.5, 0.06, 0.06), vec![[0.007, 0.13], [0.79, 0.13], [0.79, 0.23], [0.007, 0.13], [0.79, 0.23], [0.007, 0.23]]);
-    gui::create_frame(&mut game_data, (0.44, -0.6, 0.0), (0.04, 0.04, 0.04), vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]]);
-    /*let vertex_data = create_vertices(
-        vec![[-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, 1.0, 1.0], [1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]], 
-        vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
-        vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
-        vec![[0.0, 0.0], [0.046, 0.0], [0.046, 0.046], [0.0, 0.0], [0.046, 0.046], [0.0, 0.046]]
-    );
-    game_data.add_gui_object(vertex_data.clone(), (0.0, 0.0, 0.0), (0.02, 0.02, 0.02), true);
-    let vertex_data = create_vertices(
-        vec![[-1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, -1.0, 0.0]], 
-        vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
-        vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
-        vec![[0.007, 0.13], [0.79, 0.13], [0.79, 0.23], [0.007, 0.13], [0.79, 0.23], [0.007, 0.23]]
-    );
-    game_data.add_gui_object(vertex_data.clone(), (0.0, -0.6, 0.0), (0.5, 0.06, 0.06), true);
-    let vertex_data = create_vertices(
-        vec![[-1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, -1.0, 0.0]], 
-        vec![[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]], 
-        vec![[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]], 
-        vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]]
-    );
-    game_data.add_gui_object(vertex_data.clone(), (0.0, -0.6, 0.0), (0.04, 0.04, 0.04), true);*/
+    gui::create_frame(&mut game_data, (0.0, 0.0, 0.0), (0.02, 0.02, 0.02), [0.5, 0.5, 0.5], vec![[0.0, 0.0], [0.046, 0.0], [0.046, 0.046], [0.0, 0.0], [0.046, 0.046], [0.0, 0.046]]);
+    gui::create_frame(&mut game_data, (0.0, -0.6, 0.0), (0.5, 0.06, 0.06), [0.5, 0.5, 0.5], vec![[0.007, 0.13], [0.79, 0.13], [0.79, 0.23], [0.007, 0.13], [0.79, 0.23], [0.007, 0.23]]);
+    gui::create_frame(&mut game_data, (0.44, -0.6, 0.0), (0.04, 0.04, 0.04), [0.5, 0.5, 0.5], vec![[0.007, 0.054], [0.07, 0.054], [0.07, 0.117], [0.007, 0.054], [0.07, 0.117], [0.007, 0.117]]);
 
     let world_data_backend = Arc::clone(&world_data);
     let chunk_data_terrain_backend = Arc::clone(&chunk_data_terrain);

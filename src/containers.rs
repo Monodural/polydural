@@ -10,19 +10,19 @@ impl Inventory {
         Inventory {
             hotbar_slots: vec![
                 ("dirt".to_string(), 1), 
-                ("grass_1".to_string(), 2), 
-                ("cactus".to_string(), 3), 
-                ("oak_leaves".to_string(), 4), 
-                ("oak_log".to_string(), 5), 
-                ("stone".to_string(), 6), 
-                ("sand_1".to_string(), 7), 
-                ("stone_cobbled".to_string(), 8), 
+                ("grass_1".to_string(), 1), 
+                ("cactus".to_string(), 1), 
+                ("oak_leaves".to_string(), 1), 
+                ("oak_log".to_string(), 1), 
+                ("stone".to_string(), 1), 
+                ("sand_1".to_string(), 1), 
+                ("stone_cobbled".to_string(), 1), 
                 ("oak_glass".to_string(), 9)
             ]
         }
     }
 
-    pub fn render_item_block(world_data_thread: Arc<Mutex<world::WorldData>>, block_name: String) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
+    pub fn render_item_block(world_data_thread: Arc<Mutex<world::WorldData>>, block_name: String, position: (f64, f64, f64), scale: (f64, f64, f64)) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
         let world_data = world_data_thread.lock().unwrap();
         let mut vertices: Vec<[f64; 3]> = Vec::new();
         let mut normals: Vec<[i8; 3]> = Vec::new();
@@ -36,12 +36,12 @@ impl Inventory {
 
         let block_id = world_data.block_index[&block_name];
 
-        vertices.push([ 1.0, -1.0,  1.0]);
-        vertices.push([ 1.0, -1.0, -1.0]);
-        vertices.push([ 1.0,  1.0,  1.0]);
-        vertices.push([ 1.0,  1.0,  1.0]);
-        vertices.push([ 1.0, -1.0, -1.0]);
-        vertices.push([ 1.0,  1.0, -1.0]);
+        vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
 
         let uv_x = (world_data.blocks[(block_id - 1) as usize].1[0] as f32 % atlas_width).floor();
         let uv_y = (world_data.blocks[(block_id - 1) as usize].1[0] as f32 / atlas_height).floor();
@@ -66,12 +66,12 @@ impl Inventory {
         colors.push([1.0, 1.0, 1.0]);
         colors.push([1.0, 1.0, 1.0]);
 
-        vertices.push([-1.0, -1.0, -1.0]);
-        vertices.push([-1.0, -1.0,  1.0]);
-        vertices.push([-1.0,  1.0, -1.0]);
-        vertices.push([-1.0,  1.0, -1.0]);
-        vertices.push([-1.0, -1.0,  1.0]);
-        vertices.push([-1.0,  1.0,  1.0]);
+        vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
 
         let uv_x = (world_data.blocks[(block_id - 1) as usize].1[1] as f32 % atlas_width).floor();
         let uv_y = (world_data.blocks[(block_id - 1) as usize].1[1] as f32 / atlas_height).floor();
@@ -96,12 +96,12 @@ impl Inventory {
         colors.push([1.0, 1.0, 1.0]);
         colors.push([1.0, 1.0, 1.0]);
 
-        vertices.push([-1.0,  1.0,  1.0]);
-        vertices.push([ 1.0,  1.0,  1.0]);
-        vertices.push([-1.0,  1.0, -1.0]);
-        vertices.push([-1.0,  1.0, -1.0]);
-        vertices.push([ 1.0,  1.0,  1.0]);
-        vertices.push([ 1.0,  1.0, -1.0]);
+        vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
 
         let uv_x = (world_data.blocks[(block_id - 1) as usize].1[2] as f32 % atlas_width).floor();
         let uv_y = (world_data.blocks[(block_id - 1) as usize].1[2] as f32 / atlas_height).floor();
@@ -126,12 +126,12 @@ impl Inventory {
         colors.push([1.0, 1.0, 1.0]);
         colors.push([1.0, 1.0, 1.0]);
 
-        vertices.push([-1.0, -1.0, -1.0]);
-        vertices.push([ 1.0, -1.0, -1.0]);
-        vertices.push([-1.0, -1.0,  1.0]);
-        vertices.push([-1.0, -1.0,  1.0]);
-        vertices.push([ 1.0, -1.0, -1.0]);
-        vertices.push([ 1.0, -1.0,  1.0]);
+        vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
 
         let uv_x = (world_data.blocks[(block_id - 1) as usize].1[3] as f32 % atlas_width).floor();
         let uv_y = (world_data.blocks[(block_id - 1) as usize].1[3] as f32 / atlas_height).floor();
@@ -156,12 +156,12 @@ impl Inventory {
         colors.push([1.0, 1.0, 1.0]);
         colors.push([1.0, 1.0, 1.0]);
 
-        vertices.push([-1.0, -1.0,  1.0]);
-        vertices.push([ 1.0, -1.0,  1.0]);
-        vertices.push([-1.0,  1.0,  1.0]);
-        vertices.push([-1.0,  1.0,  1.0]);
-        vertices.push([ 1.0, -1.0,  1.0]);
-        vertices.push([ 1.0,  1.0,  1.0]);
+        vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
 
         let uv_x = (world_data.blocks[(block_id - 1) as usize].1[4] as f32 % atlas_width).floor();
         let uv_y = (world_data.blocks[(block_id - 1) as usize].1[4] as f32 / atlas_height).floor();
@@ -186,12 +186,12 @@ impl Inventory {
         colors.push([1.0, 1.0, 1.0]);
         colors.push([1.0, 1.0, 1.0]);
 
-        vertices.push([ 1.0, -1.0, -1.0]);
-        vertices.push([-1.0, -1.0, -1.0]);
-        vertices.push([ 1.0,  1.0, -1.0]);
-        vertices.push([ 1.0,  1.0, -1.0]);
-        vertices.push([-1.0, -1.0, -1.0]);
-        vertices.push([-1.0,  1.0, -1.0]);
+        vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+        vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
 
         let uv_x = (world_data.blocks[(block_id - 1) as usize].1[5] as f32 % atlas_width).floor();
         let uv_y = (world_data.blocks[(block_id - 1) as usize].1[5] as f32 / atlas_height).floor();

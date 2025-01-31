@@ -48,5 +48,6 @@ struct LightUniforms {
 @fragment
 fn fs_main(@location(0) v_position: vec4<f32>, @location(1) v_normal: vec4<f32>, @location(2) v_color: vec4<f32>, @location(3) v_uv: vec4<f32>) ->  @location(0) vec4<f32> {
     let texture_color: vec4<f32> = textureSample(texture, texture_sampler, v_uv.xy);
+    
     return texture_color * v_color;
 }
