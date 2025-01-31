@@ -2,14 +2,14 @@ use crate::{chunk, common, containers, world};
 use std::{collections::HashMap, sync::Arc};
 use cgmath::*;
 
-pub fn break_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sync::RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, lighting_chunks_thread: &Arc<std::sync::RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, world_data: &Arc<std::sync::Mutex<world::WorldData>>) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>) {
+pub fn break_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sync::Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, lighting_chunks_thread: &Arc<std::sync::Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, world_data: &Arc<std::sync::Mutex<world::WorldData>>) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>) {
     let world_data_read = world_data.lock().unwrap().clone();
     let chunks = {
-        let chunks_read = chunks_thread.read().unwrap();
+        let chunks_read = chunks_thread.lock().unwrap();
         chunks_read.clone()
     };
     let lighting_chunks = {
-        let lighting_chunks_read = lighting_chunks_thread.read().unwrap();
+        let lighting_chunks_read = lighting_chunks_thread.lock().unwrap();
         lighting_chunks_read.clone()
     };
     
@@ -57,7 +57,7 @@ pub fn break_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
                 {
                     let mut world_data_reading = world_data.lock().unwrap();
                     {
-                        chunks_thread.write().unwrap().insert((chunk_position_x, chunk_position_y, chunk_position_z), chunk_data);
+                        chunks_thread.lock().unwrap().insert((chunk_position_x, chunk_position_y, chunk_position_z), chunk_data);
                     }
                     if x == 0 || x == 31 || y == 0 || y == 31 || z == 0 || z == 31 {
                         let chunk_buffer_index_read = &world_data_reading.chunk_buffer_index.clone();
@@ -97,14 +97,14 @@ pub fn break_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
     return (Vec::new(), -1, Vec::new());
 }
 
-pub fn place_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sync::RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, lighting_chunks_thread: &Arc<std::sync::RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, world_data: &Arc<std::sync::Mutex<world::WorldData>>, slot_selected: i8, inventory: containers::Inventory) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>) {
+pub fn place_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sync::Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, lighting_chunks_thread: &Arc<std::sync::Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, world_data: &Arc<std::sync::Mutex<world::WorldData>>, slot_selected: i8, inventory: containers::Inventory) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>) {
     let world_data_read = world_data.lock().unwrap().clone();
     let chunks = {
-        let chunks_read = chunks_thread.read().unwrap();
+        let chunks_read = chunks_thread.lock().unwrap();
         chunks_read.clone()
     };
     let lighting_chunks = {
-        let lighting_chunks_read = lighting_chunks_thread.read().unwrap();
+        let lighting_chunks_read = lighting_chunks_thread.lock().unwrap();
         lighting_chunks_read.clone()
     };
     
@@ -175,7 +175,7 @@ pub fn place_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
                 );
 
                 {
-                    chunks_thread.write().unwrap().insert((chunk_position_x, chunk_position_y, chunk_position_z), chunk_data);
+                    chunks_thread.lock().unwrap().insert((chunk_position_x, chunk_position_y, chunk_position_z), chunk_data);
                 }
 
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);

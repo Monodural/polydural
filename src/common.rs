@@ -16,7 +16,7 @@ use serde::Deserialize;
 use noise::Perlin;
 use std::fs;
 use std::io::Read;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use hound;
@@ -346,11 +346,12 @@ struct State {
     normal_matrices: Vec<Matrix4<f32>>,
     normal_matrices_transparent: Vec<Matrix4<f32>>,
     world_data: Arc<Mutex<world::WorldData>>,
-    chunk_data_terrain: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>,
-    chunk_data_lighting: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>,
+    chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
+    chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
     chunks: HashMap<(i64, i64, i64), Vec<i8>>,
     blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
-    render_ui: bool
+    render_ui: bool,
+    rng: rand::prelude::ThreadRng
 }
 
 impl State {
@@ -839,7 +840,7 @@ impl State {
         return (uniform_bind_group, vertex_buffer, num_vertices, fragment_uniform_buffer)
     }
     
-    async fn new(window: &Window, game_data: GameData, light_data: Light, world_data: Arc<Mutex<WorldData>>, chunk_data_terrain: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>) -> Self {        
+    async fn new(window: &Window, game_data: GameData, light_data: Light, world_data: Arc<Mutex<WorldData>>, chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>) -> Self {        
         let init =  transforms::InitWgpu::init_wgpu(window).await;
 
         let shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -1270,6 +1271,7 @@ impl State {
         }
 
         let chunks = HashMap::new();
+        let rng: rand::prelude::ThreadRng = rand::thread_rng();
 
         let render_ui = true;
 
@@ -1318,7 +1320,8 @@ impl State {
             chunk_data_lighting,
             chunks,
             blocks,
-            render_ui
+            render_ui,
+            rng
         }
     }
 
@@ -1487,7 +1490,7 @@ impl State {
 
                                     self.chunks.insert(
                                         (chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset), 
-                                        self.chunk_data_terrain.read().unwrap()[&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)].clone()
+                                        self.chunk_data_terrain.lock().unwrap()[&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)].clone()
                                     );
                                 } else {
                                     if !world_data.chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) && 
@@ -1500,11 +1503,82 @@ impl State {
                         }
                     }
                 }
+
+                let chance = self.rng.gen_range(0..10);
+                if chance == 0 {
+                    world_data.sound_queue.push((4, 0.1));
+                }
             }
 
             let eye_position:&[f32; 3] = &Point3::new(self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z).into();
             self.init.queue.write_buffer(&self.world_fragment_buffer, 16, bytemuck::cast_slice(eye_position));
             self.init.queue.write_buffer(&self.world_fragment_buffer_transparent, 16, bytemuck::cast_slice(eye_position));
+        }
+        if self.frame % 30 == 10 {
+            let updated_chunk;
+            let updated_chunk_transparent;
+            let updated_chunk_data_len;
+            {
+                let world_data_check = self.world_data.lock().unwrap();
+                updated_chunk = world_data_check.updated_chunk_data.clone();
+                updated_chunk_transparent = world_data_check.updated_chunk_data_transparent.clone();
+                updated_chunk_data_len = updated_chunk.len();
+            }
+            if updated_chunk_data_len > 0 {
+                let chunk_data = &updated_chunk[0];
+                let chunk_data_transparent = &updated_chunk_transparent[0];
+                self.vertex_data[chunk_data.0] = chunk_data.1.clone();
+                self.vertex_data_transparent[chunk_data_transparent.0] = chunk_data_transparent.1.clone();
+
+                self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[chunk_data.0]));
+                self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[chunk_data_transparent.0]));
+
+                self.world_num_vertices += self.vertex_data[chunk_data.0].len() as u32;
+                self.world_num_vertices_transparent += self.vertex_data_transparent[chunk_data_transparent.0].len() as u32;
+
+                {
+                    let mut world_data_setting = self.world_data.lock().unwrap();
+                    world_data_setting.updated_chunks.push(chunk_data.0);
+                    world_data_setting.updated_chunks_transparent.push(chunk_data_transparent.0);
+                    world_data_setting.updated_chunk_data.remove(0);
+                    world_data_setting.updated_chunk_data_transparent.remove(0);
+                }
+            }
+        }
+        if self.frame % 30 == 20 {
+            let created_chunk_data_len;
+            {
+                let mut world_data_check = self.world_data.lock().unwrap();
+                created_chunk_data_len = world_data_check.created_chunk_data.len();
+                if created_chunk_data_len > 0 {
+                    let updated_chunk_transparent = &world_data_check.created_chunk_data_transparent;
+                    let chunk_data = &world_data_check.created_chunk_data[0].clone();
+                    let chunk_data_transparent = &updated_chunk_transparent[0];
+                    self.vertex_data.push(chunk_data.0.clone());
+                    self.vertex_data_transparent.push(chunk_data_transparent.0.clone());
+
+                    self.model_matrices.push(chunk_data.4);
+                    self.model_matrices_transparent.push(chunk_data_transparent.4);
+                    self.normal_matrices.push(chunk_data.5);
+                    self.normal_matrices_transparent.push(chunk_data_transparent.5);
+                    self.game_data.add_object(chunk_data.0.clone(), chunk_data_transparent.0.clone(), (chunk_data.1, chunk_data.2, chunk_data.3), true);
+                    self.vertex_offset.push(0);
+                    self.vertex_offset_transparent.push(0);
+                    
+                    world_data_check.active_chunks.push(self.vertex_data.len() - 1);
+                    world_data_check.updated_chunks.push(self.vertex_data.len() - 1);
+                    world_data_check.chunk_update_queue.push(self.vertex_data.len() - 1);
+                    world_data_check.created_chunk_data.remove(0);
+                    world_data_check.created_chunk_data_transparent.remove(0);
+                    world_data_check.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
+                }
+            }
+            if created_chunk_data_len > 0 {
+                self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[self.vertex_data.len() - 1]));
+                self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[self.vertex_data_transparent.len() - 1]));
+                self.world_num_vertices += self.vertex_data[self.vertex_data.len() - 1].len() as u32;
+                self.world_num_vertices_transparent += self.vertex_data_transparent[self.vertex_data_transparent.len() - 1].len() as u32;
+            }
         }
         if self.frame % 300 == 0 {
             let mut chunk: Vec<Vertex> = Vec::new();
@@ -1537,68 +1611,6 @@ impl State {
 
             self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
             self.world_num_vertices_transparent = chunk_transparent.len() as u32;
-        }
-
-        let world_data_check;
-        {
-            world_data_check = self.world_data.lock().unwrap().clone();
-        }
-        if world_data_check.updated_chunk_data.len() > 0 {
-            let updated_chunk = world_data_check.updated_chunk_data;
-            let updated_chunk_transparent = world_data_check.updated_chunk_data_transparent;
-            let chunk_data = &updated_chunk[0];
-            let chunk_data_transparent = &updated_chunk_transparent[0];
-            self.vertex_data[chunk_data.0] = chunk_data.1.clone();
-            self.vertex_data_transparent[chunk_data_transparent.0] = chunk_data_transparent.1.clone();
-
-            self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[chunk_data.0]));
-            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[chunk_data_transparent.0]));
-
-            self.world_num_vertices += self.vertex_data[chunk_data.0].len() as u32;
-            self.world_num_vertices_transparent += self.vertex_data_transparent[chunk_data_transparent.0].len() as u32;
-
-            {
-                let mut world_data_setting = self.world_data.lock().unwrap();
-                world_data_setting.updated_chunks.push(chunk_data.0);
-                world_data_setting.updated_chunks_transparent.push(chunk_data_transparent.0);
-                world_data_setting.updated_chunk_data.remove(0);
-                world_data_setting.updated_chunk_data_transparent.remove(0);
-            }
-        }
-        if world_data_check.created_chunk_data.len() > 0 {
-            let world_data_check;
-            {
-                world_data_check = self.world_data.lock().unwrap().clone();
-            }
-            let updated_chunk = world_data_check.created_chunk_data.clone();
-            let updated_chunk_transparent = world_data_check.created_chunk_data_transparent.clone();
-            let chunk_data = &updated_chunk[0];
-            let chunk_data_transparent = &updated_chunk_transparent[0];
-            self.vertex_data.push(chunk_data.0.clone());
-            self.vertex_data_transparent.push(chunk_data_transparent.0.clone());
-
-            self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[self.vertex_data.len() - 1]));
-            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[self.vertex_data_transparent.len() - 1]));
-
-            self.world_num_vertices += self.vertex_data[self.vertex_data.len() - 1].len() as u32;
-            self.world_num_vertices_transparent += self.vertex_data_transparent[self.vertex_data_transparent.len() - 1].len() as u32;
-
-            self.model_matrices.push(chunk_data.4);
-            self.model_matrices_transparent.push(chunk_data_transparent.4);
-            self.normal_matrices.push(chunk_data.5);
-            self.normal_matrices_transparent.push(chunk_data_transparent.5);
-            self.game_data.add_object(chunk_data.0.clone(), chunk_data_transparent.0.clone(), (chunk_data.1, chunk_data.2, chunk_data.3), true);
-            self.vertex_offset.push(0);
-            self.vertex_offset_transparent.push(0);
-            {
-                let mut world_data_set = self.world_data.lock().unwrap();
-                world_data_set.active_chunks.push(self.vertex_data.len() - 1);
-                world_data_set.updated_chunks.push(self.vertex_data.len() - 1);
-                world_data_set.chunk_update_queue.push(self.vertex_data.len() - 1);
-                world_data_set.created_chunk_data.remove(0);
-                world_data_set.created_chunk_data_transparent.remove(0);
-                world_data_set.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
-            }
         }
 
         let up_direction = cgmath::Vector3::unit_y();
@@ -1651,9 +1663,9 @@ impl State {
             self.init.queue.write_buffer(&self.text_vertex_uniform_buffer, 0, &combined_data);
         }
 
-        //let current_time_updated = std::time::Instant::now();
-        //let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-        //println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
+        let current_time_updated = std::time::Instant::now();
+        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+        println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
         //println!("fps: {}", 1.0 / update_time);
     }
 
@@ -2063,7 +2075,7 @@ fn load_icon_from_bytes(data: &[u8]) -> Option<Icon> {
     Icon::from_rgba(rgba, width, height).ok()
 }
 
-pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, inventory: Inventory, light_data: Light, title: &str, chunk_data_terrain: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>) {
+pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, inventory: Inventory, light_data: Light, title: &str, chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();

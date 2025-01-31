@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
-use std::sync::RwLock;
+use std::sync::Mutex;
 use cgmath::*;
 
 use crate::common;
@@ -29,11 +29,12 @@ pub struct WorldData {
     pub structures: HashMap<String, Vec<common::Block>>,
     pub audio_files: Vec<Vec<i16>>,
     pub sound_queue: Vec<(usize, f32)>,
-    chunk_data_terrain_thread: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>,
-    chunk_data_lighting_thread: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>,
+    pub music_queue: Vec<(usize, f32)>,
+    chunk_data_terrain_thread: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
+    chunk_data_lighting_thread: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
 }
 impl WorldData {
-    pub fn new(chunk_data_terrain: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>) -> Self {
+    pub fn new(chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>) -> Self {
         WorldData {
             active_chunks: Vec::new(),
             updated_chunks: Vec::new(),
@@ -56,14 +57,15 @@ impl WorldData {
             structures: HashMap::new(),
             audio_files: Vec::new(),
             sound_queue: vec![(1, 0.5)],
+            music_queue: vec![(4, 0.5)],
             chunk_data_terrain_thread: chunk_data_terrain,
             chunk_data_lighting_thread: chunk_data_lighting
         }
     }
 
     pub fn set_chunk(&mut self, x: i64, y: i64, z: i64, chunk_data: Vec<i8>, light_data: Vec<i8>) {
-        self.chunk_data_terrain_thread.write().unwrap().insert((x, y, z), chunk_data);
-        self.chunk_data_lighting_thread.write().unwrap().insert((x, y, z), light_data);
+        self.chunk_data_terrain_thread.lock().unwrap().insert((x, y, z), chunk_data);
+        self.chunk_data_lighting_thread.lock().unwrap().insert((x, y, z), light_data);
     }
 
     pub fn add_shape(&mut self, shape_name: String, elements: Vec<common::Element>) {

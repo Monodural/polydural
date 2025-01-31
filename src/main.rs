@@ -1,7 +1,7 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 use cgmath::*;
@@ -38,8 +38,8 @@ fn main(){
         modding_allowed = false;
     }
     let mut game_data = common::GameData::new();
-    let chunk_data_terrain: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(RwLock::new(HashMap::new()));
-    let chunk_data_lighting: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(RwLock::new(HashMap::new()));
+    let chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(Mutex::new(HashMap::new()));
+    let chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(Mutex::new(HashMap::new()));
 
     let world_data = Arc::new(Mutex::new(world::WorldData::new(Arc::clone(&chunk_data_terrain), Arc::clone(&chunk_data_lighting))));
     let randomness_functions = common::RandomnessFunctions::new();
@@ -113,7 +113,8 @@ fn main(){
     let randomness_functions_backend = randomness_functions.clone();
 
     let world_data_audio = world_data_backend.lock().unwrap().clone();
-    let audio_tx = sounds::start_audio_thread(world_data_audio.audio_files);
+    let audio_tx = sounds::start_audio_thread(world_data_audio.audio_files.clone());
+    let music_tx = sounds::start_music_thread(world_data_audio.audio_files);
 
     thread::spawn(move || {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
@@ -126,15 +127,19 @@ fn main(){
                 for item in world_data_read.sound_queue.clone().into_iter() {
                     audio_tx.send(item).expect("Failed to send sound index");
                 }
+                for item in world_data_read.music_queue.clone().into_iter() {
+                    music_tx.send(item).expect("Failed to send sound index");
+                }
                 {
                     let mut world_audio_read = world_data_backend.lock().unwrap();
                     world_audio_read.sound_queue.clear();
+                    world_audio_read.music_queue.clear();
                 }
 
-                let chunk_data_terrain = chunk_data_terrain_backend.read().unwrap().clone();
+                let chunk_data_terrain = chunk_data_terrain_backend.lock().unwrap().clone();
 
                 if world_data_read.chunk_queue.len() == 0 && world_data_read.chunk_update_queue.len() > 0 {
-                    let chunk_data_lighting = chunk_data_lighting_backend.read().unwrap().clone();
+                    let chunk_data_lighting = chunk_data_lighting_backend.lock().unwrap().clone();
 
                     let chunk_position = world_data_read.chunk_buffer_coordinates[world_data_read.chunk_update_queue[0]];
                     let chunk_data = chunk_data_terrain[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
