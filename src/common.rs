@@ -1226,19 +1226,6 @@ impl State {
         init.queue.write_buffer(&text_vertex_buffer, 0, bytemuck::cast_slice(&text_characters));
         let text_num_vertices_ = text_characters.len() as u32;
 
-        /*let mut gui_item_block_vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
-        let mut gui_item_block_num_vertices: Vec<u32> = Vec::new();
-        let mut gui_item_block_uniform_bind_groups: Vec<wgpu::BindGroup> = Vec::new();
-        let mut gui_item_block_vertex_uniform_buffers: Vec<wgpu::Buffer> = Vec::new();
-
-        for i in 0..game_data.gui_item_block_objects.len() {
-            let (uniform_bind_group, vertex_uniform_buffer, vertex_buffer, num_vertices_) = Self::create_object_gui_item_block(&game_data, &init, light_data, &uniform_bind_group_layout, i);
-            gui_item_block_vertex_buffers.push(vertex_buffer);
-            gui_item_block_num_vertices.push(num_vertices_);
-            gui_item_block_uniform_bind_groups.push(uniform_bind_group);
-            gui_item_block_vertex_uniform_buffers.push(vertex_uniform_buffer);
-        }*/
-
         let (
             gui_item_block_uniform_bind_group, 
             gui_item_block_vertex_uniform_buffer, 
@@ -1465,12 +1452,7 @@ impl State {
             }
         }
 
-        //let current_time_physics = std::time::Instant::now();
         physics::update(&mut self.game_data, &self.chunks, &self.blocks, frame_time);
-        //let current_time_updated_physics = std::time::Instant::now();
-        //let update_time_physics = current_time_updated_physics.duration_since(current_time_physics).as_secs_f32();
-        //println!("update time: {}ms fps: {}", update_time * 1000.0, 1.0 / update_time);
-        //println!("physics update time: {}", update_time_physics * 1000.0);
 
         let chunk_position_x = (self.game_data.camera_position.x / 64.0).floor();
         let chunk_position_y = (self.game_data.camera_position.y / 64.0).floor();
@@ -1485,7 +1467,8 @@ impl State {
                 world_data.active_chunks.clear();
                 self.chunks.clear();
 
-                for radius in 0..4 {
+                for radius_reversed in 0..4 {
+                    let radius = 3 - radius_reversed;
                     for x in -radius..radius+1 {
                         for y in -2..2 {
                             for z in -radius..radius+1 {
