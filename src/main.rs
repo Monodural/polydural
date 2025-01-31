@@ -1,7 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant};
 use cgmath::*;
@@ -38,8 +38,8 @@ fn main(){
         modding_allowed = false;
     }
     let mut game_data = common::GameData::new();
-    let chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(Mutex::new(HashMap::new()));
-    let chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(Mutex::new(HashMap::new()));
+    let chunk_data_terrain: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(RwLock::new(HashMap::new()));
+    let chunk_data_lighting: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>> = Arc::new(RwLock::new(HashMap::new()));
 
     let world_data = Arc::new(Mutex::new(world::WorldData::new(Arc::clone(&chunk_data_terrain), Arc::clone(&chunk_data_lighting))));
     let randomness_functions = common::RandomnessFunctions::new();
@@ -131,10 +131,10 @@ fn main(){
                     world_audio_read.sound_queue.clear();
                 }
 
-                let chunk_data_terrain = chunk_data_terrain_backend.lock().unwrap().clone();
+                let chunk_data_terrain = chunk_data_terrain_backend.read().unwrap().clone();
 
                 if world_data_read.chunk_queue.len() == 0 && world_data_read.chunk_update_queue.len() > 0 {
-                    let chunk_data_lighting = chunk_data_lighting_backend.lock().unwrap().clone();
+                    let chunk_data_lighting = chunk_data_lighting_backend.read().unwrap().clone();
 
                     let chunk_position = world_data_read.chunk_buffer_coordinates[world_data_read.chunk_update_queue[0]];
                     let chunk_data = chunk_data_terrain[&(chunk_position.0, chunk_position.1, chunk_position.2)].clone();
@@ -163,7 +163,7 @@ fn main(){
                     let chunk_position_z_with_offset = chunk_coordinates.2;
                     let world_data_cloned = world_data_backend.lock().unwrap().clone();
                     let (chunk_data, light_map) = chunk::generate_chunk(
-                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, game_data_backend.clone(), &randomness_functions_backend, &mut rng, &world_data_cloned
+                        chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset, &randomness_functions_backend, &mut rng, &world_data_cloned
                     );
                     let (chunk_vertices, chunk_normals, chunk_colors, chunk_uvs,
                         chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent

@@ -2,10 +2,16 @@ use crate::{chunk, common, containers, world};
 use std::{collections::HashMap, sync::Arc};
 use cgmath::*;
 
-pub fn break_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sync::Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, lighting_chunks_thread: &Arc<std::sync::Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, world_data: &Arc<std::sync::Mutex<world::WorldData>>) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>) {
+pub fn break_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sync::RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, lighting_chunks_thread: &Arc<std::sync::RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, world_data: &Arc<std::sync::Mutex<world::WorldData>>) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>) {
     let world_data_read = world_data.lock().unwrap().clone();
-    let chunks = chunks_thread.lock().unwrap().clone();
-    let lighting_chunks = lighting_chunks_thread.lock().unwrap().clone();
+    let chunks = {
+        let chunks_read = chunks_thread.read().unwrap();
+        chunks_read.clone()
+    };
+    let lighting_chunks = {
+        let lighting_chunks_read = lighting_chunks_thread.read().unwrap();
+        lighting_chunks_read.clone()
+    };
     
     let forward = cgmath::Vector3::new(
         game_data.camera_rotation[1].cos() * game_data.camera_rotation[0].cos(),
@@ -13,17 +19,13 @@ pub fn break_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
         game_data.camera_rotation[1].sin() * game_data.camera_rotation[0].cos(),
     ).normalize();
 
-    let mut found_block = false;
     for i in 0..16 {
-        if found_block { continue; }
         let block_type = chunk::get_block_global(game_data, &chunks, &world_data_read, 
             (game_data.camera_position[0] + forward.x * i as f32) / 2.0, 
             (game_data.camera_position[1] + forward.y * i as f32) / 2.0, 
             (game_data.camera_position[2] + forward.z * i as f32) / 2.0
         );
         if block_type != 0 && block_type != -1 {
-            found_block = true;
-
             let x = (game_data.camera_position[0] + forward.x * i as f32) / 2.0;
             let y = (game_data.camera_position[1] + forward.y * i as f32) / 2.0;
             let z = (game_data.camera_position[2] + forward.z * i as f32) / 2.0;
@@ -54,8 +56,9 @@ pub fn break_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
 
                 {
                     let mut world_data_reading = world_data.lock().unwrap();
-
-                    world_data_reading.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data, light_data.clone());
+                    {
+                        chunks_thread.write().unwrap().insert((chunk_position_x, chunk_position_y, chunk_position_z), chunk_data);
+                    }
                     if x == 0 || x == 31 || y == 0 || y == 31 || z == 0 || z == 31 {
                         let chunk_buffer_index_read = &world_data_reading.chunk_buffer_index.clone();
                         let chunk_update_queue = &mut world_data_reading.chunk_update_queue;
@@ -88,15 +91,22 @@ pub fn break_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
         
                 return (vertex_data_chunk, buffer_index as i32, vertex_data_chunk_transparent);
             }
+            break;
         }
     }
     return (Vec::new(), -1, Vec::new());
 }
 
-pub fn place_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sync::Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, lighting_chunks_thread: &Arc<std::sync::Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, world_data: &Arc<std::sync::Mutex<world::WorldData>>, slot_selected: i8, inventory: containers::Inventory) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>) {
+pub fn place_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sync::RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, lighting_chunks_thread: &Arc<std::sync::RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, world_data: &Arc<std::sync::Mutex<world::WorldData>>, slot_selected: i8, inventory: containers::Inventory) -> (Vec<common::Vertex>, i32, Vec<common::Vertex>) {
     let world_data_read = world_data.lock().unwrap().clone();
-    let chunks = chunks_thread.lock().unwrap().clone();
-    let lighting_chunks = lighting_chunks_thread.lock().unwrap().clone();
+    let chunks = {
+        let chunks_read = chunks_thread.read().unwrap();
+        chunks_read.clone()
+    };
+    let lighting_chunks = {
+        let lighting_chunks_read = lighting_chunks_thread.read().unwrap();
+        lighting_chunks_read.clone()
+    };
     
     let forward = cgmath::Vector3::new(
         game_data.camera_rotation[1].cos() * game_data.camera_rotation[0].cos(),
@@ -104,17 +114,13 @@ pub fn place_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
         game_data.camera_rotation[1].sin() * game_data.camera_rotation[0].cos(),
     ).normalize();
 
-    let mut found_block = false;
     for mut i in 0..16 {
-        if found_block { continue; }
         let block_type = chunk::get_block_global(game_data, &chunks, &world_data_read, 
             (game_data.camera_position[0] + forward.x * i as f32) / 2.0, 
             (game_data.camera_position[1] + forward.y * i as f32) / 2.0, 
             (game_data.camera_position[2] + forward.z * i as f32) / 2.0
         );
         if block_type != 0 && block_type != -1 {
-            found_block = true;
-
             if i > 0 { i -= 1; }
 
             let x = (game_data.camera_position[0] + forward.x * i as f32) / 2.0;
@@ -143,8 +149,6 @@ pub fn place_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
                 
                 {
                     let mut world_data_reading = world_data.lock().unwrap();
-
-                    world_data_reading.set_chunk(chunk_position_x, chunk_position_y, chunk_position_z, chunk_data.clone(), light_data.clone());
                     if x == 0 || x == 31 || y == 0 || y == 31 || z == 0 || z == 31 {
                         if x == 0 {
                             world_data_reading.chunk_update_queue.push(world_data_read.chunk_buffer_index[&(chunk_position_x - 1, chunk_position_y, chunk_position_z)] as usize);
@@ -169,6 +173,11 @@ pub fn place_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
                     ) = chunk::render_chunk(&chunk_data, &light_data, &game_data, &chunks, &world_data_read, 
                     chunk_position_x, chunk_position_y, chunk_position_z
                 );
+
+                {
+                    chunks_thread.write().unwrap().insert((chunk_position_x, chunk_position_y, chunk_position_z), chunk_data);
+                }
+
                 let vertex_data_chunk = common::create_vertices(chunk_vertices, chunk_normals, chunk_colors, chunk_uvs);
                 let vertex_data_chunk_transparent = common::create_vertices(chunk_vertices_transparent, chunk_normals_transparent, chunk_colors_transparent, chunk_uvs_transparent);
         
@@ -179,6 +188,7 @@ pub fn place_block(game_data: &mut common::GameData, chunks_thread: &Arc<std::sy
         
                 return (vertex_data_chunk, buffer_index as i32, vertex_data_chunk_transparent);
             }
+            break;
         }
     }
     return (Vec::new(), -1, Vec::new());

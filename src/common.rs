@@ -16,7 +16,7 @@ use serde::Deserialize;
 use noise::Perlin;
 use std::fs;
 use std::io::Read;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use hound;
@@ -346,8 +346,8 @@ struct State {
     normal_matrices: Vec<Matrix4<f32>>,
     normal_matrices_transparent: Vec<Matrix4<f32>>,
     world_data: Arc<Mutex<world::WorldData>>,
-    chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
-    chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,
+    chunk_data_terrain: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>,
+    chunk_data_lighting: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>,
     chunks: HashMap<(i64, i64, i64), Vec<i8>>,
     blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
     render_ui: bool
@@ -839,7 +839,7 @@ impl State {
         return (uniform_bind_group, vertex_buffer, num_vertices, fragment_uniform_buffer)
     }
     
-    async fn new(window: &Window, game_data: GameData, light_data: Light, world_data: Arc<Mutex<WorldData>>, chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>) -> Self {        
+    async fn new(window: &Window, game_data: GameData, light_data: Light, world_data: Arc<Mutex<WorldData>>, chunk_data_terrain: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>) -> Self {        
         let init =  transforms::InitWgpu::init_wgpu(window).await;
 
         let shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -1344,7 +1344,6 @@ impl State {
             let vertex_data_chunk_transparent: Vec<Vertex>;
             let buffer_index: i32;
             {
-                //let mut world_data = self.world_data.lock().unwrap().clone();
                 (vertex_data_chunk, buffer_index, vertex_data_chunk_transparent) = interact::break_block(&mut self.game_data, &self.chunk_data_terrain, &self.chunk_data_lighting, &self.world_data);
             }
             if buffer_index != -1 {
@@ -1364,7 +1363,6 @@ impl State {
             let vertex_data_chunk_transparent: Vec<Vertex>;
             let buffer_index: i32;
             {
-                //let mut world_data = self.world_data.lock().unwrap().clone();
                 (vertex_data_chunk, buffer_index, vertex_data_chunk_transparent) = interact::place_block(&mut self.game_data, &self.chunk_data_terrain, &self.chunk_data_lighting, &self.world_data, slot_selected, inventory);
             }
             if buffer_index != -1 {
@@ -1489,7 +1487,7 @@ impl State {
 
                                     self.chunks.insert(
                                         (chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset), 
-                                        self.chunk_data_terrain.lock().unwrap()[&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)].clone()
+                                        self.chunk_data_terrain.read().unwrap()[&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)].clone()
                                     );
                                 } else {
                                     if !world_data.chunk_queue.contains(&(chunk_position_x_with_offset, chunk_position_y_with_offset, chunk_position_z_with_offset)) && 
@@ -1715,15 +1713,6 @@ impl State {
                 }),
             });
 
-            /*{
-                let world_data = self.world_data.lock().unwrap();
-                render_pass.set_pipeline(&self.pipeline);
-                for i in &world_data.active_chunks {
-                    render_pass.set_vertex_buffer(0, self.vertex_buffers[*i].slice(..));           
-                    render_pass.set_bind_group(0, &self.uniform_bind_groups[*i], &[]);
-                    render_pass.draw(0..self.num_vertices[*i], 0..1);
-                }
-            }*/
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_vertex_buffer(0, self.world_vertex_buffer.slice(..));           
             render_pass.set_bind_group(0, &self.world_uniform_bind_group, &[]);
@@ -1739,36 +1728,16 @@ impl State {
                 render_pass.set_vertex_buffer(0, self.gui_vertex_buffer.slice(..));           
                 render_pass.set_bind_group(0, &self.gui_uniform_bind_group, &[]);
                 render_pass.draw(0..self.gui_num_vertices_, 0..1);
-                /*for i in 0..self.game_data.gui_objects.len() {
-                    if !self.game_data.gui_active[i] { continue; }
-                    render_pass.set_vertex_buffer(0, self.gui_vertex_buffers[i].slice(..));           
-                    render_pass.set_bind_group(0, &self.gui_uniform_bind_groups[i], &[]);
-                    render_pass.draw(0..self.gui_num_vertices[i], 0..1);
-                }*/
+
                 render_pass.set_pipeline(&self.gui_item_block_pipeline);
                 render_pass.set_vertex_buffer(0, self.gui_item_block_vertex_buffer.slice(..));           
                 render_pass.set_bind_group(0, &self.gui_item_block_uniform_bind_group, &[]);
                 render_pass.draw(0..self.gui_item_block_num_vertices_, 0..1);
-                /*for i in 0..self.game_data.gui_item_block_objects.len() {
-                    if !self.game_data.gui_item_block_active[i] { continue; }
-                    render_pass.set_vertex_buffer(0, self.gui_item_block_vertex_buffers[i].slice(..));           
-                    render_pass.set_bind_group(0, &self.gui_item_block_uniform_bind_groups[i], &[]);
-                    render_pass.draw(0..self.gui_item_block_num_vertices[i], 0..1);
-                }*/
+
                 render_pass.set_pipeline(&self.text_pipeline);
                 render_pass.set_vertex_buffer(0, self.text_vertex_buffer.slice(..));           
                 render_pass.set_bind_group(0, &self.text_uniform_bind_group, &[]);
                 render_pass.draw(0..self.text_num_vertices_, 0..1);
-                /*let mut j = 0;
-                for i in 0..self.game_data.text.len() {
-                    if !self.game_data.text_active[i] { continue; }
-                    for _ in self.game_data.text[i].chars() {
-                        render_pass.set_vertex_buffer(0, self.text_vertex_buffers[j].slice(..));           
-                        render_pass.set_bind_group(0, &self.text_uniform_bind_groups[j], &[]);
-                        render_pass.draw(0..self.text_num_vertices[j], 0..1);
-                        j += 1;
-                    }
-                }*/
             }
         }
 
@@ -2094,7 +2063,7 @@ fn load_icon_from_bytes(data: &[u8]) -> Option<Icon> {
     Icon::from_rgba(rgba, width, height).ok()
 }
 
-pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, inventory: Inventory, light_data: Light, title: &str, chunk_data_terrain: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>) {
+pub fn run(game_data: GameData, world_data: Arc<Mutex<world::WorldData>>, inventory: Inventory, light_data: Light, title: &str, chunk_data_terrain: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>, chunk_data_lighting: Arc<RwLock<HashMap<(i64, i64, i64), Vec<i8>>>>) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
