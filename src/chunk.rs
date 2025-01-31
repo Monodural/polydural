@@ -17,8 +17,6 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
     let chunk_position_y = 32 * chunk_position_y;
     let chunk_position_z = 32 * chunk_position_z;
 
-    //println!("temp: {:.3} moisture: {}", randomness_functions.noise.get([chunk_position_x as f64 / 1000.0, chunk_position_z as f64 / 1000.0]) as f32 * 50.0 + 30.0, randomness_functions.noise.get([chunk_position_x as f64 / 10000.0, chunk_position_z as f64 / 10000.0]) as f32 * 50.0 + 50.0);
-
     for x in 0..32 {
         let position_x = (x + chunk_position_x) as f32;
         for z in 0..32 {
@@ -103,12 +101,12 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                     let is_transparent = &world_data.blocks[(chunk[(x * 32 * 32 + actual_y * 32 + z) as usize] - 1) as usize].5;
                     if *is_transparent && light_level >= 127 / 6 {
                         light_level -= 127 / 6;
-                    } else {
+                    }/* else {
                         light_level -= 127 / 4;
                         if light_level < 0 {
                             light_level = 0;
                         }
-                    }
+                    }*/
                 }
             }
         }

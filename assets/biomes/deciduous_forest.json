@@ -1,0 +1,29 @@
+{
+    "biome_name": "deciduous_forest",
+
+    "temperature": 5,
+    "moisture": 50,
+    "height": 6,
+
+    "block_levels": [
+        [["grass_1", "grass_2", "dirt"], 0],
+        [["dirt"], 1],
+        [["stone"], 5]
+    ],
+    "sea_level": -1,
+
+    "trees": [
+        ["oak_tree_1", 0.05],
+        ["spruce_1", 0.01],
+        ["spruce_2", 0.01],
+        ["spruce_3", 0.01],
+        ["spruce_4", 0.01],
+        ["grass_patch_1", 0.1],
+        ["grass_patch_2", 0.1],
+        ["grass_patch_3", 0.1],
+        ["grass_patch_4", 0.1]
+    ],
+    "folliage": [
+    ],
+    "buildings": []
+}
