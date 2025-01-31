@@ -1404,7 +1404,7 @@ impl State {
         //println!("{}", frame_time);
         self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * (frame_time * 0.006);
         self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * (frame_time * 0.006);
-        self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.1, std::f32::consts::FRAC_PI_2 / 1.1);
+        self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.01, std::f32::consts::FRAC_PI_2 / 1.01);
 
         let forward = Vector3::new(
             self.game_data.camera_rotation[1].cos() * self.game_data.camera_rotation[0].cos(),
@@ -1514,7 +1514,7 @@ impl State {
             self.init.queue.write_buffer(&self.world_fragment_buffer, 16, bytemuck::cast_slice(eye_position));
             self.init.queue.write_buffer(&self.world_fragment_buffer_transparent, 16, bytemuck::cast_slice(eye_position));
         }
-        if self.frame % 30 == 10 {
+        if self.frame % 30 == 10 || self.frame % 30 == 15 {
             let updated_chunk;
             let updated_chunk_transparent;
             let updated_chunk_data_len;
@@ -1524,60 +1524,69 @@ impl State {
                 updated_chunk_transparent = world_data_check.updated_chunk_data_transparent.clone();
                 updated_chunk_data_len = updated_chunk.len();
             }
-            if updated_chunk_data_len > 0 {
-                let chunk_data = &updated_chunk[0];
-                let chunk_data_transparent = &updated_chunk_transparent[0];
-                self.vertex_data[chunk_data.0] = chunk_data.1.clone();
-                self.vertex_data_transparent[chunk_data_transparent.0] = chunk_data_transparent.1.clone();
-
-                self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[chunk_data.0]));
-                self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[chunk_data_transparent.0]));
-
-                self.world_num_vertices += self.vertex_data[chunk_data.0].len() as u32;
-                self.world_num_vertices_transparent += self.vertex_data_transparent[chunk_data_transparent.0].len() as u32;
-
-                {
-                    let mut world_data_setting = self.world_data.lock().unwrap();
-                    world_data_setting.updated_chunks.push(chunk_data.0);
-                    world_data_setting.updated_chunks_transparent.push(chunk_data_transparent.0);
-                    world_data_setting.updated_chunk_data.remove(0);
-                    world_data_setting.updated_chunk_data_transparent.remove(0);
+            for i in 0..10 {
+                if updated_chunk_data_len > i {
+                    let chunk_data = &updated_chunk[i];
+                    let chunk_data_transparent = &updated_chunk_transparent[i];
+                    self.vertex_data[chunk_data.0] = chunk_data.1.clone();
+                    self.vertex_data_transparent[chunk_data_transparent.0] = chunk_data_transparent.1.clone();
+    
+                    self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[chunk_data.0]));
+                    self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[chunk_data_transparent.0]));
+    
+                    self.world_num_vertices += self.vertex_data[chunk_data.0].len() as u32;
+                    self.world_num_vertices_transparent += self.vertex_data_transparent[chunk_data_transparent.0].len() as u32;
+    
+                    {
+                        let mut world_data_setting = self.world_data.lock().unwrap();
+                        world_data_setting.updated_chunks.push(chunk_data.0);
+                        world_data_setting.updated_chunks_transparent.push(chunk_data_transparent.0);
+                        world_data_setting.updated_chunk_data.remove(0);
+                        world_data_setting.updated_chunk_data_transparent.remove(0);
+                    }
                 }
             }
         }
-        if self.frame % 30 == 20 {
-            let created_chunk_data_len;
+        if self.frame % 30 == 20 || self.frame % 30 == 25 {
+            let mut chunks_added = 0;
+            let mut created_chunk_data_len;
             {
                 let mut world_data_check = self.world_data.lock().unwrap();
                 created_chunk_data_len = world_data_check.created_chunk_data.len();
-                if created_chunk_data_len > 0 {
-                    let updated_chunk_transparent = &world_data_check.created_chunk_data_transparent;
-                    let chunk_data = &world_data_check.created_chunk_data[0].clone();
-                    let chunk_data_transparent = &updated_chunk_transparent[0];
-                    self.vertex_data.push(chunk_data.0.clone());
-                    self.vertex_data_transparent.push(chunk_data_transparent.0.clone());
+                for i in 0..3 {
+                    if created_chunk_data_len > i+1 {
+                        chunks_added += 1;
+                        let updated_chunk = &world_data_check.created_chunk_data;
+                        let updated_chunk_transparent = &world_data_check.created_chunk_data_transparent;
+                        let chunk_data = &updated_chunk[i].clone();
+                        let chunk_data_transparent = &updated_chunk_transparent[i];
+                        self.vertex_data.push(chunk_data.0.clone());
+                        self.vertex_data_transparent.push(chunk_data_transparent.0.clone());
 
-                    self.model_matrices.push(chunk_data.4);
-                    self.model_matrices_transparent.push(chunk_data_transparent.4);
-                    self.normal_matrices.push(chunk_data.5);
-                    self.normal_matrices_transparent.push(chunk_data_transparent.5);
-                    self.game_data.add_object(chunk_data.0.clone(), chunk_data_transparent.0.clone(), (chunk_data.1, chunk_data.2, chunk_data.3), true);
-                    self.vertex_offset.push(0);
-                    self.vertex_offset_transparent.push(0);
-                    
-                    world_data_check.active_chunks.push(self.vertex_data.len() - 1);
-                    world_data_check.updated_chunks.push(self.vertex_data.len() - 1);
-                    world_data_check.chunk_update_queue.push(self.vertex_data.len() - 1);
-                    world_data_check.created_chunk_data.remove(0);
-                    world_data_check.created_chunk_data_transparent.remove(0);
-                    world_data_check.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
+                        self.model_matrices.push(chunk_data.4);
+                        self.model_matrices_transparent.push(chunk_data_transparent.4);
+                        self.normal_matrices.push(chunk_data.5);
+                        self.normal_matrices_transparent.push(chunk_data_transparent.5);
+                        self.game_data.add_object(chunk_data.0.clone(), chunk_data_transparent.0.clone(), (chunk_data.1, chunk_data.2, chunk_data.3), true);
+                        self.vertex_offset.push(0);
+                        self.vertex_offset_transparent.push(0);
+                        
+                        world_data_check.active_chunks.push(self.vertex_data.len() - 1);
+                        world_data_check.updated_chunks.push(self.vertex_data.len() - 1);
+                        world_data_check.chunk_update_queue.push(self.vertex_data.len() - 1);
+                        world_data_check.created_chunk_data.remove(i);
+                        world_data_check.created_chunk_data_transparent.remove(i);
+                        world_data_check.add_object((chunk_data.1, chunk_data.2, chunk_data.3));
+
+                        created_chunk_data_len = world_data_check.created_chunk_data.len();
+                    }
                 }
             }
-            if created_chunk_data_len > 0 {
-                self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[self.vertex_data.len() - 1]));
-                self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[self.vertex_data_transparent.len() - 1]));
-                self.world_num_vertices += self.vertex_data[self.vertex_data.len() - 1].len() as u32;
-                self.world_num_vertices_transparent += self.vertex_data_transparent[self.vertex_data_transparent.len() - 1].len() as u32;
+            for i in 1..chunks_added+1 {
+                self.init.queue.write_buffer(&self.world_vertex_buffer, self.world_num_vertices as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data[self.vertex_data.len() - i]));
+                self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, self.world_num_vertices_transparent as u64 * std::mem::size_of::<Vertex>() as u64, bytemuck::cast_slice(&self.vertex_data_transparent[self.vertex_data_transparent.len() - i]));
+                self.world_num_vertices += self.vertex_data[self.vertex_data.len() - i].len() as u32;
+                self.world_num_vertices_transparent += self.vertex_data_transparent[self.vertex_data_transparent.len() - i].len() as u32;
             }
         }
         if self.frame % 300 == 0 {
@@ -1663,9 +1672,9 @@ impl State {
             self.init.queue.write_buffer(&self.text_vertex_uniform_buffer, 0, &combined_data);
         }
 
-        let current_time_updated = std::time::Instant::now();
-        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-        println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
+        //let current_time_updated = std::time::Instant::now();
+        //let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+        //println!("update time: {:.4}ms amount of vertices solid: {} transparent: {} fps: {:.2}", update_time * 1000.0, self.world_num_vertices, self.world_num_vertices_transparent, 1.0 / update_time);
         //println!("fps: {}", 1.0 / update_time);
     }
 
