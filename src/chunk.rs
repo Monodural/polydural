@@ -37,6 +37,9 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                 }
             }
 
+            //let river_noise = randomness_functions.noise.get([position_x as f64 / 1000.0, position_z as f64 / 1000.0]);
+            //let river_noise_branching = randomness_functions.noise.get([position_x as f64 / 50.0, position_z as f64 / 50.0]);
+
             for y in 0..32 {
                 let position_y = (y + chunk_position_y) as f32;
 
@@ -53,7 +56,12 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
 
                 let cave_noise = randomness_functions.noise.get([position_x as f64 / 25.0, position_y as f64 / 25.0, position_z as f64 / 25.0]);
 
-                if (position_x.powf(2.0) + (position_y - 16.0).powf(2.0) + position_z.powf(2.0)).sqrt() > 10.0 && cave_noise < 0.7 {
+                if cave_noise < 0.7 {
+                    /*if position_y > terrain_max_height - (0.012 - river_noise.abs()) as f32 * 400.0 && river_noise.abs() < 0.012 {
+                        continue;
+                    } else if position_y > terrain_max_height - (0.006 - river_noise.abs() * river_noise_branching.abs()) as f32 * 600.0 && river_noise.abs() * river_noise_branching.abs() < 0.006 {
+                        continue;
+                    }*/
                     let mut found_layer = false;
                     for layer_ in 0..block_layers.len() {
                         let layer = &block_layers[block_layers.len() - layer_ - 1];
@@ -67,7 +75,10 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                             found_layer = true;
                         }
                     }
-                    if position_y == (terrain_max_height + 1.0).floor() {
+                    if position_y == (terrain_max_height + 1.0).floor() && y > 0 && (
+                        chunk[(x * 32 * 32 + (y - 1) * 32 + z) as usize] == world_data.block_index["grass_1"] as i8 || 
+                        chunk[(x * 32 * 32 + (y - 1) * 32 + z) as usize] == world_data.block_index["grass_2"] as i8
+                    ) {
                         let tree_chosen = rng.gen_range(0..trees.len());
                         let tree = &trees[tree_chosen];
                         let folliage_number: f32 = rng.gen();
