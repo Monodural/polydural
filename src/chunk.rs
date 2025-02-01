@@ -22,8 +22,8 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
         for z in 0..32 {
             let position_z = (z + chunk_position_z) as f32;
 
-            let temperature = randomness_functions.noise.get([position_x as f64 / 1000.0, position_z as f64 / 1000.0]) as f32 * 50.0 + 30.0;
-            let moisture = randomness_functions.noise.get([position_x as f64 / 10000.0, position_z as f64 / 10000.0]) as f32 * 50.0 + 50.0;
+            let temperature = randomness_functions.noise.get([position_x as f64 / 2000.0, position_z as f64 / 2000.0]) as f32 * 50.0 + 30.0;
+            let moisture = randomness_functions.noise.get([position_x as f64 / 1000.0, position_z as f64 / 1000.0]) as f32 * 50.0 + 50.0;
 
             let mut closest = (10000.0, &"".to_string());
             let biomes = &world_data.biomes;
@@ -77,7 +77,11 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                     }
                     if position_y == (terrain_max_height + 1.0).floor() && y > 0 && (
                         chunk[(x * 32 * 32 + (y - 1) * 32 + z) as usize] == world_data.block_index["grass_1"] as i8 || 
-                        chunk[(x * 32 * 32 + (y - 1) * 32 + z) as usize] == world_data.block_index["grass_2"] as i8
+                        chunk[(x * 32 * 32 + (y - 1) * 32 + z) as usize] == world_data.block_index["grass_2"] as i8 || 
+                        chunk[(x * 32 * 32 + (y - 1) * 32 + z) as usize] == world_data.block_index["dirt"] as i8 || 
+                        chunk[(x * 32 * 32 + (y - 1) * 32 + z) as usize] == world_data.block_index["snow"] as i8 || 
+                        chunk[(x * 32 * 32 + (y - 1) * 32 + z) as usize] == world_data.block_index["sand_1"] as i8 || 
+                        chunk[(x * 32 * 32 + (y - 1) * 32 + z) as usize] == world_data.block_index["sand_2"] as i8
                     ) {
                         let tree_chosen = rng.gen_range(0..trees.len());
                         let tree = &trees[tree_chosen];
