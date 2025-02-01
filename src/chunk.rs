@@ -99,8 +99,8 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
 
                 if chunk[(x * 32 * 32 + actual_y * 32 + z) as usize] != 0 {
                     let is_transparent = &world_data.blocks[(chunk[(x * 32 * 32 + actual_y * 32 + z) as usize] - 1) as usize].5;
-                    if *is_transparent && light_level >= 127 / 6 {
-                        light_level -= 127 / 6;
+                    if *is_transparent && light_level >= 127 / 12 {
+                        light_level -= 127 / 12;
                     }/* else {
                         light_level -= 127 / 4;
                         if light_level < 0 {

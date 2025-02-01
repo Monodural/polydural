@@ -27,7 +27,7 @@ pub struct WorldData {
     pub textures: Vec<(image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, wgpu::Extent3d, u32, u32)>,
     pub biomes: HashMap<String, (i8, i8, i8, Vec<(Vec<String>, i64)>, i64, Vec<(String, f32)>, Vec<(String, f32)>, Vec<(String, f32)>)>,
     pub structures: HashMap<String, Vec<common::Block>>,
-    pub audio_files: Vec<Vec<i16>>,
+    pub audio_files: Vec<Vec<Vec<i16>>>,
     pub sound_queue: Vec<(usize, f32)>,
     pub music_queue: Vec<(usize, f32)>,
     chunk_data_terrain_thread: Arc<Mutex<HashMap<(i64, i64, i64), Vec<i8>>>>,

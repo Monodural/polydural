@@ -20,7 +20,8 @@ use std::sync::{Arc, Mutex};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use hound;
-//use std::path::Path;
+use lewton::inside_ogg::OggStreamReader;
+extern crate lewton;
 
 use crate::{containers::Inventory, world::{self, WorldData}};
 use crate::interact;
@@ -351,7 +352,9 @@ struct State {
     chunks: HashMap<(i64, i64, i64), Vec<i8>>,
     blocks: Vec<(String, Vec<i8>, String, String, bool, bool, bool)>,
     render_ui: bool,
-    rng: rand::prelude::ThreadRng
+    //rng: rand::prelude::ThreadRng,
+    chunk_world_vertices: Vec<Vertex>,
+    chunk_transparent_world_vertices: Vec<Vertex>
 }
 
 impl State {
@@ -1271,9 +1274,12 @@ impl State {
         }
 
         let chunks = HashMap::new();
-        let rng: rand::prelude::ThreadRng = rand::thread_rng();
+        //let rng: rand::prelude::ThreadRng = rand::thread_rng();
 
         let render_ui = true;
+
+        let chunk_world_vertices: Vec<Vertex> = Vec::new();
+        let chunk_transparent_world_vertices: Vec<Vertex> = Vec::new();
 
         Self {
             init,
@@ -1321,7 +1327,9 @@ impl State {
             chunks,
             blocks,
             render_ui,
-            rng
+            //rng,
+            chunk_world_vertices,
+            chunk_transparent_world_vertices
         }
     }
 
@@ -1504,10 +1512,10 @@ impl State {
                     }
                 }
 
-                let chance = self.rng.gen_range(0..10);
+                /*let chance = self.rng.gen_range(0..10);
                 if chance == 0 {
                     world_data.sound_queue.push((4, 0.1));
-                }
+                }*/
             }
 
             let eye_position:&[f32; 3] = &Point3::new(self.game_data.camera_position.x, self.game_data.camera_position.y, self.game_data.camera_position.z).into();
@@ -1589,37 +1597,161 @@ impl State {
                 self.world_num_vertices_transparent += self.vertex_data_transparent[self.vertex_data_transparent.len() - i].len() as u32;
             }
         }
+
+        // this will update the distances for solid chunks in a few different frames
         if self.frame % 300 == 0 {
-            let mut chunk: Vec<Vertex> = Vec::new();
+            self.chunk_world_vertices.clear();
 
             let active_chunk_data;
             {
-                active_chunk_data = self.world_data.lock().unwrap().active_chunks.clone();
+                active_chunk_data = self.world_data.lock().unwrap();
             }
 
-            for i in &active_chunk_data {
-                self.vertex_offset[*i] = chunk.len() as u64;
-                chunk.extend(&self.vertex_data[*i]);
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = 0;
+            let end = total_chunks / 5;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset[*i] = self.chunk_world_vertices.len() as u64;
+                self.chunk_world_vertices.extend(&self.vertex_data[*i]);
             }
-
-            self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&chunk));
-            self.world_num_vertices = chunk.len() as u32;
         }
+        if self.frame % 300 == 2 {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap();
+            }
+
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = total_chunks / 5;
+            let end = 2 * total_chunks / 5;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset[*i] = self.chunk_world_vertices.len() as u64;
+                self.chunk_world_vertices.extend(&self.vertex_data[*i]);
+            }
+        }
+        if self.frame % 300 == 4 {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap();
+            }
+
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = 2 * total_chunks / 5;
+            let end = 3 * total_chunks / 5;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset[*i] = self.chunk_world_vertices.len() as u64;
+                self.chunk_world_vertices.extend(&self.vertex_data[*i]);
+            }
+        }
+        if self.frame % 300 == 6 {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap();
+            }
+
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = 3 * total_chunks / 5;
+            let end = 4 * total_chunks / 5;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset[*i] = self.chunk_world_vertices.len() as u64;
+                self.chunk_world_vertices.extend(&self.vertex_data[*i]);
+            }
+        }
+        if self.frame % 300 == 8 {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap();
+            }
+
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = 4 * total_chunks / 5;
+            let end = total_chunks;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset[*i] = self.chunk_world_vertices.len() as u64;
+                self.chunk_world_vertices.extend(&self.vertex_data[*i]);
+            }
+        }
+        if self.frame % 300 == 10 {
+            self.init.queue.write_buffer(&self.world_vertex_buffer, 0, bytemuck::cast_slice(&self.chunk_world_vertices));
+            self.world_num_vertices = self.chunk_world_vertices.len() as u32;
+        }
+
+        // this will update the distances for transparent chunks in a few different frames
         if self.frame % 300 == 150 {
-            let mut chunk_transparent: Vec<Vertex> = Vec::new();
+            self.chunk_transparent_world_vertices.clear();
 
             let active_chunk_data;
             {
-                active_chunk_data = self.world_data.lock().unwrap().active_chunks.clone();
+                active_chunk_data = self.world_data.lock().unwrap();
             }
 
-            for i in &active_chunk_data {
-                self.vertex_offset_transparent[*i] = chunk_transparent.len() as u64;
-                chunk_transparent.extend(&self.vertex_data_transparent[*i]);
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = 0;
+            let end = total_chunks / 5;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset_transparent[*i] = self.chunk_transparent_world_vertices.len() as u64;
+                self.chunk_transparent_world_vertices.extend(&self.vertex_data_transparent[*i]);
+            }
+        }
+        if self.frame % 300 == 152 {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap();
             }
 
-            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&chunk_transparent));
-            self.world_num_vertices_transparent = chunk_transparent.len() as u32;
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = total_chunks / 5;
+            let end = 2 * total_chunks / 5;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset_transparent[*i] = self.chunk_transparent_world_vertices.len() as u64;
+                self.chunk_transparent_world_vertices.extend(&self.vertex_data_transparent[*i]);
+            }
+        }
+        if self.frame % 300 == 154 {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap();
+            }
+
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = 2 * total_chunks / 5;
+            let end = 3 * total_chunks / 5;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset_transparent[*i] = self.chunk_transparent_world_vertices.len() as u64;
+                self.chunk_transparent_world_vertices.extend(&self.vertex_data_transparent[*i]);
+            }
+        }
+        if self.frame % 300 == 156 {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap();
+            }
+
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = 3 * total_chunks / 5;
+            let end = 4 * total_chunks / 5;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset_transparent[*i] = self.chunk_transparent_world_vertices.len() as u64;
+                self.chunk_transparent_world_vertices.extend(&self.vertex_data_transparent[*i]);
+            }
+        }
+        if self.frame % 300 == 158 {
+            let active_chunk_data;
+            {
+                active_chunk_data = self.world_data.lock().unwrap();
+            }
+
+            let total_chunks = active_chunk_data.active_chunks.len();
+            let start = 4 * total_chunks / 5;
+            let end = total_chunks;
+            for i in &active_chunk_data.active_chunks[start..end] {
+                self.vertex_offset_transparent[*i] = self.chunk_transparent_world_vertices.len() as u64;
+                self.chunk_transparent_world_vertices.extend(&self.vertex_data_transparent[*i]);
+            }
+        }
+        if self.frame % 300 == 160 {
+            self.init.queue.write_buffer(&self.world_vertex_buffer_transparent, 0, bytemuck::cast_slice(&self.chunk_transparent_world_vertices));
+            self.world_num_vertices_transparent = self.chunk_transparent_world_vertices.len() as u32;
         }
 
         let up_direction = cgmath::Vector3::unit_y();
@@ -2012,7 +2144,7 @@ pub fn load_block_model_files(world_data_thread: &Arc<Mutex<world::WorldData>>, 
     }
 }
 
-fn handle_audio_data(world_data: &mut world::WorldData, file_content: &[u8]) {
+fn handle_audio_data_wav(world_data: &mut world::WorldData, file_content: &[u8]) {
     let cursor = std::io::Cursor::new(file_content);
     let mut reader = hound::WavReader::new(cursor).expect("Failed to read WAV data");
 
@@ -2022,17 +2154,33 @@ fn handle_audio_data(world_data: &mut world::WorldData, file_content: &[u8]) {
                 .samples::<i16>()
                 .map(|s| s.expect("Failed to read sample"))
                 .collect();
-            world_data.audio_files.push(samples);
+            world_data.audio_files.push(vec![samples]);
         }
         hound::SampleFormat::Float => {
             let samples: Vec<i16> = reader
                 .samples::<f32>()
                 .map(|s| (s.expect("Failed to read sample") * i16::MAX as f32) as i16)
                 .collect();
-            world_data.audio_files.push(samples);
+            world_data.audio_files.push(vec![samples]);
         }
     }
 }
+fn handle_audio_data_ogg(world_data: &mut world::WorldData, file_content: &[u8]) {
+    let cursor = Cursor::new(file_content);
+    let mut reader = OggStreamReader::new(cursor).expect("Failed to read OGG data");
+
+    let mut all_samples: Vec<Vec<i16>> = Vec::new();
+    while let Some(packet) = reader.read_dec_packet().expect("Failed to read packet") {
+        for (channel_index, channel_samples) in packet.iter().enumerate() {
+            if all_samples.len() <= channel_index {
+                all_samples.push(vec![]);
+            }
+            all_samples[channel_index].extend(channel_samples);
+        }
+    }
+    world_data.audio_files.push(all_samples);
+}
+
 pub fn load_audio_files(world_data_thread: &Arc<Mutex<world::WorldData>>, modding_allowed: bool) {
     let mut audio_files = Vec::new();
     let mut world_data = world_data_thread.lock().unwrap();
@@ -2049,7 +2197,13 @@ pub fn load_audio_files(world_data_thread: &Arc<Mutex<world::WorldData>>, moddin
                     if path.extension().map_or(false, |ext| ext == "wav") {
                         if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
                             println!("Found the modded audio file: {}", file_name);
-                            audio_files.push(file_name.to_string());
+                            audio_files.push((file_name.to_string(), false));
+                        }
+                    }
+                    if path.extension().map_or(false, |ext| ext == "ogg") {
+                        if let Some(file_name) = path.strip_prefix(&exe_dir).ok().and_then(|p| p.to_str()) {
+                            println!("Found the modded audio file: {}", file_name);
+                            audio_files.push((file_name.to_string(), true));
                         }
                     }
                 }
@@ -2059,19 +2213,34 @@ pub fn load_audio_files(world_data_thread: &Arc<Mutex<world::WorldData>>, moddin
     audio_files.extend(
         Assets::iter()
             .filter(|file| file.starts_with("sounds/") && file.ends_with(".wav"))
-            .map(|file| file.to_string())
+            .map(|file| (file.to_string(), false))
+    );
+    audio_files.extend(
+        Assets::iter()
+            .filter(|file| file.starts_with("sounds/") && file.ends_with(".ogg"))
+            .map(|file| (file.to_string(), true))
     );
     audio_files.sort();
     audio_files.dedup();
     for file in audio_files {
-        println!("Found audio file: {}", file);
-        let file_path = exe_dir.join(&file);
-        if file_path.exists() {
-            let file_content = fs::read(file_path).expect("Failed to read audio file");
-            handle_audio_data(&mut world_data, &file_content);
-        } else if let Some(asset) = Assets::get(&file) {
-            let file_content = asset.data.as_ref();
-            handle_audio_data(&mut world_data, &file_content);
+        println!("Found audio file: {}", file.0);
+        let file_path = exe_dir.join(&file.0);
+        if !file.1 {
+            if file_path.exists() {
+                let file_content = fs::read(file_path).expect("Failed to read audio file");
+                handle_audio_data_wav(&mut world_data, &file_content);
+            } else if let Some(asset) = Assets::get(&file.0) {
+                let file_content = asset.data.as_ref();
+                handle_audio_data_wav(&mut world_data, &file_content);
+            }
+        } else {
+            if file_path.exists() {
+                let file_content = fs::read(file_path).expect("Failed to read audio file");
+                handle_audio_data_ogg(&mut world_data, &file_content);
+            } else if let Some(asset) = Assets::get(&file.0) {
+                let file_content = asset.data.as_ref();
+                handle_audio_data_ogg(&mut world_data, &file_content);
+            }
         }
     }
 }
