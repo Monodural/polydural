@@ -126,6 +126,7 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
             }
         }
     }
+    // do a second loop for horizontal
 
     return (chunk, light);
 }
