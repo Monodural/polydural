@@ -110,25 +110,39 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
             for y in 0..32 {
                 let actual_y = 31 - y;
 
-                light[(x * 32 * 32 + actual_y * 32 + z) as usize] = light_level;
-
                 if chunk[(x * 32 * 32 + actual_y * 32 + z) as usize] != 0 {
                     let is_transparent = &world_data.blocks[(chunk[(x * 32 * 32 + actual_y * 32 + z) as usize] - 1) as usize].5;
                     if *is_transparent && light_level >= 127 / 12 {
                         light_level -= 127 / 12;
-                    }/* else {
-                        light_level -= 127 / 4;
-                        if light_level < 0 {
-                            light_level = 0;
-                        }
-                    }*/
+                    } else {
+                        light_level = 0; 
+                    }
                 }
+
+                light[(x * 32 * 32 + actual_y * 32 + z) as usize] = light_level;
             }
         }
     }
     // do a second loop for horizontal
+    /*for x in 0..32 {
+        for z in 0..32 {
+            for y in 0..32 {
+                light[(x * 32 * 32 + actual_y * 32 + z) as usize] = light_level;
+            }
+        }
+    }*/
 
     return (chunk, light);
+}
+
+pub fn generate_light(chunk: &Vec<i8>) -> Vec<i8> {
+    let mut light: Vec<i8> = Vec::new();
+
+    for _ in 0..32*32*32 {
+        light.push(127);
+    }
+
+    return light;
 }
 
 pub fn set_block(chunk: Vec<i8>, x: i8, y: i8, z: i8, block_type: i8) -> Vec<i8> {
@@ -156,8 +170,8 @@ pub fn render_chunk(chunk: &Vec<i8>, light_data: &Vec<i8>, game_data: &common::G
     let world_data_clone = &world_data;
 
     for x in 0..32 {
-        for y in 0..32 {
-            for z in 0..32 {
+        for z in 0..32 {
+            for y in 0..32 {
                 let block_id = get_block(&chunk, x, y, z, &game_data, chunks, &world_data_clone, chunk_position_x, chunk_position_y, chunk_position_z);
                 if block_id == 0 { continue; }
 
