@@ -1854,7 +1854,7 @@ impl State {
                         }),
                         store: true,
                     },
-                })],
+                })], 
                 //depth_stencil_attachment: None,
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &depth_view,
