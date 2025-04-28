@@ -23,10 +23,20 @@ pub struct InitWgpu {
 impl InitWgpu {
     pub async fn init_wgpu(window: &Window) -> Self {
         let size = window.inner_size();
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-        backends: wgpu::Backends::DX12,
-        dx12_shader_compiler: Default::default(),
-    });
+
+        let instance;
+        if cfg!(target_os = "windows") {
+            instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+                backends: wgpu::Backends::DX12,
+                dx12_shader_compiler: Default::default(),
+            });
+        } else {
+            instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+                backends: wgpu::Backends::VULKAN,
+                dx12_shader_compiler: Default::default(),
+            });
+        }
+
         let surface = unsafe { instance.create_surface(window) }.unwrap();
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
