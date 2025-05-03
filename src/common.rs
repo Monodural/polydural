@@ -1400,18 +1400,18 @@ impl State {
 
         if let Some(is_pressed) = keys_down.get("right") {
             if is_pressed == &true {
-                self.game_data.camera_rotation[1] += frame_time / 5.0;
+                self.game_data.camera_rotation[1] += frame_time * 0.1;
             }
         }
         if let Some(is_pressed) = keys_down.get("left") {
             if is_pressed == &true {
-                self.game_data.camera_rotation[1] -= frame_time / 5.0;
+                self.game_data.camera_rotation[1] -= frame_time * 0.1;
             }
         }
 
         //println!("{}", frame_time);
-        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * (frame_time * 0.006);
-        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * (frame_time * 0.006);
+        self.game_data.camera_rotation[1] -= mouse_movement[0] as f32 * (frame_time * 0.1);
+        self.game_data.camera_rotation[0] += mouse_movement[1] as f32 * (frame_time * 0.1);
         self.game_data.camera_rotation[0] = self.game_data.camera_rotation[0].clamp(-std::f32::consts::FRAC_PI_2 / 1.01, std::f32::consts::FRAC_PI_2 / 1.01);
 
         let forward = Vector3::new(
@@ -1456,7 +1456,7 @@ impl State {
         }
         if let Some(is_pressed) = keys_down.get("space") {
             if is_pressed == &true && !self.game_data.jumping && self.game_data.grounded {
-                self.game_data.camera_acceleration_walking[1] = frame_time * 2.0;
+                self.game_data.camera_acceleration_walking[1] = 0.5;
                 self.game_data.jumping = true;
             }
         }

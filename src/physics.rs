@@ -31,8 +31,8 @@ let block_type = get_block_global(game_data, &chunks, &blocks,
     }
 
     if !grounded {
-        game_data.camera_position.y -= game_data.camera_acceleration.y;
-        game_data.camera_acceleration.y += 0.01 * frame_time;
+        game_data.camera_position.y -= game_data.camera_acceleration.y * frame_time;
+        game_data.camera_acceleration.y += 0.01;
     } else {
         game_data.camera_acceleration.y = 0.0;
         game_data.jumping = false;

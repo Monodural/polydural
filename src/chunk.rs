@@ -110,12 +110,12 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
             for y in 0..32 {
                 let actual_y = 31 - y;
 
-                if chunk[(x * 32 * 32 + actual_y * 32 + z) as usize] != 0 {
+                if chunk[(x * 32 * 32 + actual_y * 32 + z) as usize] > 0 {
                     let is_transparent = &world_data.blocks[(chunk[(x * 32 * 32 + actual_y * 32 + z) as usize] - 1) as usize].5;
                     if *is_transparent && light_level >= 127 / 12 {
                         light_level -= 127 / 12;
                     } else {
-                        light_level = 0; 
+                        //light_level = 0;
                     }
                 }
 
@@ -135,7 +135,7 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
     return (chunk, light);
 }
 
-pub fn generate_light(chunk: &Vec<i8>) -> Vec<i8> {
+pub fn _generate_light(_chunk: &Vec<i8>) -> Vec<i8> {
     let mut light: Vec<i8> = Vec::new();
 
     for _ in 0..32*32*32 {
