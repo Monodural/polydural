@@ -1,11 +1,12 @@
-pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, randomness_functions: &RandomnessFunctions, rng: &mut rand::prelude::ThreadRng, world_data: &world::WorldData) -> (Vec<i8>, Vec<i8>) {
-    let mut chunk: Vec<i8> = Vec::new();
-    let mut light: Vec<i8> = Vec::new();
+/*use crate::common::{self, RandomnessFunctions};
+use noise::NoiseFn;
+use rand::Rng;
 
-    for _ in 0..32*32*32 {
-        chunk.push(0);
-        light.push(127);
-    }
+use crate::config::{CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
+
+pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, randomness_functions: &RandomnessFunctions, rng: &mut rand::prelude::ThreadRng, world_data: &world::WorldData) -> (Vec<i8>, Vec<i8>) {
+    let mut chunk = [CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z; 0];
+    let mut light = [CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z; 0];
 
     let chunk_position_x = 32 * chunk_position_x;
     let chunk_position_y = 32 * chunk_position_y;
@@ -119,4 +120,4 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
     }
 
     return (chunk, light);
-}
+}*/
