@@ -3,7 +3,7 @@ name = "polydural"
 version = "0.0.6"
 edition = "2021"
 authors = ["Charli van Nood <charli.vannood@gmail.com>"]
-description = "Just your average voxel game where an unknown entity is trying to communicate with you..."
+description = "Just your average voxel game..."
 homepage = "https://polydural.com/"
 
 include = ["src/**/*", "assets/**/*"]
