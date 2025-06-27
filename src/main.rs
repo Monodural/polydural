@@ -1,5 +1,6 @@
 pub mod renderer;
 pub mod world;
+pub mod config;
 
 use world::object::Object;
 
