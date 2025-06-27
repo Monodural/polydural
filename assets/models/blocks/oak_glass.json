@@ -1,0 +1,11 @@
+{
+    "block_name": "oak_glass",
+    "creator": "polydural",
+    "textures": {
+        "all": 15
+    },
+    "shape": "default",
+    "sides": true,
+    "transparent": true,
+    "collide": true
+}

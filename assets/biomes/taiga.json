@@ -1,0 +1,23 @@
+{
+    "biome_name": "taiga",
+
+    "temperature": -5,
+    "moisture": 70,
+    "height": 6,
+
+    "block_levels": [
+        [["snow"], 0],
+        [["dirt"], 3],
+        [["stone"], 7]
+    ],
+    "sea_level": -1,
+
+    "trees": [
+        ["spruce_1", 0.01],
+        ["spruce_2", 0.01],
+        ["spruce_3", 0.005],
+        ["spruce_4", 0.005]
+    ],
+    "folliage": [],
+    "buildings": []
+}

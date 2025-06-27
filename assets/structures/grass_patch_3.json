@@ -1,0 +1,10 @@
+{
+    "structure_name": "grass_patch_3",
+    "blocks": [
+        {"position":[0,0,0],"block":"grass_3"},
+        {"position":[0,0,1],"block":"flower_spike_1"},
+        {"position":[0,0,-1],"block":"flower_spike_1"},
+        {"position":[-1,0,0],"block":"grass_3"},
+        {"position":[1,0,0],"block":"flower_spike_1"}
+    ]
+}

@@ -1,0 +1,11 @@
+{
+    "block_name": "dirt",
+    "creator": "polydural",
+    "textures": {
+        "all": 43
+    },
+    "shape": "default",
+    "sides": false,
+    "transparent": false,
+    "collide": true
+}

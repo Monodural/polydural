@@ -1,0 +1,11 @@
+{
+    "block_name": "sand_2",
+    "creator": "polydural",
+    "textures": {
+        "all": 17
+    },
+    "shape": "default",
+    "sides": false,
+    "transparent": false,
+    "collide": true
+}

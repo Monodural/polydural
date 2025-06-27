@@ -1,0 +1,11 @@
+{
+    "block_name": "oak_leaves",
+    "creator": "polydural",
+    "textures": {
+        "all": 5
+    },
+    "shape": "leaves",
+    "sides": true,
+    "transparent": true,
+    "collide": true
+}

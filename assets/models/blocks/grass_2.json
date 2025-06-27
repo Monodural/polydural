@@ -1,0 +1,13 @@
+{
+    "block_name": "grass_2",
+    "creator": "polydural",
+    "textures": {
+        "top": 56,
+        "sides": 48,
+        "bottom": 43
+    },
+    "shape": "default",
+    "sides": false,
+    "transparent": false,
+    "collide": true
+}

@@ -1,0 +1,11 @@
+{
+    "block_name": "stone",
+    "creator": "polydural",
+    "textures": {
+        "all": 25
+    },
+    "shape": "default",
+    "sides": false,
+    "transparent": false,
+    "collide": true
+}

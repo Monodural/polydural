@@ -10,7 +10,7 @@ use crate::renderer::vertex::Vertex;
 use crate::world::world::World;
 
 #[derive(RustEmbed)]
-#[folder = "client_assets/"]
+#[folder = "assets/"]
 struct Assets;
 
 pub struct Renderer {
@@ -231,7 +231,7 @@ impl Renderer {
         init.queue.write_buffer(&vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
         init.queue.write_buffer(&vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
 
-        let texture_data = Assets::get("textures/atlas.png").expect("Failed to load embedded texture");
+        let texture_data = Assets::get("textures/blocks/atlas.png").expect("Failed to load embedded texture");
         let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
         println!("loaded blocks/atlas");
         let world_texture_rgba = img.to_rgba8().to_vec();

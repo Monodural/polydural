@@ -1,0 +1,13 @@
+{
+    "block_name": "cactus",
+    "creator": "polydural",
+    "textures": {
+        "top": 37,
+        "sides": 36,
+        "bottom": 37
+    },
+    "shape": "pillar",
+    "sides": true,
+    "transparent": false,
+    "collide": true
+}

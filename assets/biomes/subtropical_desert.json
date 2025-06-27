@@ -1,0 +1,20 @@
+{
+    "biome_name": "subtropical_desert",
+
+    "temperature": 25,
+    "moisture": 10,
+    "height": 6,
+
+    "block_levels": [
+        [["sand_1", "sand_2", "sand_1", "sand_1", "sand_1"], 0],
+        [["stone"], 5]
+    ],
+    "sea_level": -1,
+
+    "trees": [
+        ["cactus_1", 0.01],
+        ["cactus_2", 0.005]
+    ],
+    "folliage": [],
+    "buildings": []
+}

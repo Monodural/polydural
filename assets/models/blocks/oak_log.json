@@ -1,0 +1,13 @@
+{
+    "block_name": "oak_log",
+    "creator": "polydural",
+    "textures": {
+        "top": 47,
+        "sides": 31,
+        "bottom": 47
+    },
+    "shape": "default",
+    "sides": false,
+    "transparent": false,
+    "collide": true
+}
