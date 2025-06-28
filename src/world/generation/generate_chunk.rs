@@ -1,18 +1,18 @@
-/*use crate::world::generation::randomness::RandomnessFunctions;
+use crate::world::{generation::randomness::RandomnessFunctions, world::World};
 use noise::NoiseFn;
 use rand::Rng;
 
-use crate::config::{CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
+use crate::config::CHUNK_LENGTH;
 
-pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, randomness_functions: &RandomnessFunctions, rng: &mut rand::prelude::ThreadRng, world_data: &world::WorldData) -> (Vec<i8>, Vec<i8>) {
-    let mut chunk = [CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z; 0];
-    let mut light = [CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z; 0];
+pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_position_z: i64, world: World) -> ([u8; CHUNK_LENGTH], [u8; CHUNK_LENGTH]) {
+    let mut chunk: [u8; CHUNK_LENGTH] = [0; CHUNK_LENGTH];
+    let mut light: [u8; CHUNK_LENGTH] = [0; CHUNK_LENGTH];
 
     let chunk_position_x = 32 * chunk_position_x;
     let chunk_position_y = 32 * chunk_position_y;
     let chunk_position_z = 32 * chunk_position_z;
 
-    for x in 0..32 {
+    /*for x in 0..32 {
         let position_x = (x + chunk_position_x) as f32;
         for z in 0..32 {
             let position_z = (z + chunk_position_z) as f32;
@@ -117,7 +117,7 @@ pub fn generate_chunk(chunk_position_x: i64, chunk_position_y: i64, chunk_positi
                 light[(x * 32 * 32 + actual_y * 32 + z) as usize] = light_level;
             }
         }
-    }
+    }*/
 
     return (chunk, light);
-}*/
+}
