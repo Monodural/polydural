@@ -1,4 +1,4 @@
-/*use crate::common::{self, RandomnessFunctions};
+/*use crate::world::generation::randomness::RandomnessFunctions;
 use noise::NoiseFn;
 use rand::Rng;
 

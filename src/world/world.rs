@@ -1,14 +1,17 @@
 use crate::world::{object::Object};
 use crate::world::generation::randomness;
+use crate::world::biomes;
 
 pub struct World {
     random_functions: randomness::RandomnessFunctions,
+    biomes: biomes::Biomes,
     objects: Vec<Object>
 }
 impl World {
     pub fn new() -> Self{
         Self {
             random_functions: randomness::RandomnessFunctions::new(),
+            biomes: biomes::Biomes::new(),
             objects: Vec::new()
         }
     }
