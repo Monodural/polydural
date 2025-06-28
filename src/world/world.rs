@@ -24,8 +24,3 @@ impl World {
         &self.objects
     }
 }
-
-pub fn create_world() -> World {
-    let world: World = World::new();
-    world
-}

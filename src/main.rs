@@ -5,7 +5,7 @@ pub mod config;
 use world::object::Object;
 
 fn main() {
-    let mut world = world::world::create_world();
+    let mut world = world::world::World::new();
 
     let cube_object1 = world::objects::cube::create_cube((1.0, 1.0, 4.0), (0.0, 0.0, 0.0));
     world.add_object(Object::create(
