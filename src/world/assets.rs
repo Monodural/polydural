@@ -4,12 +4,13 @@ use std::fs;
 use std::io::Read;
 
 use crate::config::MODDING;
+use crate::world::biomes::Biomes;
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
 struct Assets;
 
-pub fn load_biomes() {
+pub fn load_biomes(biomes: &Biomes) {
     let mut json_files = Vec::new();
     let mut exe_dir: PathBuf = PathBuf::new();
     if MODDING {
